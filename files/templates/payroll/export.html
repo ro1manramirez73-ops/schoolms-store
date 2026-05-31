@@ -1,0 +1,120 @@
+{% extends "payroll/_base.html" %}
+{% block payroll_content %}
+
+<div class="emp-select-bar">
+  <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
+    <label class="form-label mb-0 text-muted small">Employee</label>
+    <select name="emp" class="form-select form-select-sm" style="min-width:200px" onchange="this.form.submit()">
+      {% for n in employees %}<option value="{{ n }}" {{ 'selected' if n==selected }}>{{ n }}</option>{% endfor %}
+    </select>
+    <label class="form-label mb-0 text-muted small">Year</label>
+    <select name="year" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
+      {% for y in years %}<option value="{{ y }}" {{ 'selected' if y==year }}>{{ y }}</option>{% endfor %}
+    </select>
+  </form>
+</div>
+
+<div class="row g-3 mb-3">
+  {% if emp %}
+  <div class="col-md-4">
+    <div class="pr-section h-100">
+      <h6>Full Payroll Report</h6>
+      <p class="small text-muted">Complete breakdown for <strong>{{ selected }}</strong> — {{ year }}</p>
+      <a href="{{ url_for('payroll_bp.export_report_pdf', emp=selected, year=year) }}"
+         class="btn btn-primary w-100" target="_blank">⬇ Download Report PDF</a>
+    </div>
+  </div>
+
+  {% if payments %}
+  <div class="col-md-4">
+    <div class="pr-section h-100">
+      <h6>Payment Receipt</h6>
+      {% set last = payments[0] %}
+      <p class="small text-muted">
+        Last payment: <strong>${{ "{:,.2f}".format(last.amount) }}</strong>
+        — {{ last.payment_date }}
+      </p>
+      <a href="{{ url_for('payroll_bp.export_receipt_pdf', emp=selected, year=year) }}"
+         class="btn btn-primary w-100" target="_blank">⬇ Download Receipt PDF</a>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="col-md-4">
+    <div class="pr-section h-100">
+      <h6>Bulk Export — All Employees</h6>
+      <p class="small text-muted">Download a ZIP with reports for every employee.</p>
+      <a href="{{ url_for('payroll_bp.export_bulk_zip', year=year) }}"
+         class="btn btn-outline-primary w-100">⬇ Download ZIP ({{ year }})</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Monthly Report -->
+<div class="pr-section">
+  <h6>📅 Monthly Payroll Report</h6>
+
+  {% if rpt_rows %}
+  <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+    <div>
+      <label class="form-label">Month</label>
+      <select id="monthSel" class="form-select form-select-sm" style="width:140px">
+        {% for num, name in months %}
+        <option value="{{ num }}" {{ 'selected' if num==current_month }}>{{ name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="align-self-end">
+      <button onclick="downloadMonthly()" class="btn btn-primary btn-sm">⬇ Download Monthly PDF</button>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="pr-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th class="num">Gross</th>
+          <th class="num">Emp NIB</th>
+          <th class="num">Employer NIB</th>
+          <th class="num">Deductions</th>
+          <th class="num">Net Pay</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rpt_rows %}
+        <tr>
+          <td>{{ r.Name }}</td>
+          <td class="num">${{ "{:,.2f}".format(r.Gross) }}</td>
+          <td class="num">${{ "{:,.2f}".format(r['Emp NIB']) }}</td>
+          <td class="num">${{ "{:,.2f}".format(r['Employer NIB']) }}</td>
+          <td class="num">${{ "{:,.2f}".format(r.Deductions) }}</td>
+          <td class="num">${{ "{:,.2f}".format(r['Net Pay']) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td>TOTALS</td>
+          <td class="num">${{ "{:,.2f}".format(rpt_rows|sum(attribute='Gross')) }}</td>
+          <td class="num">${{ "{:,.2f}".format(rpt_rows|sum(attribute='Emp NIB')) }}</td>
+          <td class="num">${{ "{:,.2f}".format(rpt_rows|sum(attribute='Employer NIB')) }}</td>
+          <td class="num">${{ "{:,.2f}".format(rpt_rows|sum(attribute='Deductions')) }}</td>
+          <td class="num">${{ "{:,.2f}".format(rpt_rows|sum(attribute='Net Pay')) }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted small">No employee payroll data found.</p>
+  {% endif %}
+</div>
+
+<script>
+function downloadMonthly() {
+  const month = document.getElementById('monthSel').value;
+  window.open('/payroll/export/monthly.pdf?year={{ year }}&month='+month, '_blank');
+}
+</script>
+{% endblock %}

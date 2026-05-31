@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% block title %}Staff — {{ school_name }}{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="fw-bold mb-0">Staff</h2>
+    <p class="text-muted small mb-0">{{ teachers|length }} active staff members</p>
+  </div>
+  {% if session.role == 'admin' %}
+  <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
+    <i class="bi bi-plus-lg me-1"></i>Add Staff
+  </button>
+  {% endif %}
+</div>
+
+<!-- Search & Filter -->
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <div class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <input id="staffSearch" type="text" class="form-control form-control-sm" placeholder="Search name, email, phone…">
+      </div>
+      <div class="col-md-4">
+        <select id="jobFilter" class="form-select form-select-sm">
+          <option value="">All Job Titles</option>
+          <option value="Teacher">Teacher</option>
+          <option value="Lead Teacher">Lead Teacher</option>
+          <option value="Assistant Teacher">Assistant Teacher</option>
+          <option value="Special Education Teacher">Special Education Teacher</option>
+          <option value="PE Teacher">PE Teacher</option>
+          <option value="Music Teacher">Music Teacher</option>
+          <option value="Art Teacher">Art Teacher</option>
+          <option value="Classroom Aide">Classroom Aide</option>
+          <option value="Counselor">Counselor</option>
+          <option value="Principal">Principal</option>
+          <option value="Vice Principal">Vice Principal</option>
+          <option value="Administrator">Administrator</option>
+          <option value="Department Head">Department Head</option>
+          <option value="Librarian">Librarian</option>
+          <option value="Nurse">Nurse</option>
+          <option value="Coach">Coach</option>
+          <option value="Support Staff">Support Staff</option>
+        </select>
+      </div>
+      <div class="col-md-3 text-end">
+        <span id="staffCount" class="text-muted small"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Staff Table -->
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0" id="staffTable">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">Name</th>
+            <th>Job Title</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Address</th>
+            {% if session.role == 'admin' %}<th>Salary</th>{% endif %}
+            <th>Status</th>
+            {% if session.role == 'admin' %}<th></th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in teachers %}
+          <tr class="staff-row">
+            <td class="ps-3">
+              <div class="fw-semibold">{{ t.first_name }} {{ t.last_name }}</div>
+              <div class="text-muted small">ID: {{ t.teacher_id }}</div>
+            </td>
+            <td>
+              {% set jt = (t.subject or '')|lower %}
+              {% if jt and 'assistant' not in jt and 'aide' not in jt and ('teacher' in jt or 'lead' in jt) %}
+                {% set bg='#dbeafe' %}{% set fg='#1d4ed8' %}
+              {% elif 'assistant' in jt or 'aide' in jt %}
+                {% set bg='#d1fae5' %}{% set fg='#065f46' %}
+              {% elif 'principal' in jt or 'administrator' in jt or 'director' in jt or 'department' in jt %}
+                {% set bg='#ede9fe' %}{% set fg='#4f46e5' %}
+              {% elif 'counselor' in jt %}
+                {% set bg='#ccfbf1' %}{% set fg='#0f766e' %}
+              {% elif jt %}
+                {% set bg='#f1f5f9' %}{% set fg='#475569' %}
+              {% else %}
+                {% set bg='#f1f5f9' %}{% set fg='#94a3b8' %}
+              {% endif %}
+              <span class="badge rounded-pill" style="background:{{ bg }};color:{{ fg }};font-weight:500;">
+                {{ t.subject or '—' }}
+              </span>
+            </td>
+            <td>
+              {% if t.email %}
+              <a href="mailto:{{ t.email }}" class="text-decoration-none small">{{ t.email }}</a>
+              {% else %}—{% endif %}
+            </td>
+            <td class="small">{{ t.phone or '—' }}</td>
+            <td class="small text-muted">{{ t.address or '—' }}</td>
+            {% if session.role == 'admin' %}<td class="small fw-semibold">{{ t.salary|money }}</td>{% endif %}
+            <td><span class="badge bg-{{ 'success' if t.status == 'Active' else 'secondary' }}">{{ t.status }}</span></td>
+            {% if session.role == 'admin' %}
+            <td class="text-end pe-3">
+              <button class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle="modal" data-bs-target="#editModal{{ t.id }}">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <form method="POST" action="/teachers/delete/{{ t.id }}" class="d-inline"
+                    onsubmit="return confirm('Remove {{ t.first_name }} {{ t.last_name }} from staff?')">
+                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+            {% endif %}
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="text-center text-muted py-5">No staff records found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modals -->
+{% for t in teachers %}
+<div class="modal fade" id="editModal{{ t.id }}" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <form method="POST" action="/teachers/edit/{{ t.id }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Staff — {{ t.first_name }} {{ t.last_name }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-2">
+            <div class="col-md-3"><label class="form-label small fw-semibold">Staff ID *</label><input name="teacher_id" class="form-control form-control-sm" value="{{ t.teacher_id }}" required></div>
+            <div class="col-md-4"><label class="form-label small fw-semibold">First Name *</label><input name="first_name" class="form-control form-control-sm" value="{{ t.first_name }}" required></div>
+            <div class="col-md-5"><label class="form-label small fw-semibold">Last Name *</label><input name="last_name" class="form-control form-control-sm" value="{{ t.last_name }}" required></div>
+            <div class="col-md-4"><label class="form-label small fw-semibold">Job Title</label>
+              <select name="subject" class="form-select form-select-sm">
+                <option value="">— Select —</option>
+                {% for opt in ['Teacher','Lead Teacher','Assistant Teacher','Special Education Teacher','PE Teacher','Music Teacher','Art Teacher','Classroom Aide','Counselor','Principal','Vice Principal','Administrator','Department Head','Librarian','Nurse','Coach','Support Staff'] %}
+                <option {% if t.subject == opt %}selected{% endif %}>{{ opt }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4"><label class="form-label small fw-semibold">DOB</label><input type="date" name="dob" class="form-control form-control-sm" value="{{ t.dob or '' }}"></div>
+            <div class="col-md-4"><label class="form-label small fw-semibold">Gender</label>
+              <select name="gender" class="form-select form-select-sm">
+                <option value="">—</option>
+                <option {% if t.gender=='Male' %}selected{% endif %}>Male</option>
+                <option {% if t.gender=='Female' %}selected{% endif %}>Female</option>
+                <option {% if t.gender=='Other' %}selected{% endif %}>Other</option>
+              </select>
+            </div>
+            {% if session.role == 'admin' %}
+            <div class="col-md-4"><label class="form-label small fw-semibold">Salary</label><input type="number" name="salary" class="form-control form-control-sm" step="0.01" value="{{ t.salary }}"></div>
+            {% endif %}
+            <div class="col-md-6"><label class="form-label small fw-semibold">Email</label><input name="email" class="form-control form-control-sm" value="{{ t.email or '' }}"></div>
+            <div class="col-md-6"><label class="form-label small fw-semibold">Phone</label><input name="phone" class="form-control form-control-sm" value="{{ t.phone or '' }}"></div>
+            <div class="col-12"><label class="form-label small fw-semibold">Address</label><input name="address" class="form-control form-control-sm" value="{{ t.address or '' }}"></div>
+            <div class="col-md-4"><label class="form-label small fw-semibold">Status</label>
+              <select name="status" class="form-select form-select-sm">
+                <option {% if t.status=='Active' %}selected{% endif %}>Active</option>
+                <option {% if t.status=='Inactive' %}selected{% endif %}>Inactive</option>
+              </select>
+            </div>
+            <input type="hidden" name="qualification" value="{{ t.subject or '' }}">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Add Modal -->
+<div class="modal fade" id="addModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <form method="POST" action="/teachers/add">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Staff Member</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-2">
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Staff ID</label>
+              <input id="newTeacherId" name="teacher_id" class="form-control form-control-sm" placeholder="Generating…" readonly style="background:#f8fafc;">
+            </div>
+            <div class="col-md-4"><label class="form-label small fw-semibold">First Name *</label><input name="first_name" class="form-control form-control-sm" required></div>
+            <div class="col-md-5"><label class="form-label small fw-semibold">Last Name *</label><input name="last_name" class="form-control form-control-sm" required></div>
+            <div class="col-md-4"><label class="form-label small fw-semibold">Job Title</label>
+              <select name="subject" class="form-select form-select-sm">
+                <option value="">— Select —</option>
+                {% for opt in ['Teacher','Lead Teacher','Assistant Teacher','Special Education Teacher','PE Teacher','Music Teacher','Art Teacher','Classroom Aide','Counselor','Principal','Vice Principal','Administrator','Department Head','Librarian','Nurse','Coach','Support Staff'] %}
+                <option>{{ opt }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4"><label class="form-label small fw-semibold">DOB</label><input type="date" name="dob" class="form-control form-control-sm"></div>
+            {% if session.role == 'admin' %}
+            <div class="col-md-4"><label class="form-label small fw-semibold">Salary</label><input type="number" name="salary" class="form-control form-control-sm" step="0.01" value="0"></div>
+            {% endif %}
+            <div class="col-md-6"><label class="form-label small fw-semibold">Email</label><input name="email" class="form-control form-control-sm"></div>
+            <div class="col-md-6"><label class="form-label small fw-semibold">Phone</label><input name="phone" class="form-control form-control-sm"></div>
+            <div class="col-12"><label class="form-label small fw-semibold">Address</label><input name="address" class="form-control form-control-sm"></div>
+            <div class="col-md-4"><label class="form-label small fw-semibold">Status</label>
+              <select name="status" class="form-select form-select-sm">
+                <option selected>Active</option>
+                <option>Inactive</option>
+              </select>
+            </div>
+            <input type="hidden" name="qualification" value="">
+            <input type="hidden" name="hire_date" value="">
+            <input type="hidden" name="gender" value="">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Add Staff Member</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function(){
+  const search  = document.getElementById('staffSearch');
+  const filter  = document.getElementById('jobFilter');
+  const rows    = document.querySelectorAll('.staff-row');
+  const counter = document.getElementById('staffCount');
+
+  function applyFilters(){
+    const q   = search.value.toLowerCase();
+    const job = filter.value.toLowerCase();
+    let visible = 0;
+    rows.forEach(row => {
+      const text = row.textContent.toLowerCase();
+      const jobCell = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+      const match = (!q || text.includes(q)) && (!job || jobCell.includes(job));
+      row.style.display = match ? '' : 'none';
+      if(match) visible++;
+    });
+    counter.textContent = visible + ' of ' + rows.length + ' shown';
+  }
+
+  search.addEventListener('input', applyFilters);
+  filter.addEventListener('change', applyFilters);
+  applyFilters();
+})();
+
+// Auto-fill next teacher ID when add modal opens
+document.getElementById('addModal').addEventListener('show.bs.modal', function() {
+  const field = document.getElementById('newTeacherId');
+  field.value = 'Generating…';
+  fetch('/teachers/next-id')
+    .then(r => r.json())
+    .then(d => { field.value = d.id; })
+    .catch(() => { field.value = ''; field.removeAttribute('readonly'); field.placeholder = 'Enter Staff ID'; });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "payroll/_base.html" %}
+{% block payroll_content %}
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="pr-section">
+      <h6>Database Info</h6>
+      <table class="pr-table">
+        <tbody>
+          <tr><td>Employees</td><td class="num"><strong>{{ num_employees }}</strong></td></tr>
+          <tr><td>Payment Records</td><td class="num"><strong>{{ num_payments }}</strong></td></tr>
+          <tr><td>Years in DB</td><td class="num"><strong>{{ years_in_db }}</strong></td></tr>
+          <tr><td>DB Path</td><td class="text-muted small">{{ db_path }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pr-section mt-3">
+      <h6>Import from Excel</h6>
+      <p class="small text-muted">Import employees, deductions, and payments from an .xlsx file.</p>
+      <form method="post" action="{{ url_for('payroll_bp.import_excel') }}" enctype="multipart/form-data">
+        <div class="mb-2">
+          <label class="form-label">Upload Excel file (.xlsx / .xlsm)</label>
+          <input name="excel_file" type="file" accept=".xlsx,.xlsm" class="form-control form-control-sm">
+        </div>
+        <button type="submit" class="btn btn-sm btn-primary">Import</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="pr-section">
+      <h6>Employee List</h6>
+      {% if employees %}
+      <div class="table-responsive" style="max-height:320px;overflow-y:auto;">
+        <table class="pr-table">
+          <thead><tr><th>Name</th><th>Pay Type</th><th class="num">Salary</th><th class="num">Net/mo</th></tr></thead>
+          <tbody>
+            {% for e in employees %}
+            <tr>
+              <td>{{ e.name }}</td>
+              <td>{{ e.pay_type or '—' }}</td>
+              <td class="num">${{ "{:,.2f}".format(e.salary or 0) }}</td>
+              <td class="num">${{ "{:,.2f}".format(e.balance_m or 0) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted small">No employees yet.</p>
+      {% endif %}
+    </div>
+
+    <div class="pr-section mt-3" style="border-color:#ef4444">
+      <h6 style="color:#ef4444">⚠ Danger Zone</h6>
+      <p class="small text-muted">Clear ALL payroll data. This cannot be undone.</p>
+      <form method="post" action="{{ url_for('payroll_bp.clear_database') }}"
+            onsubmit="return confirm('Clear ALL payroll data? This cannot be undone.')">
+        <div class="d-flex gap-2 align-items-end">
+          <div class="flex-grow-1">
+            <label class="form-label">Password to confirm</label>
+            <input name="pwd" type="password" class="form-control form-control-sm" placeholder="Delete password" required>
+          </div>
+          <button type="submit" class="btn btn-sm btn-danger">Clear Database</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,181 @@
+﻿{% extends "base.html" %}
+{% block title %}Classes & Subjects — {{ school_name }}{% endblock %}
+{% block content %}
+<h2 class="fw-bold mb-4">Classrooms &amp; Subjects</h2>
+
+<ul class="nav nav-tabs mb-3" id="classTabs">
+  <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#classes-tab">Classrooms</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#subjects-tab">Subjects</a></li>
+</ul>
+
+<div class="tab-content">
+  <!-- Classes Tab -->
+  <div class="tab-pane fade show active" id="classes-tab">
+    <div class="d-flex justify-content-end mb-3">
+      {% if session.role == 'admin' %}
+      <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addClassModal">+ Add Classroom</button>
+      {% endif %}
+    </div>
+    <div class="card">
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr><th>Name</th><th>Grade</th><th>Teacher</th><th>Room</th><th>Capacity</th><th>Students</th><th>Year</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {% for c in classes %}
+            <tr>
+              <td class="fw-semibold">
+                <a href="/classes/{{ c.id }}" class="text-decoration-none" style="color:#4f46e5;">{{ c.name }}</a>
+              </td>
+              <td>{{ c.grade or '—' }}</td>
+              <td>{{ c.teacher_name or '—' }}</td>
+              <td>{{ c.room or '—' }}</td>
+              <td>{{ c.capacity }}</td>
+              <td><span class="badge bg-primary">{{ c.student_count }}</span></td>
+              <td class="text-muted">{{ c.academic_year or '—' }}</td>
+              <td>
+                {% if session.role == 'admin' %}
+                <form method="POST" action="/classes/delete/{{ c.id }}" class="d-inline"
+                      onsubmit="return confirm('Delete class {{ c.name }}?')">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8" class="text-center text-muted py-4">No classes yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subjects Tab -->
+  <div class="tab-pane fade" id="subjects-tab">
+    <div class="d-flex justify-content-end mb-3">
+      {% if can('classes') %}
+      <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addSubjectModal">+ Add Subject</button>
+      {% endif %}
+    </div>
+    <div class="card">
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr><th>Name</th><th>Code</th><th>Classroom</th><th>Teacher</th><th>Credits</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {% for s in subjects %}
+            <tr>
+              <td class="fw-semibold">{{ s.name }}</td>
+              <td class="text-muted">{{ s.code or '—' }}</td>
+              <td>{{ s.class_name or '—' }}</td>
+              <td>{{ s.teacher_name or '—' }}</td>
+              <td>{{ s.credits }}</td>
+              <td>
+                {% if session.role == 'admin' %}
+                <form method="POST" action="/subjects/delete/{{ s.id }}" class="d-inline"
+                      onsubmit="return confirm('Delete subject {{ s.name }}?')">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-4">No subjects yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Classroom Modal -->
+<div class="modal fade" id="addClassModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="POST" action="/classes/add">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Add Classroom</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <div class="row g-2">
+            <div class="col-12"><label class="form-label small">Classroom Name *</label><input name="name" class="form-control form-control-sm" required></div>
+            <div class="col-md-6"><label class="form-label small">Grade Level</label><input name="grade" class="form-control form-control-sm"></div>
+            <div class="col-md-6"><label class="form-label small">Room</label><input name="room" class="form-control form-control-sm"></div>
+            <div class="col-md-6"><label class="form-label small">Teacher</label>
+              <select name="teacher_id" class="form-select form-select-sm">
+                <option value="">— None —</option>
+                {% for t in teachers %}<option value="{{ t.id }}">{{ t.first_name }} {{ t.last_name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3"><label class="form-label small">Capacity</label><input type="number" name="capacity" class="form-control form-control-sm" value="30"></div>
+            <div class="col-md-3"><label class="form-label small">Academic Year</label><input name="academic_year" class="form-control form-control-sm" placeholder="2024/25"></div>
+          </div>
+        </div>
+        <div class="modal-footer"><button type="submit" class="btn btn-primary btn-sm">Add Classroom</button></div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Subject Modal -->
+<div class="modal fade" id="addSubjectModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <form method="POST" action="/subjects/bulk-add">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Add Subject to Classrooms</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-8"><label class="form-label small">Subject Name *</label><input name="name" class="form-control form-control-sm" required></div>
+            <div class="col-md-4"><label class="form-label small">Code</label><input name="code" class="form-control form-control-sm"></div>
+            <div class="col-md-8"><label class="form-label small">Teacher <span class="text-muted">(leave blank to use each class's own teacher)</span></label>
+              <select name="teacher_id" class="form-select form-select-sm">
+                <option value="">— Each class's teacher —</option>
+                {% for t in teachers %}<option value="{{ t.id }}">{{ t.first_name }} {{ t.last_name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4"><label class="form-label small">Credits</label><input type="number" name="credits" class="form-control form-control-sm" value="1"></div>
+            <div class="col-12">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="form-label small mb-0">Add to Classrooms <span class="text-danger">*</span></label>
+                <div class="d-flex gap-1">
+                  <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="toggleSubjAll(true)">All</button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="toggleSubjAll(false)">None</button>
+                </div>
+              </div>
+              <div class="border rounded p-2" style="max-height:220px;overflow-y:auto;">
+                <div class="row g-1">
+                  {% for c in classes_list %}
+                  <div class="col-md-4 col-6">
+                    <div class="form-check">
+                      <input class="form-check-input subj-class-check" type="checkbox" name="class_ids" value="{{ c.id }}" id="scls_{{ c.id }}">
+                      <label class="form-check-label small" for="scls_{{ c.id }}">{{ c.name }}</label>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+              <div class="form-text">Check every classroom that teaches this subject.</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer"><button type="submit" class="btn btn-primary btn-sm">Add Subject</button></div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function toggleSubjAll(check) {
+  document.querySelectorAll('.subj-class-check').forEach(cb => cb.checked = check);
+}
+// Auto-activate Subjects tab when redirected back after adding
+if (window.location.search.includes('tab=subjects')) {
+  document.addEventListener('DOMContentLoaded', function() {
+    var tab = document.querySelector('a[href="#subjects-tab"]');
+    if (tab) new bootstrap.Tab(tab).show();
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact — {{ school_name }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+  <style>.navbar { background: #1e1b4b !important; } body { background: #f0f2f5; }</style>
+</head>
+<body>
+<nav class="navbar navbar-dark">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="/home">{{ school_name }}</a>
+    <div class="ms-auto d-flex gap-2">
+      <a href="/home" class="btn btn-outline-light btn-sm">Home</a>
+      <a href="/admissions" class="btn btn-outline-light btn-sm">Apply</a>
+      <a href="/login" class="btn btn-light btn-sm">Login</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-5">
+  <h2 class="fw-bold text-center mb-5">Contact Us</h2>
+  <div class="row g-4 justify-content-center">
+    {% if school_address %}
+    <div class="col-md-4">
+      <div class="card h-100 text-center shadow-sm">
+        <div class="card-body p-4">
+          <i class="bi bi-geo-alt fs-1 text-primary mb-3 d-block"></i>
+          <h5 class="fw-bold">Address</h5>
+          <p class="text-muted mb-0">{{ school_name }}<br>{{ school_address }}</p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    {% if school_phone %}
+    <div class="col-md-4">
+      <div class="card h-100 text-center shadow-sm">
+        <div class="card-body p-4">
+          <i class="bi bi-telephone fs-1 text-success mb-3 d-block"></i>
+          <h5 class="fw-bold">Phone</h5>
+          <p class="text-muted mb-1">Main Office</p>
+          <a href="tel:{{ school_phone }}" class="fw-semibold text-success text-decoration-none fs-5">{{ school_phone }}</a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    {% if school_email %}
+    <div class="col-md-4">
+      <div class="card h-100 text-center shadow-sm">
+        <div class="card-body p-4">
+          <i class="bi bi-envelope fs-1 text-danger mb-3 d-block"></i>
+          <h5 class="fw-bold">Email</h5>
+          <p class="text-muted mb-1">General Inquiries</p>
+          <a href="mailto:{{ school_email }}" class="fw-semibold text-danger text-decoration-none">{{ school_email }}</a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="text-center mt-5">
+    <h5 class="fw-bold mb-1">Office Hours</h5>
+    <p class="text-muted">Monday – Friday &nbsp;|&nbsp; 8:00 AM – 3:00 PM</p>
+    <a href="/admissions" class="btn fw-semibold text-white mt-2" style="background:#4f46e5;">Apply for Admission</a>
+  </div>
+</div>
+
+<footer class="py-4 mt-5" style="background:#1e1b4b;color:#a5b4fc;">
+  <div class="container text-center">
+    <p class="mb-1 fw-semibold">{{ school_name }}{% if school_address %} — {{ school_address }}{% endif %}</p>
+    {% if school_phone or school_email %}
+    <p class="mb-0" style="font-size:.82rem;">
+      {% if school_phone %}<a href="tel:{{ school_phone }}" class="text-decoration-none" style="color:#a5b4fc;">{{ school_phone }}</a>{% endif %}
+      {% if school_phone and school_email %} &nbsp;·&nbsp; {% endif %}
+      {% if school_email %}<a href="mailto:{{ school_email }}" class="text-decoration-none" style="color:#a5b4fc;">{{ school_email }}</a>{% endif %}
+    </p>
+    {% endif %}
+  </div>
+</footer>
+</body>
+</html>

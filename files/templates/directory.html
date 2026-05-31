@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+{% block title %}Telephone Directory — {{ school_name }}{% endblock %}
+{% block page_title %}Telephone Directory{% endblock %}
+
+{% block content %}
+<style>
+  .dir-search {
+    max-width: 420px;
+    border-radius: 10px; border: 1.5px solid #e2e8f0;
+    padding: .5rem .9rem; font-size: .9rem;
+    transition: .15s;
+  }
+  .dir-search:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,.1); outline: none; }
+
+  .dir-tabs { display: flex; gap: .5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .dir-tab {
+    padding: .45rem 1.1rem; border-radius: 8px; border: 1.5px solid #e2e8f0;
+    background: #fff; font-size: .85rem; font-weight: 600; color: #64748b;
+    cursor: pointer; transition: .15s;
+  }
+  .dir-tab.active {
+    background: linear-gradient(90deg, #4f46e5, #6366f1);
+    color: #fff; border-color: transparent;
+  }
+  .dir-tab:hover:not(.active) { border-color: #4f46e5; color: #4f46e5; }
+
+  .dir-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+
+  .dir-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+    padding: 1.25rem 1rem; text-align: center;
+    transition: box-shadow .15s, transform .15s;
+  }
+  .dir-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.08); transform: translateY(-2px); }
+
+  .dir-avatar {
+    width: 60px; height: 60px; border-radius: 50%; margin: 0 auto .75rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .dir-avatar img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; }
+
+  .dir-name  { font-weight: 700; font-size: .92rem; color: #0f172a; margin-bottom: .2rem; }
+  .dir-role  { font-size: .75rem; color: #64748b; margin-bottom: .6rem; }
+  .dir-contacts { display: flex; flex-direction: column; gap: .3rem; }
+  .dir-contact {
+    display: flex; align-items: center; gap: .5rem; justify-content: center;
+    font-size: .78rem; color: #475569; text-decoration: none;
+  }
+  .dir-contact i { color: #4f46e5; font-size: .8rem; }
+  .dir-contact:hover { color: #4f46e5; }
+  .dir-contact.no-link { pointer-events: none; }
+
+  .dir-empty { text-align: center; color: #94a3b8; padding: 3rem 0; }
+  .dir-count { font-size: .75rem; color: #94a3b8; margin-bottom: 1rem; }
+
+  @media print {
+    .sidebar, .topbar, .dir-tabs, .dir-search, .print-btn,
+    .no-print { display: none !important; }
+    .dir-grid { grid-template-columns: repeat(3, 1fr); gap: .6rem; }
+    .dir-card  { break-inside: avoid; box-shadow: none; border: 1px solid #ccc; }
+    .main-content { margin: 0 !important; padding: 0 !important; }
+  }
+</style>
+
+<!-- Toolbar -->
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 no-print">
+  <div class="position-relative">
+    <i class="bi bi-search position-absolute" style="left:.75rem;top:50%;transform:translateY(-50%);color:#94a3b8;"></i>
+    <input id="dirSearch" type="text" class="dir-search ps-4"
+           placeholder="Search name, phone, email…" autocomplete="off">
+  </div>
+  <button class="btn btn-sm btn-outline-secondary print-btn" onclick="window.print()">
+    <i class="bi bi-printer me-1"></i> Print Directory
+  </button>
+</div>
+
+<!-- Tabs -->
+<div class="dir-tabs no-print">
+  <button class="dir-tab active" data-target="staff">
+    <i class="bi bi-person-badge me-1"></i>Staff ({{ staff|length }})
+  </button>
+  {% if parents %}
+  <button class="dir-tab" data-target="parents">
+    <i class="bi bi-people me-1"></i>Parents ({{ parents|length }})
+  </button>
+  {% endif %}
+  {% if students %}
+  <button class="dir-tab" data-target="students">
+    <i class="bi bi-mortarboard me-1"></i>Students ({{ students|length }})
+  </button>
+  {% endif %}
+</div>
+
+<!-- ── Staff ── -->
+<div id="pane-staff">
+  <div class="dir-count" id="count-staff"></div>
+  <div class="dir-grid" id="grid-staff">
+    {% for t in staff %}
+    <div class="dir-card" data-search="{{ (t.full_name ~ ' ' ~ (t.phone or '') ~ ' ' ~ (t.email or '') ~ ' ' ~ (t.subject or '') ~ ' ' ~ (t.subjects or ''))|lower }}">
+      <div class="dir-avatar" style="background:linear-gradient(135deg,#4f46e5,#818cf8);">
+        {{ t.first_name[0] }}{{ t.last_name[0] }}
+      </div>
+      <div class="dir-name">{{ t.full_name }}</div>
+      <div class="dir-role">
+        <i class="bi bi-person-badge me-1" style="color:#4f46e5;"></i>
+        {{ t.subjects or t.subject or 'Teacher' }}
+      </div>
+      <div class="dir-contacts">
+        {% if t.phone %}
+        <a href="tel:{{ t.phone }}" class="dir-contact">
+          <i class="bi bi-telephone-fill"></i> {{ t.phone }}
+        </a>
+        {% else %}
+        <span class="dir-contact no-link"><i class="bi bi-telephone" style="color:#cbd5e1;"></i> <span style="color:#cbd5e1;">—</span></span>
+        {% endif %}
+        {% if t.email %}
+        <a href="mailto:{{ t.email }}" class="dir-contact">
+          <i class="bi bi-envelope-fill"></i> {{ t.email }}
+        </a>
+        {% else %}
+        <span class="dir-contact no-link"><i class="bi bi-envelope" style="color:#cbd5e1;"></i> <span style="color:#cbd5e1;">—</span></span>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="dir-empty col-span-full"><i class="bi bi-person-slash d-block mb-2" style="font-size:2rem;"></i>No active staff on record.</div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ── Parents ── -->
+{% if parents %}
+<div id="pane-parents" style="display:none;">
+  <div class="dir-count" id="count-parents"></div>
+  <div class="dir-grid" id="grid-parents">
+    {% for p in parents %}
+    {% set display_name = p.parent_name or p.father_name or '?' %}
+    {% set initials = (display_name.split()[0][0] ~ display_name.split()[-1][0]) if display_name.split()|length > 1 else display_name[0] %}
+    <div class="dir-card" data-search="{{ (
+        (p.parent_name or '') ~ ' ' ~ (p.parent_phone or '') ~ ' ' ~ (p.parent_email or '') ~ ' ' ~
+        (p.father_name or '') ~ ' ' ~ (p.father_phone or '') ~ ' ' ~ (p.father_email or '') ~ ' ' ~
+        p.student_name ~ ' ' ~ (p.class_name or ''))|lower }}">
+      <div class="dir-avatar" style="background:linear-gradient(135deg,#059669,#34d399);">
+        {% if p.photo %}
+        <img src="{{ p.photo }}" alt="{{ display_name }}">
+        {% else %}
+        {{ initials|upper }}
+        {% endif %}
+      </div>
+      <div class="dir-name">{{ p.student_name }}</div>
+      <div class="dir-role">
+        <i class="bi bi-mortarboard me-1" style="color:#059669;"></i>
+        {% if p.class_name %}{{ p.class_name }}{% else %}Student{% endif %}
+      </div>
+      <!-- Mother / Guardian -->
+      {% if p.parent_name %}
+      <div class="dir-contacts" style="border-top:1px solid #f1f5f9;padding-top:.4rem;margin-top:.3rem;">
+        <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.4px;color:#94a3b8;margin-bottom:.2rem;">
+          <i class="bi bi-person-hearts me-1"></i>Mother / Guardian
+        </div>
+        <div style="font-size:.8rem;font-weight:600;color:#374151;margin-bottom:.2rem;">{{ p.parent_name }}</div>
+        {% if p.parent_phone %}
+        <a href="tel:{{ p.parent_phone }}" class="dir-contact">
+          <i class="bi bi-telephone-fill" style="color:#059669;"></i> {{ p.parent_phone }}
+        </a>
+        {% endif %}
+        {% if p.parent_email %}
+        <a href="mailto:{{ p.parent_email }}" class="dir-contact">
+          <i class="bi bi-envelope-fill" style="color:#059669;"></i> {{ p.parent_email }}
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+      <!-- Father -->
+      {% if p.father_name %}
+      <div class="dir-contacts" style="border-top:1px solid #f1f5f9;padding-top:.4rem;margin-top:.3rem;">
+        <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.4px;color:#94a3b8;margin-bottom:.2rem;">
+          <i class="bi bi-person-badge me-1"></i>Father
+        </div>
+        <div style="font-size:.8rem;font-weight:600;color:#374151;margin-bottom:.2rem;">{{ p.father_name }}</div>
+        {% if p.father_phone %}
+        <a href="tel:{{ p.father_phone }}" class="dir-contact">
+          <i class="bi bi-telephone-fill" style="color:#1d4ed8;"></i> {{ p.father_phone }}
+        </a>
+        {% endif %}
+        {% if p.father_email %}
+        <a href="mailto:{{ p.father_email }}" class="dir-contact">
+          <i class="bi bi-envelope-fill" style="color:#1d4ed8;"></i> {{ p.father_email }}
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Students ── -->
+{% if students %}
+<div id="pane-students" style="display:none;">
+  <div class="dir-count" id="count-students"></div>
+  <div class="dir-grid" id="grid-students">
+    {% for s in students %}
+    <div class="dir-card" data-search="{{ (s.full_name ~ ' ' ~ s.student_id ~ ' ' ~ (s.phone or '') ~ ' ' ~ (s.email or '') ~ ' ' ~ (s.class_name or ''))|lower }}">
+      <div class="dir-avatar" style="background:linear-gradient(135deg,#d97706,#fbbf24);">
+        {% if s.photo %}
+        <img src="{{ s.photo }}" alt="{{ s.full_name }}">
+        {% else %}
+        {{ s.first_name[0] }}{{ s.last_name[0] }}
+        {% endif %}
+      </div>
+      <div class="dir-name">{{ s.full_name }}</div>
+      <div class="dir-role">
+        <i class="bi bi-mortarboard me-1" style="color:#d97706;"></i>
+        {{ s.class_name or 'No class' }}
+        <br><span style="color:#94a3b8;font-size:.7rem;">{{ s.student_id }}</span>
+      </div>
+      <div class="dir-contacts">
+        {% if s.phone %}
+        <a href="tel:{{ s.phone }}" class="dir-contact">
+          <i class="bi bi-telephone-fill" style="color:#d97706;"></i> {{ s.phone }}
+        </a>
+        {% else %}
+        <span class="dir-contact no-link"><i class="bi bi-telephone" style="color:#cbd5e1;"></i> <span style="color:#cbd5e1;">—</span></span>
+        {% endif %}
+        {% if s.email %}
+        <a href="mailto:{{ s.email }}" class="dir-contact">
+          <i class="bi bi-envelope-fill" style="color:#d97706;"></i> {{ s.email }}
+        </a>
+        {% else %}
+        <span class="dir-contact no-link"><i class="bi bi-envelope" style="color:#cbd5e1;"></i> <span style="color:#cbd5e1;">—</span></span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<script>
+(function () {
+  // ── Tab switching ──────────────────────────────────────────────────────────
+  const tabs  = document.querySelectorAll('.dir-tab');
+  const panes = { staff: 'pane-staff', parents: 'pane-parents', students: 'pane-students' };
+  let activeTab = 'staff';
+
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabs.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeTab = btn.dataset.target;
+      Object.values(panes).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+      const pane = document.getElementById('pane-' + activeTab);
+      if (pane) pane.style.display = '';
+      applySearch(document.getElementById('dirSearch').value);
+    });
+  });
+
+  // ── Live search ────────────────────────────────────────────────────────────
+  function applySearch(q) {
+    q = q.toLowerCase().trim();
+    const grid  = document.getElementById('grid-' + activeTab);
+    if (!grid) return;
+    const cards = grid.querySelectorAll('.dir-card');
+    let visible = 0;
+    cards.forEach(c => {
+      const match = !q || c.dataset.search.includes(q);
+      c.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    const cnt = document.getElementById('count-' + activeTab);
+    if (cnt) cnt.textContent = q ? `${visible} result${visible !== 1 ? 's' : ''} for "${q}"` : '';
+  }
+
+  document.getElementById('dirSearch').addEventListener('input', e => applySearch(e.target.value));
+
+  // ── Init counts ────────────────────────────────────────────────────────────
+  applySearch('');
+})();
+</script>
+{% endblock %}

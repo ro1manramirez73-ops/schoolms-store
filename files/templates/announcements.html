@@ -1,0 +1,81 @@
+﻿{% extends "base.html" %}
+{% block title %}Announcements — {{ school_name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="fw-bold mb-0">Announcements</h2>
+  {% if can('announcements') %}
+  <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">+ New Announcement</button>
+  {% endif %}
+</div>
+
+{% if announcements %}
+<div class="row g-3">
+  {% for a in announcements %}
+  <div class="col-12">
+    <div class="card {% if a.is_pinned %}border-danger{% endif %}">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            {% if a.is_pinned %}<i class="bi bi-pin-fill text-danger me-1"></i>{% endif %}
+            <span class="fw-bold">{{ a.title }}</span>
+            <span class="badge bg-secondary ms-2">{{ a.audience }}</span>
+            {% if a.class_id %}<span class="badge bg-info ms-1">Class-specific</span>{% endif %}
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="text-muted small">{{ a.created_at|fmt_datetime }} by {{ a.author or 'System' }}</span>
+            {% if session.role == 'admin' %}
+            <form method="POST" action="/announcements/delete/{{ a.id }}" class="d-inline"
+                  onsubmit="return confirm('Delete this announcement?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+        <p class="text-muted mb-0 mt-2">{{ a.body }}</p>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card"><div class="card-body text-center text-muted py-5">No announcements yet.</div></div>
+{% endif %}
+
+<!-- Add Modal -->
+<div class="modal fade" id="addModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="POST" action="/announcements/add">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">New Announcement</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <div class="row g-2">
+            <div class="col-12"><label class="form-label small">Title *</label><input name="title" class="form-control form-control-sm" required></div>
+            <div class="col-12"><label class="form-label small">Message *</label><textarea name="body" class="form-control form-control-sm" rows="4" required></textarea></div>
+            <div class="col-md-6"><label class="form-label small">Audience</label>
+              <select name="audience" class="form-select form-select-sm">
+                <option value="all">Everyone</option>
+                <option value="parents">Parents only</option>
+                <option value="students">Students only</option>
+                <option value="teachers">Teachers only</option>
+              </select>
+            </div>
+            <div class="col-md-6"><label class="form-label small">Class (optional)</label>
+              <select name="class_id" class="form-select form-select-sm">
+                <option value="">— All Classrooms —</option>
+                {% for c in classes %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="is_pinned" value="1">
+                <label class="form-check-label small">Pin this announcement</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer"><button type="submit" class="btn btn-primary btn-sm">Post Announcement</button></div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

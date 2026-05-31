@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+{% block title %}Calendar — {{ school_name }}{% endblock %}
+{% block page_title %}School Calendar{% endblock %}
+{% block head %}
+<style>
+  .cal-container { display: grid; grid-template-columns: 1fr 320px; gap: 1.25rem; align-items: start; }
+  @media(max-width:900px){ .cal-container { grid-template-columns: 1fr; } }
+
+  /* Calendar card */
+  .cal-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; }
+  .cal-header { display:flex; align-items:center; justify-content:space-between; padding:.875rem 1.125rem; border-bottom:1px solid #e2e8f0; }
+  .cal-month-title { font-weight:700; font-size:1rem; color:#0f172a; }
+  .cal-nav-btn { background:transparent; border:1px solid #e2e8f0; border-radius:8px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#64748b; transition:.15s; }
+  .cal-nav-btn:hover { background:#f1f5f9; color:#0f172a; }
+
+  /* Grid */
+  .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); }
+  .cal-day-hdr { text-align:center; font-size:.7rem; font-weight:600; text-transform:uppercase; color:#94a3b8; padding:.5rem 0; border-bottom:1px solid #f1f5f9; }
+  .cal-cell { min-height:90px; padding:.35rem .4rem; border-right:1px solid #f1f5f9; border-bottom:1px solid #f1f5f9; cursor:pointer; transition:.1s; vertical-align:top; position:relative; }
+  .cal-cell:nth-child(7n){ border-right:none; }
+  .cal-cell:hover { background:#f8faff; }
+  .cal-cell.empty { background:#fafafa; cursor:default; }
+  .cal-cell.today { background:#ede9fe; }
+  .cal-cell.today .cal-day-num { background:#4f46e5; color:#fff; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; }
+  .cal-cell.selected { outline:2px solid #4f46e5; outline-offset:-1px; }
+  .cal-day-num { font-size:.8rem; font-weight:600; color:#374151; width:22px; height:22px; display:flex; align-items:center; justify-content:center; margin-bottom:.25rem; }
+  .cal-pill { font-size:.65rem; font-weight:500; padding:.1rem .35rem; border-radius:4px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cal-more { font-size:.62rem; color:#94a3b8; margin-top:1px; }
+
+  /* Right panel */
+  .detail-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; }
+  .detail-header { padding:.875rem 1.125rem; border-bottom:1px solid #e2e8f0; font-weight:600; font-size:.88rem; display:flex; align-items:center; justify-content:space-between; }
+  .detail-body { padding:1rem; }
+  .event-item { border-left:4px solid #4f46e5; padding:.6rem .875rem; border-radius:0 8px 8px 0; background:#f8faff; margin-bottom:.75rem; }
+  .event-item:last-child { margin-bottom:0; }
+  .event-item .ev-title { font-weight:600; font-size:.85rem; color:#0f172a; }
+  .event-item .ev-meta  { font-size:.72rem; color:#64748b; margin-top:.2rem; }
+  .event-item .ev-desc  { font-size:.78rem; color:#374151; margin-top:.35rem; line-height:1.5; }
+
+  /* Upcoming list */
+  .upcoming-item { display:flex; gap:.75rem; align-items:flex-start; padding:.5rem 0; border-bottom:1px solid #f1f5f9; }
+  .upcoming-item:last-child { border-bottom:none; }
+  .upcoming-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; margin-top:4px; }
+  .upcoming-title { font-size:.8rem; font-weight:600; color:#0f172a; }
+  .upcoming-date  { font-size:.7rem; color:#64748b; }
+</style>
+{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <p class="text-muted small mb-0">Click any day to see events. Add events to notify parents, teachers, and students.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a id="printCalBtn" href="/calendar/print" target="_blank" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-printer me-1"></i>Print Calendar
+    </a>
+    {% if session.role in ['admin','teacher'] %}
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addEventModal">
+      <i class="bi bi-plus-circle me-1"></i>Add Event
+    </button>
+    {% endif %}
+  </div>
+</div>
+
+<div class="cal-container">
+  <!-- Calendar grid -->
+  <div class="cal-card">
+    <div class="cal-header">
+      <button class="cal-nav-btn" onclick="prevMonth()"><i class="bi bi-chevron-left"></i></button>
+      <span class="cal-month-title" id="calTitle"></span>
+      <button class="cal-nav-btn" onclick="nextMonth()"><i class="bi bi-chevron-right"></i></button>
+    </div>
+    <div class="cal-grid" id="calDayHeaders"></div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+
+  <!-- Right panel: selected day events + upcoming -->
+  <div>
+    <div class="detail-card mb-3">
+      <div class="detail-header">
+        <span id="detailTitle"><i class="bi bi-calendar-event me-2 text-primary"></i>Select a date</span>
+      </div>
+      <div class="detail-body" id="detailBody">
+        <p class="text-muted small mb-0">Click on a day to see its events.</p>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-header">
+        <span><i class="bi bi-clock-history me-2 text-warning"></i>Upcoming Events</span>
+      </div>
+      <div class="detail-body">
+        {% if upcoming_events %}
+        {% for e in upcoming_events %}
+        <div class="upcoming-item">
+          <div class="upcoming-dot" style="background:{{ e.color }};"></div>
+          <div>
+            <div class="upcoming-title">{{ e.title }}</div>
+            <div class="upcoming-date">
+              {{ e.event_date }}{% if e.start_time %} at {{ e.start_time }}{% endif %}
+              &bull;
+              <span class="badge" style="background:{{ e.color }}20;color:{{ e.color }};font-size:.62rem;">{{ e.event_type }}</span>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="text-muted small mb-0">No upcoming events.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Event Modal -->
+{% if session.role in ['admin','teacher'] %}
+<div class="modal fade" id="addEventModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <form method="POST" action="/calendar/add">
+      <input type="hidden" name="next" value="/calendar">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-calendar-plus me-2 text-primary"></i>Add Calendar Event</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Event Title *</label>
+              <input name="title" class="form-control" required placeholder="e.g. Parent-Teacher Conference">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Description</label>
+              <textarea name="description" class="form-control" rows="2" placeholder="Optional details about this event..."></textarea>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Date *</label>
+              <input type="date" name="event_date" class="form-control" required id="evDate">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Start Time</label>
+              <input type="time" name="start_time" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">End Time</label>
+              <input type="time" name="end_time" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Event Type</label>
+              <select name="event_type" class="form-select" id="evType" onchange="syncColor()">
+                <option value="General">General</option>
+                <option value="Holiday">Holiday</option>
+                <option value="Exam">Exam</option>
+                <option value="Meeting">Meeting</option>
+                <option value="Sports">Sports</option>
+                <option value="Deadline">Deadline</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Notify</label>
+              <select name="audience" class="form-select">
+                <option value="all">Everyone (Parents, Teachers, Students)</option>
+                <option value="parents">Parents only</option>
+                <option value="teachers">Teachers only</option>
+                <option value="students">Students only</option>
+                <option value="staff">Staff only (Teachers + Admin)</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Color</label>
+              <div class="d-flex gap-2 align-items-center mt-1 flex-wrap" id="colorSwatches">
+                {% for col, label in [('#4f46e5','Indigo'),('#10b981','Green'),('#ef4444','Red'),('#f59e0b','Amber'),('#06b6d4','Cyan'),('#8b5cf6','Purple'),('#ec4899','Pink')] %}
+                <div class="color-swatch" data-color="{{ col }}" title="{{ label }}"
+                     style="width:24px;height:24px;border-radius:50%;background:{{ col }};cursor:pointer;border:2px solid transparent;transition:.15s;"
+                     onclick="pickColor('{{ col }}', this)"></div>
+                {% endfor %}
+                <input type="hidden" name="color" id="evColor" value="#4f46e5">
+              </div>
+            </div>
+          </div>
+          <div id="evPreview" class="mt-3 p-2 rounded" style="background:#ede9fe;border-left:4px solid #4f46e5;font-size:.82rem;display:none;">
+            <strong id="evPreviewTitle">Event</strong>
+            <span id="evPreviewDate" class="text-muted ms-2"></span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-send me-1"></i>Save &amp; Notify</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<script>
+const EVENTS_DATA = {{ events_by_date | tojson }};
+const IS_ADMIN = {{ 'true' if session.role == 'admin' else 'false' }};
+const TODAY = '{{ today }}';
+let curYear = new Date().getFullYear();
+let curMonth = new Date().getMonth();
+let selectedCell = null;
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function pad(n){ return String(n).padStart(2,'0'); }
+
+function renderHeaders() {
+  const hdr = document.getElementById('calDayHeaders');
+  hdr.innerHTML = DAYS_SHORT.map(d => `<div class="cal-day-hdr">${d}</div>`).join('');
+}
+
+function renderCalendar() {
+  document.getElementById('calTitle').textContent = MONTHS[curMonth] + ' ' + curYear;
+  const grid = document.getElementById('calGrid');
+  const firstDay = new Date(curYear, curMonth, 1).getDay();
+  const daysInMonth = new Date(curYear, curMonth + 1, 0).getDate();
+  let html = '';
+
+  for (let i = 0; i < firstDay; i++) html += '<div class="cal-cell empty"></div>';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${curYear}-${pad(curMonth+1)}-${pad(d)}`;
+    const isToday = dateStr === TODAY;
+    const evs = EVENTS_DATA[dateStr] || [];
+    html += `<div class="cal-cell ${isToday?'today':''}" data-date="${dateStr}" onclick="selectDay('${dateStr}', this)">
+               <div class="cal-day-num">${d}</div>`;
+    evs.slice(0,3).forEach(ev => {
+      html += `<div class="cal-pill" style="background:${ev.color}22;color:${ev.color};">${ev.title}</div>`;
+    });
+    if (evs.length > 3) html += `<div class="cal-more">+${evs.length-3} more</div>`;
+    html += '</div>';
+  }
+  grid.innerHTML = html;
+}
+
+function selectDay(dateStr, el) {
+  if (selectedCell) selectedCell.classList.remove('selected');
+  el.classList.add('selected');
+  selectedCell = el;
+
+  const evs = EVENTS_DATA[dateStr] || [];
+  const dt = new Date(dateStr + 'T12:00:00');
+  const label = dt.toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+  document.getElementById('detailTitle').innerHTML = `<i class="bi bi-calendar2-event me-2 text-primary"></i>${label}`;
+
+  if (!evs.length) {
+    document.getElementById('detailBody').innerHTML = '<p class="text-muted small mb-0">No events on this day.</p>';
+    return;
+  }
+
+  document.getElementById('detailBody').innerHTML = evs.map(ev => `
+    <div class="event-item mb-2" style="border-left-color:${ev.color};background:${ev.color}0d;">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <div class="ev-title">${ev.title}</div>
+          ${ev.start_time ? `<div class="ev-meta"><i class="bi bi-clock me-1"></i>${ev.start_time}${ev.end_time?' &ndash; '+ev.end_time:''}</div>` : ''}
+          ${ev.description ? `<div class="ev-desc">${ev.description}</div>` : ''}
+          <div class="mt-1">
+            <span class="badge" style="background:${ev.color}22;color:${ev.color};font-size:.65rem;">${ev.event_type}</span>
+            <span class="badge bg-light text-muted ms-1" style="font-size:.65rem;">${ev.audience}</span>
+          </div>
+        </div>
+        ${IS_ADMIN ? `<button class="btn btn-sm btn-outline-danger ms-2" style="padding:.1rem .4rem;font-size:.7rem;" onclick="deleteEvent(${ev.id})"><i class="bi bi-trash"></i></button>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function deleteEvent(id) {
+  if (!confirm('Delete this event? This cannot be undone.')) return;
+  const f = document.createElement('form'); f.method='POST'; f.action='/calendar/delete/'+id;
+  document.body.appendChild(f); f.submit();
+}
+
+function updatePrintLink() {
+  const btn = document.getElementById('printCalBtn');
+  if (btn) btn.href = `/calendar/print?month=${curYear}-${pad(curMonth+1)}`;
+}
+function prevMonth() {
+  if (curMonth === 0) { curMonth=11; curYear--; } else curMonth--;
+  renderCalendar(); clearDetail(); updatePrintLink();
+}
+function nextMonth() {
+  if (curMonth === 11) { curMonth=0; curYear++; } else curMonth++;
+  renderCalendar(); clearDetail(); updatePrintLink();
+}
+function clearDetail() {
+  document.getElementById('detailTitle').innerHTML = '<i class="bi bi-calendar-event me-2 text-primary"></i>Select a date';
+  document.getElementById('detailBody').innerHTML = '<p class="text-muted small mb-0">Click on a day to see its events.</p>';
+  selectedCell = null;
+}
+
+// Color picker
+function pickColor(col, el) {
+  document.querySelectorAll('.color-swatch').forEach(s => s.style.border='2px solid transparent');
+  el.style.border = '2px solid #0f172a';
+  document.getElementById('evColor').value = col;
+  const prev = document.getElementById('evPreview');
+  prev.style.borderLeftColor = col;
+  prev.style.background = col + '22';
+  updatePreview();
+}
+
+const TYPE_COLORS = {
+  'General':'#4f46e5','Holiday':'#10b981','Exam':'#ef4444',
+  'Meeting':'#f59e0b','Sports':'#06b6d4','Deadline':'#ec4899','Other':'#8b5cf6'
+};
+function syncColor() {
+  const type = document.getElementById('evType').value;
+  const col = TYPE_COLORS[type] || '#4f46e5';
+  document.querySelectorAll('.color-swatch').forEach(s => {
+    s.style.border = s.dataset.color === col ? '2px solid #0f172a' : '2px solid transparent';
+  });
+  document.getElementById('evColor').value = col;
+  document.getElementById('evPreview').style.borderLeftColor = col;
+  document.getElementById('evPreview').style.background = col + '22';
+  updatePreview();
+}
+function updatePreview() {
+  const title = document.querySelector('[name="title"]')?.value;
+  const dt = document.getElementById('evDate')?.value;
+  const prev = document.getElementById('evPreview');
+  if (title || dt) { prev.style.display=''; document.getElementById('evPreviewTitle').textContent = title || 'Event'; document.getElementById('evPreviewDate').textContent = dt ? '— ' + dt : ''; }
+  else prev.style.display='none';
+}
+
+// Init
+renderHeaders();
+renderCalendar();
+updatePrintLink();
+document.getElementById('evDate').value = TODAY;
+document.querySelectorAll('.color-swatch')[0].style.border = '2px solid #0f172a';
+document.querySelector('[name="title"]')?.addEventListener('input', updatePreview);
+document.getElementById('evDate')?.addEventListener('change', updatePreview);
+</script>
+{% endblock %}

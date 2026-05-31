@@ -1,0 +1,387 @@
+﻿{% extends "base.html" %}
+{% block title %}Students — {{ school_name }}{% endblock %}
+{% block page_title %}Students{% endblock %}
+{% block head %}
+<style>
+  /* Avatar */
+  .stu-avatar {
+    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, #4f46e5, #818cf8);
+    color: #fff; font-weight: 700; font-size: .8rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  /* Stat strip */
+  .stu-stats { display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .stu-stat {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+    padding: .6rem 1.1rem; display: flex; align-items: center; gap: .6rem;
+  }
+  .stu-stat .ss-num { font-size: 1.35rem; font-weight: 700; line-height: 1; }
+  .stu-stat .ss-lbl { font-size: .7rem; color: #64748b; font-weight: 500; }
+  /* Filter bar */
+  .filter-bar { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
+  .filter-bar input, .filter-bar select {
+    font-size: .8rem; border: 1px solid #e2e8f0; border-radius: 8px;
+    padding: .4rem .75rem; background: #fff; color: #0f172a;
+  }
+  .filter-bar input:focus, .filter-bar select:focus {
+    outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,.12);
+  }
+  .filter-bar .search-wrap { position: relative; flex: 1; min-width: 200px; }
+  .filter-bar .search-wrap i { position: absolute; left: .6rem; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: .85rem; }
+  .filter-bar .search-wrap input { padding-left: 2rem; width: 100%; }
+  /* Table tweaks */
+  .stu-name { font-weight: 600; font-size: .85rem; color: #0f172a; text-decoration: none; }
+  .stu-name:hover { color: #4f46e5; }
+  .stu-id   { font-size: .72rem; color: #94a3b8; }
+  .info-line { font-size: .75rem; color: #64748b; }
+  .no-results { display: none; }
+</style>
+{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <p class="text-muted small mb-0">Manage student records, view profiles, and track enrolment.</p>
+  </div>
+  {% if session.role == 'admin' %}
+  <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
+    <i class="bi bi-person-plus me-1"></i>Add Student
+  </button>
+  {% endif %}
+</div>
+
+<!-- Stats strip -->
+<div class="stu-stats">
+  <div class="stu-stat">
+    <div style="width:32px;height:32px;border-radius:8px;background:#ede9fe;color:#4f46e5;display:flex;align-items:center;justify-content:center;"><i class="bi bi-people-fill"></i></div>
+    <div><div class="ss-num" style="color:#4f46e5;">{{ stats.total }}</div><div class="ss-lbl">Total Students</div></div>
+  </div>
+  <div class="stu-stat">
+    <div style="width:32px;height:32px;border-radius:8px;background:#d1fae5;color:#10b981;display:flex;align-items:center;justify-content:center;"><i class="bi bi-check-circle-fill"></i></div>
+    <div><div class="ss-num" style="color:#10b981;">{{ stats.active }}</div><div class="ss-lbl">Active</div></div>
+  </div>
+  <div class="stu-stat">
+    <div style="width:32px;height:32px;border-radius:8px;background:#fee2e2;color:#ef4444;display:flex;align-items:center;justify-content:center;"><i class="bi bi-x-circle-fill"></i></div>
+    <div><div class="ss-num" style="color:#ef4444;">{{ stats.inactive }}</div><div class="ss-lbl">Inactive</div></div>
+  </div>
+  <div class="stu-stat">
+    <div style="width:32px;height:32px;border-radius:8px;background:#fef3c7;color:#f59e0b;display:flex;align-items:center;justify-content:center;"><i class="bi bi-mortarboard-fill"></i></div>
+    <div><div class="ss-num" style="color:#f59e0b;">{{ stats.graduated }}</div><div class="ss-lbl">Graduated</div></div>
+  </div>
+</div>
+
+<!-- Filter bar -->
+<div class="filter-bar">
+  <div class="search-wrap">
+    <i class="bi bi-search"></i>
+    <input type="text" id="searchInput" placeholder="Search by name, ID, parent, class…" oninput="filterTable()">
+  </div>
+  <select id="filterClass" onchange="filterTable()">
+    <option value="">All Classrooms</option>
+    {% for c in classes %}<option value="{{ c.name }}">{{ c.name }}</option>{% endfor %}
+  </select>
+  <select id="filterStatus" onchange="filterTable()">
+    <option value="">All Statuses</option>
+    <option>Active</option>
+    <option>Inactive</option>
+    <option>Graduated</option>
+  </select>
+  <select id="filterGender" onchange="filterTable()">
+    <option value="">All Genders</option>
+    <option>Male</option>
+    <option>Female</option>
+    <option>Other</option>
+  </select>
+  <span class="text-muted small ms-auto" id="countLabel" style="white-space:nowrap;">{{ stats.total }} students</span>
+</div>
+
+<!-- Student Table -->
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0" id="stuTable">
+      <thead>
+        <tr>
+          <th style="width:42px;"></th>
+          <th>Student</th>
+          <th>Classroom</th>
+          <th>Date of Birth</th>
+          <th>Age</th>
+          <th>Contact</th>
+          <th>Parent / Guardian</th>
+          <th>Enrolled</th>
+          <th>Status</th>
+          {% if can('students') or session.role == 'frontdesk' %}<th style="width:110px;"></th>{% endif %}
+        </tr>
+      </thead>
+      <tbody id="stuBody">
+        {% for s in students %}
+        <tr data-name="{{ s.first_name }} {{ s.last_name }}"
+            data-id="{{ s.student_id }}"
+            data-class="{{ s.class_name or '' }}"
+            data-status="{{ s.status }}"
+            data-gender="{{ s.gender or '' }}"
+            data-parent="{{ s.parent_name or '' }}">
+          <td class="ps-3">
+            <div class="stu-avatar">{{ s.first_name[0] }}{{ s.last_name[0] }}</div>
+          </td>
+          <td>
+            <a href="/students/{{ s.id }}" class="stu-name">{{ s.first_name }} {{ s.last_name }}</a>
+            <div class="stu-id">{{ s.student_id }}</div>
+          </td>
+          <td class="info-line">{{ s.class_name or '—' }}</td>
+          <td class="info-line">{{ s.dob|fmt_date }}</td>
+          <td class="info-line">{% if s.dob %}{{ s.dob|age }} yrs{% else %}—{% endif %}</td>
+          <td>
+            {% if s.email %}
+            <div class="info-line"><i class="bi bi-envelope me-1" style="color:#94a3b8;"></i>{{ s.email }}</div>
+            {% endif %}
+            {% if s.phone %}
+            <div class="info-line"><i class="bi bi-telephone me-1" style="color:#94a3b8;"></i>{{ s.phone }}</div>
+            {% endif %}
+            {% if not s.email and not s.phone %}<span class="text-muted" style="font-size:.75rem;">—</span>{% endif %}
+          </td>
+          <td>
+            <div class="info-line fw-semibold" style="color:#374151;">{{ s.parent_name or '—' }}</div>
+            {% if s.parent_phone %}<div class="info-line"><i class="bi bi-telephone me-1" style="color:#94a3b8;"></i>{{ s.parent_phone }}</div>{% endif %}
+            {% if s.parent_email %}<div class="info-line"><i class="bi bi-envelope me-1" style="color:#94a3b8;"></i>{{ s.parent_email }}</div>{% endif %}
+          </td>
+          <td class="info-line">{{ s.enrollment_date|fmt_date }}</td>
+          <td>
+            <span class="badge bg-{{ 'success' if s.status=='Active' else ('warning' if s.status=='Graduated' else 'secondary') }}">
+              {{ s.status }}
+            </span>
+          </td>
+          {% if can('students') or session.role == 'frontdesk' %}
+          <td>
+            <div class="d-flex gap-1">
+              <a href="/students/{{ s.id }}" class="btn btn-sm btn-outline-primary" title="View Profile" style="padding:.2rem .5rem;">
+                <i class="bi bi-person-lines-fill"></i>
+              </a>
+              {% if session.role == 'admin' %}
+              <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
+                      data-bs-target="#editModal{{ s.id }}" title="Edit" style="padding:.2rem .5rem;">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <form method="POST" action="/students/delete/{{ s.id }}" class="d-inline"
+                    onsubmit="return confirm('Delete {{ s.first_name }} {{ s.last_name }}? This cannot be undone.')">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete" style="padding:.2rem .5rem;">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+          {% endif %}
+        </tr>
+        {% else %}
+        <tr id="emptyRow">
+          <td colspan="9" class="text-center text-muted py-5">
+            <i class="bi bi-people d-block mb-2" style="font-size:2rem;"></i>
+            No students yet. Click "Add Student" to get started.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div id="noResults" class="text-center text-muted py-5 no-results">
+      <i class="bi bi-search d-block mb-2" style="font-size:2rem;"></i>
+      No students match your search.
+    </div>
+  </div>
+</div>
+
+<!-- ── Edit Modals ─────────────────────────────────────────────────────────── -->
+{% for s in students %}
+<div class="modal fade" id="editModal{{ s.id }}" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <form method="POST" action="/students/edit/{{ s.id }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <div class="d-flex align-items-center gap-2">
+              <div class="stu-avatar" style="width:30px;height:30px;font-size:.7rem;">{{ s.first_name[0] }}{{ s.last_name[0] }}</div>
+              Edit — {{ s.first_name }} {{ s.last_name }}
+            </div>
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small fw-semibold mb-3" style="text-transform:uppercase;letter-spacing:.5px;">Personal Info</p>
+          <div class="row g-2">
+            <div class="col-md-4"><label class="form-label">Student ID *</label><input name="student_id" class="form-control" value="{{ s.student_id }}" required></div>
+            <div class="col-md-4"><label class="form-label">First Name *</label><input name="first_name" class="form-control" value="{{ s.first_name }}" required></div>
+            <div class="col-md-4"><label class="form-label">Last Name *</label><input name="last_name" class="form-control" value="{{ s.last_name }}" required></div>
+            <div class="col-md-3"><label class="form-label">Date of Birth</label><input type="date" name="dob" class="form-control" value="{{ s.dob or '' }}"></div>
+            <div class="col-md-3"><label class="form-label">Gender</label>
+              <select name="gender" class="form-select">
+                <option value="">—</option>
+                <option {% if s.gender=='Male' %}selected{% endif %}>Male</option>
+                <option {% if s.gender=='Female' %}selected{% endif %}>Female</option>
+                <option {% if s.gender=='Other' %}selected{% endif %}>Other</option>
+              </select>
+            </div>
+            <div class="col-md-3"><label class="form-label">Classroom</label>
+              <select name="class_id" class="form-select">
+                <option value="">—</option>
+                {% for c in classes %}<option value="{{ c.id }}" {% if s.class_id==c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3"><label class="form-label">Status</label>
+              <select name="status" class="form-select">
+                <option {% if s.status=='Active' %}selected{% endif %}>Active</option>
+                <option {% if s.status=='Inactive' %}selected{% endif %}>Inactive</option>
+                <option {% if s.status=='Graduated' %}selected{% endif %}>Graduated</option>
+              </select>
+            </div>
+            <div class="col-md-6"><label class="form-label">Email</label><input name="email" class="form-control" type="email" value="{{ s.email or '' }}"></div>
+            <div class="col-md-6"><label class="form-label">Phone</label><input name="phone" class="form-control" value="{{ s.phone or '' }}"></div>
+            <div class="col-12"><label class="form-label">Address</label><input name="address" class="form-control" value="{{ s.address or '' }}"></div>
+          </div>
+          <hr class="my-3">
+          <p class="text-muted small fw-semibold mb-1" style="text-transform:uppercase;letter-spacing:.5px;"><i class="bi bi-person-hearts me-1"></i>Mother / Guardian</p>
+          <div class="row g-2 mb-2">
+            <div class="col-md-4"><label class="form-label">Name</label><input name="parent_name" class="form-control" value="{{ s.parent_name or '' }}"></div>
+            <div class="col-md-4"><label class="form-label">Phone</label><input name="parent_phone" class="form-control" value="{{ s.parent_phone or '' }}"></div>
+            <div class="col-md-4"><label class="form-label">Email</label><input name="parent_email" class="form-control" type="email" value="{{ s.parent_email or '' }}"></div>
+          </div>
+          <p class="text-muted small fw-semibold mb-1" style="text-transform:uppercase;letter-spacing:.5px;"><i class="bi bi-person-badge me-1"></i>Father</p>
+          <div class="row g-2">
+            <div class="col-md-4"><label class="form-label">Name</label><input name="father_name" class="form-control" value="{{ s.father_name or '' }}"></div>
+            <div class="col-md-4"><label class="form-label">Phone</label><input name="father_phone" class="form-control" value="{{ s.father_phone or '' }}"></div>
+            <div class="col-md-4"><label class="form-label">Email</label><input name="father_email" class="form-control" type="email" value="{{ s.father_email or '' }}"></div>
+            <div class="col-md-6"><label class="form-label">Emergency Contact</label><input name="emergency_contact" class="form-control" value="{{ s.emergency_contact or '' }}"></div>
+            <div class="col-md-6"><label class="form-label">Graduation Date</label><input type="date" name="graduation_date" class="form-control" value="{{ s.graduation_date or '' }}"></div>
+          </div>
+          <hr class="my-3">
+          <p class="text-muted small fw-semibold mb-3" style="text-transform:uppercase;letter-spacing:.5px;">Medical &amp; Notes</p>
+          <div class="row g-2">
+            <div class="col-12"><label class="form-label">Medical Notes</label>
+              <textarea name="medical_notes" class="form-control" rows="2">{{ s.medical_notes or '' }}</textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-check-lg me-1"></i>Save Changes</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endfor %}
+
+<!-- ── Add Student Modal ───────────────────────────────────────────────────── -->
+<div class="modal fade" id="addModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <form method="POST" action="/students/add">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-person-plus me-2 text-primary"></i>Add New Student</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small fw-semibold mb-3" style="text-transform:uppercase;letter-spacing:.5px;">Personal Info</p>
+          <div class="row g-2">
+            <div class="col-md-4"><label class="form-label">Student ID *</label><input name="student_id" id="newStudentId" class="form-control" required placeholder="Auto-generating…" readonly style="background:#f8fafc;"></div>
+            <div class="col-md-4"><label class="form-label">First Name *</label><input name="first_name" class="form-control" required></div>
+            <div class="col-md-4"><label class="form-label">Last Name *</label><input name="last_name" class="form-control" required></div>
+            <div class="col-md-3"><label class="form-label">Date of Birth</label><input type="date" name="dob" class="form-control"></div>
+            <div class="col-md-3"><label class="form-label">Gender</label>
+              <select name="gender" class="form-select"><option value="">—</option><option>Male</option><option>Female</option><option>Other</option></select>
+            </div>
+            <div class="col-md-3"><label class="form-label">Classroom</label>
+              <select name="class_id" class="form-select"><option value="">—</option>{% for c in classes %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select>
+            </div>
+            <div class="col-md-3"><label class="form-label">Status</label>
+              <select name="status" class="form-select"><option>Active</option><option>Inactive</option></select>
+            </div>
+            <div class="col-md-3"><label class="form-label">Report Card Type</label>
+              <select name="report_card_type" class="form-select">
+                <option value="standard">Standard</option>
+                <option value="iep">IEP</option>
+              </select>
+            </div>
+            <div class="col-md-3"><label class="form-label">Enrollment Date</label><input type="date" name="enrollment_date" class="form-control" id="enrollDate"></div>
+            <div class="col-md-4"><label class="form-label">Email</label><input name="email" class="form-control" type="email"></div>
+            <div class="col-md-4"><label class="form-label">Phone</label><input name="phone" class="form-control"></div>
+            <div class="col-12"><label class="form-label">Address</label><input name="address" class="form-control"></div>
+          </div>
+          <hr class="my-3">
+          <p class="text-muted small fw-semibold mb-1" style="text-transform:uppercase;letter-spacing:.5px;"><i class="bi bi-person-hearts me-1"></i>Mother / Guardian</p>
+          <div class="row g-2 mb-2">
+            <div class="col-md-4"><label class="form-label">Name</label><input name="parent_name" class="form-control"></div>
+            <div class="col-md-4"><label class="form-label">Phone</label><input name="parent_phone" class="form-control"></div>
+            <div class="col-md-4"><label class="form-label">Email</label><input name="parent_email" class="form-control" type="email"></div>
+          </div>
+          <p class="text-muted small fw-semibold mb-1" style="text-transform:uppercase;letter-spacing:.5px;"><i class="bi bi-person-badge me-1"></i>Father</p>
+          <div class="row g-2">
+            <div class="col-md-4"><label class="form-label">Name</label><input name="father_name" class="form-control"></div>
+            <div class="col-md-4"><label class="form-label">Phone</label><input name="father_phone" class="form-control"></div>
+            <div class="col-md-4"><label class="form-label">Email</label><input name="father_email" class="form-control" type="email"></div>
+            <div class="col-md-6"><label class="form-label">Emergency Contact</label><input name="emergency_contact" class="form-control"></div>
+          </div>
+          <hr class="my-3">
+          <p class="text-muted small fw-semibold mb-3" style="text-transform:uppercase;letter-spacing:.5px;">Medical &amp; Notes</p>
+          <div class="row g-2">
+            <div class="col-12"><label class="form-label">Medical Notes</label><textarea name="medical_notes" class="form-control" rows="2"></textarea></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-person-plus me-1"></i>Add Student</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+  // Default enrollment date to today
+  const enrollEl = document.getElementById('enrollDate');
+  if (enrollEl) enrollEl.value = new Date().toISOString().slice(0,10);
+
+  // Auto-fill Student ID when Add modal opens
+  document.getElementById('addModal').addEventListener('show.bs.modal', function () {
+    const idField = document.getElementById('newStudentId');
+    idField.value = 'Generating…';
+    fetch('/students/next-id')
+      .then(r => r.json())
+      .then(data => { idField.value = data.id; })
+      .catch(() => { idField.value = ''; idField.removeAttribute('readonly'); idField.placeholder = 'Enter Student ID'; });
+  });
+
+  function filterTable() {
+    const q      = document.getElementById('searchInput').value.toLowerCase();
+    const cls    = document.getElementById('filterClass').value.toLowerCase();
+    const status = document.getElementById('filterStatus').value.toLowerCase();
+    const gender = document.getElementById('filterGender').value.toLowerCase();
+    const rows   = document.querySelectorAll('#stuBody tr[data-name]');
+    let visible  = 0;
+
+    rows.forEach(row => {
+      const name   = (row.dataset.name   || '').toLowerCase();
+      const id     = (row.dataset.id     || '').toLowerCase();
+      const rcls   = (row.dataset.class  || '').toLowerCase();
+      const rstatus= (row.dataset.status || '').toLowerCase();
+      const rgender= (row.dataset.gender || '').toLowerCase();
+      const parent = (row.dataset.parent || '').toLowerCase();
+
+      const matchQ      = !q      || name.includes(q) || id.includes(q) || parent.includes(q) || rcls.includes(q);
+      const matchClass  = !cls    || rcls === cls;
+      const matchStatus = !status || rstatus === status;
+      const matchGender = !gender || rgender === gender;
+
+      const show = matchQ && matchClass && matchStatus && matchGender;
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+
+    document.getElementById('noResults').style.display = visible === 0 && rows.length > 0 ? '' : 'none';
+    document.getElementById('countLabel').textContent = visible + ' student' + (visible !== 1 ? 's' : '');
+  }
+</script>
+{% endblock %}

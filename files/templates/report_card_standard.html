@@ -1,0 +1,468 @@
+{% extends "base.html" %}
+{% block title %}Standard Report Card — {{ student.first_name }} {{ student.last_name }}{% endblock %}
+{% block page_title %}Standard Report Card{% endblock %}
+{% block content %}
+
+<style>
+/* ── Document paper ── */
+.rc-paper {
+  background: #fff;
+  max-width: 760px;
+  margin: 0 auto 40px;
+  padding: 24px 28px;
+  box-shadow: 0 2px 20px rgba(0,0,0,.13);
+  font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
+  font-size: 10pt;
+  color: #111;
+}
+.rc-paper h1 { font-size: 14pt; font-weight: 700; text-align: center; margin: 0; letter-spacing: .5px; }
+.rc-paper .rc-sub  { font-size: 9pt; text-align: center; margin: 0 0 4px; color: #444; }
+.rc-paper .rc-scale { font-size: 8pt; line-height: 1.5; }
+
+/* ── Tables ── */
+.rc-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+  font-size: 9.5pt;
+}
+.rc-table td, .rc-table th {
+  border: 1px solid #111;
+  padding: 3px 5px;
+  vertical-align: middle;
+}
+.rc-hdr td {                   /* gray section header row */
+  background: #D9D9D9;
+  font-weight: 700;
+  font-size: 10pt;
+  padding: 4px 6px;
+}
+.rc-col-hdr td {               /* A/S/N or Term 1/2/3 row */
+  font-weight: 700;
+  text-align: center;
+  font-size: 9pt;
+  background: #f0f0f0;
+}
+.rc-chk { width: 46px; text-align: center; }
+.rc-term { width: 68px; text-align: center; }
+
+/* ── Form controls styled document-like ── */
+.rc-input {
+  border: none;
+  border-bottom: 1px solid #666;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0 3px;
+  width: 100%;
+  outline: none;
+}
+.rc-input:focus { border-bottom-color: #4f46e5; background: #f5f5ff; }
+.rc-select {
+  border: 1px solid #999;
+  background: #fff;
+  font-family: inherit;
+  font-size: 8.5pt;
+  padding: 1px 2px;
+  width: 58px;
+  text-align: center;
+}
+.rc-select-asn {
+  border: 1px solid #999;
+  background: #fff;
+  font-family: inherit;
+  font-size: 8.5pt;
+  padding: 1px 2px;
+  width: 44px;
+  text-align: center;
+}
+.rc-ta {
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  resize: none;
+  width: 100%;
+  outline: none;
+  padding: 0;
+}
+.rc-ta:focus { background: #f5f5ff; }
+.rc-radio { cursor: pointer; width: 14px; height: 14px; accent-color: #4f46e5; }
+
+/* ── Header info block ── */
+.rc-info-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; font-size: 9.5pt; }
+.rc-info-table td { padding: 2px 4px; border: none; }
+
+/* ── Toolbar ── */
+.rc-toolbar {
+  max-width: 760px;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media print {
+  .rc-toolbar, nav, aside, #sidebarWrapper, .navbar, footer { display: none !important; }
+  .rc-paper { box-shadow: none; padding: 0; max-width: 100%; }
+  body { background: white !important; }
+  .rc-input:focus, .rc-ta:focus { background: transparent; }
+  select { -webkit-appearance: none; border: none; }
+}
+</style>
+
+<form method="POST" action="/students/{{ student.id }}/report-card-form">
+<input type="hidden" name="card_type" value="standard">
+
+<!-- Toolbar -->
+<div class="rc-toolbar">
+  <a href="/students/{{ student.id }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Back
+  </a>
+  <div class="d-flex gap-2">
+    <button type="button" onclick="window.print()" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-printer me-1"></i>Print
+    </button>
+    <button type="submit" class="btn btn-sm btn-primary">
+      <i class="bi bi-floppy me-1"></i>Save
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════ PAPER ══════════════ -->
+<div class="rc-paper">
+
+  <!-- School header -->
+  <h1>{{ school_name | upper }}</h1>
+  <div class="rc-sub">{{ school_address }}</div>
+  <hr style="border-top:2px solid #111;margin:6px 0;">
+
+  <!-- Student / Teacher info -->
+  <table class="rc-info-table">
+    <tr>
+      <td style="width:50%;"><strong>Student's Name:</strong>
+        {{ student.first_name }} {{ student.last_name }}</td>
+      <td style="width:50%;"><strong>Teacher's Name:</strong>
+        <input name="teacher_name" class="rc-input" style="width:180px;"
+               value="{{ existing.get('teacher_name', teacher_name) }}"></td>
+    </tr>
+    <tr>
+      <td><strong>School Year:</strong>
+        <input name="academic_year" class="rc-input" style="width:90px;"
+               value="{{ existing.get('academic_year', year) }}">
+        &nbsp;&nbsp;<strong>Date / Term:</strong>
+        <select name="term" class="rc-select" style="width:80px;">
+          {% for t in ['Term 1','Term 2','Term 3'] %}
+          <option {% if existing.get('term','Term 1') == t %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </td>
+      <td><strong>{{ school_name }}'s Grading Scale:</strong>
+        &nbsp;&nbsp;<strong>GRADE LEVEL BY AGE:</strong>
+        <input name="grade_level_by_age" class="rc-input" style="width:60px;"
+               value="{{ existing.get('grade_level_by_age','') }}">
+      </td>
+    </tr>
+  </table>
+
+  <!-- Grading scale text -->
+  <div class="rc-scale" style="background:#f9f9f9;border:1px solid #ddd;padding:4px 6px;margin-bottom:6px;">
+    <strong>A+:</strong> 96-100 (4.5) &nbsp;<strong>A:</strong> 92-95 (4.0) &nbsp;<strong>A-:</strong> 89-91 (3.8)
+    &nbsp;<strong>B+:</strong> 86-88 (3.5) &nbsp;<strong>B:</strong> 82-85 (3.0) &nbsp;<strong>B-:</strong> 79-81 (2.8)
+    &nbsp;<strong>C+:</strong> 76-78 (2.5) &nbsp;<strong>C:</strong> 72-75 (2.0) &nbsp;<strong>C-:</strong> 69-71 (1.8)
+    &nbsp;<strong>D:</strong> 60-69 (1.0) &nbsp;<strong>F:</strong> 50-59<br>
+    <strong>N:</strong> Needs Improvement &nbsp;&nbsp;&nbsp;
+    <strong>S:</strong> Satisfactory &nbsp;&nbsp;&nbsp;
+    <strong>A:</strong> Above Average
+  </div>
+
+  <!-- ── INTELLECTUAL DEVELOPMENT ── -->
+  {% set intel_items = [
+    "Is able to make choices and carry out plans",
+    "Is learning to set goals for personal growth",
+    "Is learning about the importance of healthy life choices and personal safety",
+    "Is developing an awareness of own strengths and interests"
+  ] %}
+  <table class="rc-table">
+    <tr class="rc-hdr"><td colspan="4">INTELLECTUAL DEVELOPMENT</td></tr>
+    <tr class="rc-col-hdr"><td></td><td class="rc-chk">A</td><td class="rc-chk">S</td><td class="rc-chk">N</td></tr>
+    {% for item in intel_items %}{% set k = 'intel_' ~ loop.index0 %}
+    <tr>
+      <td>{{ item }}</td>
+      {% for opt in ['A','S','N'] %}
+      <td class="rc-chk"><input type="radio" name="{{ k }}" value="{{ opt }}" class="rc-radio" {% if existing.get(k) == opt %}checked{% endif %}></td>
+      {% endfor %}
+    </tr>{% endfor %}
+  </table>
+
+  <!-- ── SOCIAL & EMOTIONAL DEVELOPMENT ── -->
+  {% set social_items = [
+    "Is considerate and respectful of others",
+    "Demonstrates a positive self-esteem",
+    "Accepts learning challenges",
+    "Uses appropriate strategies to resolve conflicts",
+    "Accepts responsibility for own actions",
+    "Maintains focus",
+    "Cares for personal and school property",
+    "Works independently when necessary",
+    "Works and plays cooperatively with others",
+    "Completes assignments",
+    "Follows written directions",
+    "Follows class and school rules and routines",
+    "Participates in activities"
+  ] %}
+  <table class="rc-table">
+    <tr class="rc-hdr"><td colspan="4">SOCIAL &amp; EMOTIONAL DEVELOPMENT</td></tr>
+    <tr class="rc-col-hdr"><td></td><td class="rc-chk">A</td><td class="rc-chk">S</td><td class="rc-chk">N</td></tr>
+    {% for item in social_items %}{% set k = 'social_' ~ loop.index0 %}
+    <tr>
+      <td>{{ item }}</td>
+      {% for opt in ['A','S','N'] %}
+      <td class="rc-chk"><input type="radio" name="{{ k }}" value="{{ opt }}" class="rc-radio" {% if existing.get(k) == opt %}checked{% endif %}></td>
+      {% endfor %}
+    </tr>{% endfor %}
+  </table>
+
+  <!-- ── OTHER DEVELOPMENTAL ACTIVITIES ── -->
+  {% set other_items = [
+    "Shows a keen interest in learning",
+    "Participates in class discussions and activities",
+    "Works well with peers during class session"
+  ] %}
+  <table class="rc-table">
+    <tr class="rc-hdr"><td colspan="7">OTHER DEVELOPMENTAL ACTIVITIES</td></tr>
+    <tr class="rc-col-hdr">
+      <td></td><td class="rc-chk">A</td><td class="rc-chk">S</td><td class="rc-chk">N</td>
+      <td class="rc-term">Term 1</td><td class="rc-term">Term 2</td><td class="rc-term">Term 3</td>
+    </tr>
+    {% for item in other_items %}{% set k = 'other_' ~ loop.index0 %}
+    <tr>
+      <td>{{ item }}</td>
+      {% for opt in ['A','S','N'] %}
+      <td class="rc-chk"><input type="radio" name="{{ k }}" value="{{ opt }}" class="rc-radio" {% if existing.get(k) == opt %}checked{% endif %}></td>
+      {% endfor %}
+      <td></td><td></td><td></td>
+    </tr>{% endfor %}
+    <tr>
+      <td><strong>Physical Education</strong></td>
+      <td></td><td></td><td></td>
+      {% for t in ['t1','t2','t3'] %}
+      <td class="rc-term">
+        <select name="phys_ed_{{ t }}" class="rc-select-asn">
+          {% for o in ['','A','S','N'] %}<option {% if existing.get('phys_ed_' ~ t) == o %}selected{% endif %}>{{ o or '—' }}</option>{% endfor %}
+        </select>
+      </td>{% endfor %}
+    </tr>
+  </table>
+
+  <!-- ── LANGUAGE ARTS ── -->
+  {% set la_rub = [
+    "Contributes to discussions and lessons",
+    "Expresses ideas clearly when speaking",
+    "Reads with understanding, fluency and expression",
+    "Displays a positive attitude towards books and reading"
+  ] %}
+  {% set grade_opts = ['','A+','A','A-','B+','B','B-','C+','C','C-','D','F'] %}
+  <table class="rc-table">
+    <tr class="rc-hdr"><td colspan="4">LANGUAGE ARTS:</td></tr>
+    <tr>
+      <td style="width:60%;">
+        <strong>Functioning Grade Level:</strong>
+        <input name="la_func_grade" class="rc-input" style="width:80px;" value="{{ existing.get('la_func_grade','') }}">
+        <br><strong>Topics Covered:</strong>
+        <textarea name="la_topics" class="rc-ta" rows="2" placeholder="Topics covered this year…">{{ existing.get('la_topics','') }}</textarea>
+      </td>
+      <td class="rc-term" style="font-weight:700;text-align:center;background:#f0f0f0;">Term 1</td>
+      <td class="rc-term" style="font-weight:700;text-align:center;background:#f0f0f0;">Term 2</td>
+      <td class="rc-term" style="font-weight:700;text-align:center;background:#f0f0f0;">Term 3</td>
+    </tr>
+    {% for item in la_rub %}{% set k = 'la_rub_' ~ loop.index0 %}
+    <tr>
+      <td>{{ item }}</td>
+      {% for t in ['t1','t2','t3'] %}
+      <td class="rc-term">
+        <select name="{{ k }}_{{ t }}" class="rc-select-asn">
+          {% for o in ['','A','S','N'] %}<option {% if existing.get(k ~ '_' ~ t) == o %}selected{% endif %}>{{ o or '—' }}</option>{% endfor %}
+        </select>
+      </td>{% endfor %}
+    </tr>{% endfor %}
+    <!-- Topic-level graded rows -->
+    {% for label, key in [
+      ('Comprehension','la_comp'),('Spelling','la_spell'),('Grammar','la_gram'),
+      ('Writing','la_write'),('Reading / Novel Study','la_read')
+    ] %}
+    <tr>
+      <td><strong>{{ label }}:</strong>
+        <input name="{{ key }}_topics" class="rc-input"
+               value="{{ existing.get(key ~ '_topics','') }}"
+               placeholder="{% if label == 'Reading / Novel Study' %}Book title{% else %}Topics / notes{% endif %}">
+      </td>
+      {% for t in ['t1','t2','t3'] %}
+      <td class="rc-term">
+        <select name="{{ key }}_{{ t }}" class="rc-select">
+          {% for o in grade_opts %}<option {% if existing.get(key ~ '_' ~ t) == o %}selected{% endif %}>{{ o or '—' }}</option>{% endfor %}
+        </select>
+      </td>{% endfor %}
+    </tr>{% endfor %}
+    <tr style="background:#e8e8e8;font-weight:700;">
+      <td>Overall Language Grade</td>
+      {% for t in ['t1','t2','t3'] %}
+      <td class="rc-term">
+        <select name="la_overall_{{ t }}" class="rc-select">
+          {% for o in grade_opts %}<option {% if existing.get('la_overall_' ~ t) == o %}selected{% endif %}>{{ o or '—' }}</option>{% endfor %}
+        </select>
+      </td>{% endfor %}
+    </tr>
+  </table>
+
+  <!-- ── MATHEMATICS ── -->
+  <table class="rc-table">
+    <tr class="rc-hdr"><td colspan="4">MATHEMATICS:</td></tr>
+    <tr>
+      <td style="width:60%;">
+        <strong>Functioning Grade Level:</strong>
+        <input name="math_func_grade" class="rc-input" style="width:80px;" value="{{ existing.get('math_func_grade','') }}">
+        <br><strong>Topics Covered:</strong>
+        <textarea name="math_topics" class="rc-ta" rows="2" placeholder="Topics covered this year…">{{ existing.get('math_topics','') }}</textarea>
+      </td>
+      <td class="rc-term" style="font-weight:700;text-align:center;background:#f0f0f0;">Term 1</td>
+      <td class="rc-term" style="font-weight:700;text-align:center;background:#f0f0f0;">Term 2</td>
+      <td class="rc-term" style="font-weight:700;text-align:center;background:#f0f0f0;">Term 3</td>
+    </tr>
+    {% for item, k in [
+      ('Understands and applies new concepts','math_rub_0'),
+      ('Uses a variety of strategies to solve problems','math_rub_1')
+    ] %}
+    <tr>
+      <td>{{ item }}</td>
+      {% for t in ['t1','t2','t3'] %}
+      <td class="rc-term">
+        <select name="{{ k }}_{{ t }}" class="rc-select-asn">
+          {% for o in ['','A','S','N'] %}<option {% if existing.get(k ~ '_' ~ t) == o %}selected{% endif %}>{{ o or '—' }}</option>{% endfor %}
+        </select>
+      </td>{% endfor %}
+    </tr>{% endfor %}
+    <tr style="background:#e8e8e8;font-weight:700;">
+      <td>Overall Grade</td>
+      {% for t in ['t1','t2','t3'] %}
+      <td class="rc-term">
+        <select name="math_overall_{{ t }}" class="rc-select">
+          {% for o in grade_opts %}<option {% if existing.get('math_overall_' ~ t) == o %}selected{% endif %}>{{ o or '—' }}</option>{% endfor %}
+        </select>
+      </td>{% endfor %}
+    </tr>
+  </table>
+
+  <!-- ── SCIENCE ── -->
+  <table class="rc-table">
+    <tr class="rc-hdr"><td colspan="4">SCIENCE:</td></tr>
+    <tr>
+      <td style="width:60%;">
+        <strong>Functioning Grade Level:</strong>
+        <input name="sci_func_grade" class="rc-input" style="width:80px;" value="{{ existing.get('sci_func_grade','') }}">
+        <br><strong>Topics Covered:</strong>
+        <textarea name="sci_topics" class="rc-ta" rows="2" placeholder="Topics covered this year…">{{ existing.get('sci_topics','') }}</textarea>
+      </td>
+      <td class="rc-term" style="font-weight:700;text-align:center;background:#f0f0f0;">Term 1</td>
+      <td class="rc-term" style="font-weight:700;text-align:center;background:#f0f0f0;">Term 2</td>
+      <td class="rc-term" style="font-weight:700;text-align:center;background:#f0f0f0;">Term 3</td>
+    </tr>
+    {% for item, k in [
+      ('Demonstrates curiosity','sci_rub_0'),
+      ('Understands concepts','sci_rub_1'),
+      ('Participates in class discussions','sci_rub_2')
+    ] %}
+    <tr>
+      <td>{{ item }}</td>
+      {% for t in ['t1','t2','t3'] %}
+      <td class="rc-term">
+        <select name="{{ k }}_{{ t }}" class="rc-select-asn">
+          {% for o in ['','A','S','N'] %}<option {% if existing.get(k ~ '_' ~ t) == o %}selected{% endif %}>{{ o or '—' }}</option>{% endfor %}
+        </select>
+      </td>{% endfor %}
+    </tr>{% endfor %}
+    <tr style="background:#e8e8e8;font-weight:700;">
+      <td>Overall Grade</td>
+      {% for t in ['t1','t2','t3'] %}
+      <td class="rc-term">
+        <select name="sci_overall_{{ t }}" class="rc-select">
+          {% for o in grade_opts %}<option {% if existing.get('sci_overall_' ~ t) == o %}selected{% endif %}>{{ o or '—' }}</option>{% endfor %}
+        </select>
+      </td>{% endfor %}
+    </tr>
+  </table>
+
+  <!-- ── SOCIAL STUDIES ── -->
+  <table class="rc-table">
+    <tr class="rc-hdr"><td colspan="4">SOCIAL STUDIES:</td></tr>
+    <tr>
+      <td style="width:60%;">
+        <strong>Functioning Grade Level:</strong>
+        <input name="ss_func_grade" class="rc-input" style="width:80px;" value="{{ existing.get('ss_func_grade','') }}">
+        <br><strong>Topics Covered:</strong>
+        <textarea name="ss_topics" class="rc-ta" rows="2" placeholder="Topics covered this year…">{{ existing.get('ss_topics','') }}</textarea>
+      </td>
+      <td class="rc-term" style="font-weight:700;text-align:center;background:#f0f0f0;">Term 1</td>
+      <td class="rc-term" style="font-weight:700;text-align:center;background:#f0f0f0;">Term 2</td>
+      <td class="rc-term" style="font-weight:700;text-align:center;background:#f0f0f0;">Term 3</td>
+    </tr>
+    {% for item, k in [
+      ('Demonstrates interest in learning about people, places and times','ss_rub_0'),
+      ('Understands concepts','ss_rub_1'),
+      ('Performs basic research and application','ss_rub_2')
+    ] %}
+    <tr>
+      <td>{{ item }}</td>
+      {% for t in ['t1','t2','t3'] %}
+      <td class="rc-term">
+        <select name="{{ k }}_{{ t }}" class="rc-select-asn">
+          {% for o in ['','A','S','N'] %}<option {% if existing.get(k ~ '_' ~ t) == o %}selected{% endif %}>{{ o or '—' }}</option>{% endfor %}
+        </select>
+      </td>{% endfor %}
+    </tr>{% endfor %}
+    <tr style="background:#e8e8e8;font-weight:700;">
+      <td>Overall Grade</td>
+      {% for t in ['t1','t2','t3'] %}
+      <td class="rc-term">
+        <select name="ss_overall_{{ t }}" class="rc-select">
+          {% for o in grade_opts %}<option {% if existing.get('ss_overall_' ~ t) == o %}selected{% endif %}>{{ o or '—' }}</option>{% endfor %}
+        </select>
+      </td>{% endfor %}
+    </tr>
+  </table>
+
+  <!-- ── GPA & Comments ── -->
+  <table class="rc-info-table" style="margin-top:6px;">
+    <tr>
+      <td style="width:33%;"><strong>TERM 1 GPA:</strong>
+        <input name="gpa_t1" type="number" step="0.01" min="0" max="4.5" class="rc-input"
+               style="width:55px;" value="{{ existing.get('gpa_t1','') }}" placeholder="0.00">
+      </td>
+      <td style="width:33%;"><strong>TERM 2 GPA:</strong>
+        <input name="gpa_t2" type="number" step="0.01" min="0" max="4.5" class="rc-input"
+               style="width:55px;" value="{{ existing.get('gpa_t2','') }}" placeholder="0.00">
+      </td>
+      <td style="width:33%;"><strong>TERM 3 GPA:</strong>
+        <input name="gpa_t3" type="number" step="0.01" min="0" max="4.5" class="rc-input"
+               style="width:55px;" value="{{ existing.get('gpa_t3','') }}" placeholder="0.00">
+      </td>
+    </tr>
+  </table>
+
+  <div style="margin-top:8px;">
+    <strong>Teacher's Comments:</strong><br>
+    <textarea name="comments" class="rc-ta" rows="3" style="border:1px solid #ccc;padding:4px;margin-top:2px;"
+              placeholder="General comments about the student's progress…">{{ existing.get('comments','') }}</textarea>
+  </div>
+
+</div><!-- end rc-paper -->
+
+<!-- Bottom save button -->
+<div style="max-width:760px;margin:0 auto 40px;display:flex;gap:8px;">
+  <button type="submit" class="btn btn-primary"><i class="bi bi-floppy me-1"></i>Save Report Card</button>
+  <a href="/students/{{ student.id }}" class="btn btn-outline-secondary">Cancel</a>
+</div>
+</form>
+{% endblock %}

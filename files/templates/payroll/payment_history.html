@@ -1,0 +1,120 @@
+{% extends "payroll/_base.html" %}
+{% block payroll_content %}
+
+<div class="emp-select-bar">
+  <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
+    <label class="form-label mb-0 text-muted small">Employee</label>
+    <select name="emp" class="form-select form-select-sm" style="min-width:200px" onchange="this.form.submit()">
+      {% for n in employees %}<option value="{{ n }}" {{ 'selected' if n==selected }}>{{ n }}</option>{% endfor %}
+    </select>
+    <label class="form-label mb-0 text-muted small">Year</label>
+    <select name="year" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
+      {% for y in years %}<option value="{{ y }}" {{ 'selected' if y==year }}>{{ y }}</option>{% endfor %}
+    </select>
+  </form>
+</div>
+
+{% if payments %}
+<div class="kpi-grid mb-3">
+  <div class="kpi"><div class="k-label">Total Paid ({{ year }})</div><div class="k-value" style="color:var(--primary)">${{ "{:,.2f}".format(total_paid) }}</div></div>
+  <div class="kpi"><div class="k-label">Payments</div><div class="k-value">{{ payments|length }}</div></div>
+  <div class="kpi"><div class="k-label">Average</div><div class="k-value">${{ "{:,.2f}".format(total_paid / payments|length) }}</div></div>
+</div>
+
+<div class="pr-section">
+  <h6>Payment History — {{ selected }} — {{ year }}</h6>
+  <div class="table-responsive">
+    <table class="pr-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Date</th>
+          <th>Period</th>
+          <th class="num">Amount</th>
+          <th>Note</th>
+          <th>Recorded At</th>
+          <th>Delete</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in payments %}
+        <tr>
+          <td class="text-muted small">{{ p.id }}</td>
+          <td>{{ p.payment_date }}</td>
+          <td>{{ period_label(p.period) }}</td>
+          <td class="num">${{ "{:,.2f}".format(p.amount) }}</td>
+          <td>{{ p.note or '' }}</td>
+          <td class="text-muted small">{{ p.timestamp or '' }}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-danger py-0 px-2"
+                    onclick="showDelPayModal({{ p.id }}, '{{ p.payment_date }}', '{{ '{:,.2f}'.format(p.amount) }}')">Del</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% elif selected %}
+<div class="alert alert-info">No payments for <strong>{{ selected }}</strong> in {{ year }}.</div>
+{% else %}
+<div class="alert alert-info">Select an employee above.</div>
+{% endif %}
+
+{% if duplicates %}
+<div class="pr-section mt-3">
+  <h6 class="text-warning">⚠ Duplicate Payments Found ({{ duplicates|length }} group{{ 's' if duplicates|length > 1 }})</h6>
+  <div class="table-responsive">
+    <table class="pr-table">
+      <thead><tr><th>Employee</th><th>Date</th><th class="num">Amount</th><th>Copies</th><th>IDs</th></tr></thead>
+      <tbody>
+        {% for d in duplicates %}
+        <tr>
+          <td>{{ d.name }}</td><td>{{ d.payment_date }}</td>
+          <td class="num">${{ "{:,.2f}".format(d.amount) }}</td>
+          <td>{{ d.cnt }}</td><td class="text-muted small">{{ d.ids }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <form method="post" action="{{ url_for('payroll_bp.remove_duplicates') }}" class="mt-2 d-flex gap-2 align-items-end">
+    <div>
+      <label class="form-label">Password to remove all duplicates</label>
+      <input name="pwd" type="password" class="form-control form-control-sm" placeholder="Delete password" required>
+    </div>
+    <button type="submit" class="btn btn-sm btn-danger">🗑 Remove All Duplicates</button>
+  </form>
+</div>
+{% endif %}
+
+<!-- Delete payment modal -->
+<div class="modal fade" id="delPayModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Delete Payment</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <form id="delPayForm" method="post">
+        <input type="hidden" name="emp" value="{{ selected }}">
+        <input type="hidden" name="year" value="{{ year }}">
+        <div class="modal-body">
+          <p id="delPayDesc" class="small mb-2"></p>
+          <label class="form-label">Password</label>
+          <input name="pwd" type="password" class="form-control" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function showDelPayModal(id, date, amt) {
+  document.getElementById('delPayDesc').textContent = '#'+id+' — '+date+' — $'+amt;
+  document.getElementById('delPayForm').action = '/payroll/payment/delete/'+id;
+  new bootstrap.Modal(document.getElementById('delPayModal')).show();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Payroll — {{ school_name }}{% endblock %}
+{% block page_title %}Payroll System{% endblock %}
+
+{% block head %}
+<style>
+  .payroll-frame-wrap {
+    position: relative;
+    width: 100%;
+    height: calc(100vh - 120px);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    background: #f0f4ff;
+  }
+  .payroll-frame-wrap iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+  .payroll-offline {
+    display: none;
+    position: absolute; inset: 0;
+    align-items: center; justify-content: center;
+    flex-direction: column; gap: .75rem;
+    background: #f8fafc; color: var(--muted); font-size: .9rem;
+  }
+  .payroll-offline i { font-size: 2.5rem; color: #cbd5e1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <p class="text-muted small mb-0">Staff payroll, deductions, loans and payslips.</p>
+  <a id="payrollNewTab" href="#" target="_blank" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-box-arrow-up-right me-1"></i>Open in new tab
+  </a>
+</div>
+
+<div class="payroll-frame-wrap" id="frameWrap">
+  <iframe id="payrollFrame"
+          allow="clipboard-write; downloads"
+          title="Payroll System"></iframe>
+  <div class="payroll-offline" id="offlineMsg">
+    <i class="bi bi-plug-fill"></i>
+    <strong>Payroll service is not running</strong>
+    <span class="small">Restart the school management application to bring the payroll service back online.</span>
+  </div>
+</div>
+
+<script>
+  const payrollUrl = window.location.protocol + '//' + window.location.hostname + ':8502';
+  const frame = document.getElementById('payrollFrame');
+  const offline = document.getElementById('offlineMsg');
+  document.getElementById('payrollNewTab').href = payrollUrl;
+  frame.src = payrollUrl;
+  frame.addEventListener('error', () => {
+    frame.style.display = 'none';
+    offline.style.display = 'flex';
+  });
+</script>
+{% endblock %}

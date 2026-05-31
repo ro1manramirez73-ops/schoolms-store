@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}QuickBooks Sync — {{ school_name }}{% endblock %}
+{% block content %}
+<h2 class="fw-bold mb-4">QuickBooks Sync</h2>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card mb-4">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+        <span>Unsynced Transactions</span>
+        <span class="badge bg-{{ 'danger' if unsynced_count > 0 else 'success' }}">{{ unsynced_count }} pending</span>
+      </div>
+      <div class="card-body">
+        {% if unsynced_count > 0 %}
+        <div id="unsyncedList" class="mb-3"></div>
+        <div class="d-flex gap-2 flex-wrap">
+          <a href="/finances/qb-export-iif" class="btn btn-primary">
+            <i class="bi bi-download me-1"></i>Download IIF File
+          </a>
+          <button class="btn btn-success" id="syncBtn" onclick="syncAll()">
+            <i class="bi bi-check2-all me-1"></i>Mark All as Synced
+          </button>
+        </div>
+        <p class="text-muted small mt-2">
+          <strong>Step 1:</strong> Download the IIF file and import it into QuickBooks Desktop (<em>File → Utilities → Import → IIF Files</em>).<br>
+          <strong>Step 2:</strong> Click <strong>Mark All as Synced</strong> to record the export.
+        </p>
+        {% else %}
+        <div class="alert alert-success mb-0">
+          <i class="bi bi-check-circle me-2"></i>All transactions are synced with QuickBooks.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Sync History -->
+    <div class="card">
+      <div class="card-header fw-semibold">Sync History</div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <thead class="table-light">
+            <tr><th>Date</th><th>Records</th><th>Count</th><th>Status</th><th>By</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            {% for q in qb_logs %}
+            <tr>
+              <td>{{ q.sync_date }}</td>
+              <td>{{ q.record_type }}</td>
+              <td><span class="badge bg-primary">{{ q.count }}</span></td>
+              <td><span class="badge bg-{{ 'success' if q.status == 'Success' else 'danger' }}">{{ q.status }}</span></td>
+              <td class="text-muted">{{ q.synced_by_name or '—' }}</td>
+              <td class="text-muted small">{{ q.notes or '' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-3">No sync history.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card mb-3">
+      <div class="card-header fw-semibold text-success">
+        <i class="bi bi-plug-fill me-1"></i>Auto-Sync via Web Connector
+      </div>
+      <div class="card-body small">
+        <p class="mb-2">Set up <strong>QuickBooks Web Connector</strong> to sync automatically every hour.</p>
+        <ol class="ps-3 mb-3">
+          <li>Download the <strong>.qwc file</strong> below</li>
+          <li>Open <strong>QuickBooks Desktop</strong></li>
+          <li>Go to <em>File → App Management → Update Web Services</em></li>
+          <li>Click <strong>Add an Application</strong> and select the .qwc file</li>
+          <li>Enter the QBWC password set in your <code>.env</code> file</li>
+          <li>Check <strong>Auto-Run</strong> and set interval to 60 min</li>
+        </ol>
+        <a href="/qbwc.qwc" class="btn btn-success btn-sm w-100">
+          <i class="bi bi-download me-1"></i>Download QuickBooks Connector File
+        </a>
+        <hr>
+        <p class="text-muted mb-0">Transactions sync as <em>Journal Entries</em>. Make sure these accounts exist in QB: <strong>Undeposited Funds</strong>, <strong>Checking</strong>, and one account per category name.</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header fw-semibold">Manual Export (IIF)</div>
+      <div class="card-body small text-muted">
+        <p class="mb-1">Download an IIF file and import via <em>File → Utilities → Import → IIF Files</em>.</p>
+        <p class="mb-0">Then click <strong>Mark All as Synced</strong> to record the export.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function syncAll() {
+  const btn = document.getElementById('syncBtn');
+  btn.disabled = true;
+  btn.textContent = 'Syncing…';
+  try {
+    const dataRes = await fetch('/finances/qb-sync-data');
+    const records = await dataRes.json();
+    if (!records.length) { alert('Nothing to sync.'); btn.disabled = false; btn.textContent = 'Sync All to QuickBooks'; return; }
+    const ids = records.map(r => r.id);
+    const res = await fetch('/finances/qb-mark-synced', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ids, notes: 'Manual sync via QB Sync page'})
+    });
+    const result = await res.json();
+    if (result.success) {
+      alert(`Synced ${result.count} transaction(s) successfully.`);
+      location.reload();
+    } else {
+      alert('Sync failed: ' + (result.error || 'Unknown error'));
+      btn.disabled = false;
+      btn.textContent = 'Sync All to QuickBooks';
+    }
+  } catch(e) {
+    alert('Error: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = 'Sync All to QuickBooks';
+  }
+}
+
+// Load unsynced list on page load
+fetch('/finances/qb-sync-data')
+  .then(r => r.json())
+  .then(records => {
+    const el = document.getElementById('unsyncedList');
+    if (!el) return;
+    if (!records.length) { el.innerHTML = '<p class="text-muted small">No pending records.</p>'; return; }
+    let html = '<table class="table table-sm"><thead class="table-light"><tr><th>Date</th><th>Description</th><th>Amount</th></tr></thead><tbody>';
+    records.forEach(r => {
+      const cls = r.amount >= 0 ? 'text-success' : 'text-danger';
+      html += `<tr><td class="text-muted">${r.date}</td><td class="small">${r.description}</td><td class="fw-semibold ${cls}">$${Math.abs(r.amount).toFixed(2)}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  });
+</script>
+{% endblock %}

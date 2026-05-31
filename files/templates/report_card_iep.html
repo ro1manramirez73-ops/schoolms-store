@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+{% block title %}IEP Report Card — {{ student.first_name }} {{ student.last_name }}{% endblock %}
+{% block page_title %}IEP Report Card{% endblock %}
+{% block content %}
+
+<style>
+/* ── Document paper ── */
+.rc-paper {
+  background: #fff;
+  max-width: 780px;
+  margin: 0 auto 40px;
+  padding: 24px 28px;
+  box-shadow: 0 2px 20px rgba(0,0,0,.13);
+  font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
+  font-size: 10pt;
+  color: #111;
+}
+.rc-paper h1 { font-size: 14pt; font-weight: 700; text-align: center; margin: 0; letter-spacing: .5px; }
+.rc-paper .rc-sub { font-size: 9pt; text-align: center; margin: 0 0 4px; color: #444; }
+
+/* ── Tables ── */
+.rc-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+  font-size: 9pt;
+}
+.rc-table td, .rc-table th {
+  border: 1px solid #111;
+  padding: 3px 5px;
+  vertical-align: top;
+}
+.rc-hdr td {
+  background: #D9D9D9;
+  font-weight: 700;
+  font-size: 10pt;
+  padding: 4px 6px;
+  vertical-align: middle;
+}
+.rc-col-hdr td {
+  font-weight: 700;
+  text-align: center;
+  font-size: 9pt;
+  background: #D9D9D9;
+  white-space: nowrap;
+}
+.rc-term-cell { width: 54px; text-align: center; vertical-align: middle; }
+.rc-pct-cell  { width: 44px; text-align: center; vertical-align: middle; }
+.rc-goal-cell { vertical-align: top; }
+
+/* ── Form controls ── */
+.rc-input {
+  border: none;
+  border-bottom: 1px solid #666;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0 3px;
+  width: 100%;
+  outline: none;
+}
+.rc-input:focus { border-bottom-color: #7c3aed; background: #faf5ff; }
+.rc-select-iep {
+  border: 1px solid #999;
+  background: #fff;
+  font-family: inherit;
+  font-size: 8.5pt;
+  padding: 1px 1px;
+  width: 48px;
+  text-align: center;
+}
+.rc-pct-input {
+  border: 1px solid #bbb;
+  background: transparent;
+  font-family: inherit;
+  font-size: 8pt;
+  width: 42px;
+  text-align: center;
+  padding: 1px 2px;
+  outline: none;
+}
+.rc-pct-input:focus { border-color: #7c3aed; background: #faf5ff; }
+.rc-ta {
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 9pt;
+  resize: none;
+  width: 100%;
+  outline: none;
+  padding: 0;
+  min-height: 36px;
+}
+.rc-ta:focus { background: #faf5ff; }
+
+/* ── Info block ── */
+.rc-info-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+.rc-info-table td { padding: 2px 4px; border: none; font-size: 9.5pt; }
+
+/* ── Scale legend ── */
+.rc-scale {
+  font-size: 8pt;
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  padding: 4px 6px;
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.rc-toolbar {
+  max-width: 780px;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media print {
+  .rc-toolbar, nav, aside, #sidebarWrapper, .navbar, footer { display: none !important; }
+  .rc-paper { box-shadow: none; padding: 0; max-width: 100%; }
+  body { background: white !important; }
+  select { -webkit-appearance: none; border: none; }
+}
+</style>
+
+<form method="POST" action="/students/{{ student.id }}/report-card-form">
+<input type="hidden" name="card_type" value="iep">
+
+<!-- Toolbar -->
+<div class="rc-toolbar">
+  <a href="/students/{{ student.id }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Back
+  </a>
+  <div class="d-flex gap-2">
+    <button type="button" onclick="window.print()" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-printer me-1"></i>Print
+    </button>
+    <button type="submit" class="btn btn-sm btn-primary">
+      <i class="bi bi-floppy me-1"></i>Save
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════ PAPER ══════════════ -->
+<div class="rc-paper">
+
+  <!-- School header -->
+  <h1>{{ school_name | upper }}</h1>
+  <div class="rc-sub">{{ school_address }}</div>
+  <hr style="border-top:2px solid #111;margin:6px 0;">
+  <div style="text-align:center;font-weight:700;font-size:11pt;margin-bottom:6px;">
+    IEP — Individual Education Plan Report Card
+  </div>
+
+  <!-- Student info -->
+  <table class="rc-info-table">
+    <tr>
+      <td style="width:50%;"><strong>Student's Name:</strong>
+        {{ student.first_name }} {{ student.last_name }}</td>
+      <td style="width:50%;"><strong>Teacher's Name:</strong>
+        <input name="teacher_name" class="rc-input" style="width:180px;"
+               value="{{ existing.get('teacher_name', teacher_name) }}"></td>
+    </tr>
+    <tr>
+      <td><strong>School Year:</strong>
+        <input name="academic_year" class="rc-input" style="width:90px;"
+               value="{{ existing.get('academic_year', year) }}">
+      </td>
+      <td><strong>Functioning Grade Level:</strong>
+        <input name="func_grade" class="rc-input" style="width:130px;"
+               value="{{ existing.get('func_grade','') }}" placeholder="e.g. Gr. 3-4">
+      </td>
+    </tr>
+  </table>
+
+  <!-- Grading scale -->
+  <div class="rc-scale">
+    <strong>I</strong> — Introductory: No progress is evident &nbsp;&nbsp;
+    <strong>E</strong> — Emergent: Early stage of skill developed (50% and below) &nbsp;&nbsp;
+    <strong>D</strong> — Developing: Progress is evident (55–70%) &nbsp;&nbsp;
+    <strong>P</strong> — Performed: Demonstrates skill under direction/request (71–80%) &nbsp;&nbsp;
+    <strong>A</strong> — Applied: Uses skill independently (81–100%)
+  </div>
+
+  {# ── IEP section macro ── #}
+  {% macro iep_section(label, key, show_func=false, rows=5) %}
+  <table class="rc-table">
+    <tr class="rc-hdr">
+      <td colspan="7">
+        {{ label }}
+        {% if show_func %}
+        &nbsp;&nbsp;
+        <span style="font-weight:normal;font-size:9pt;">Functioning Grade Level:
+          <input name="{{ key }}_func_grade" class="rc-input" style="width:120px;display:inline-block;"
+                 value="{{ existing.get(key ~ '_func_grade','') }}" placeholder="e.g. Grade 4">
+        </span>
+        {% endif %}
+      </td>
+    </tr>
+    <tr class="rc-col-hdr">
+      <td>Goal</td>
+      <td class="rc-term-cell">T1</td>
+      <td class="rc-pct-cell">T1&nbsp;%</td>
+      <td class="rc-term-cell">T2</td>
+      <td class="rc-pct-cell">T2&nbsp;%</td>
+      <td class="rc-term-cell">T3</td>
+      <td class="rc-pct-cell">T3&nbsp;%</td>
+    </tr>
+    {% for i in range(rows) %}{% set gk = key ~ '_goal_' ~ i %}
+    <tr>
+      <td class="rc-goal-cell">
+        <textarea name="{{ gk }}_text" class="rc-ta"
+                  placeholder="Student is working on… In 4/5 trials.">{{ existing.get(gk ~ '_text','') }}</textarea>
+      </td>
+      {% for t in ['t1','t2','t3'] %}
+      <td class="rc-term-cell">
+        <select name="{{ gk }}_{{ t }}" class="rc-select-iep">
+          {% for o in ['','I','E','D','P','A'] %}<option {% if existing.get(gk ~ '_' ~ t) == o %}selected{% endif %}>{{ o or '—' }}</option>{% endfor %}
+        </select>
+      </td>
+      <td class="rc-pct-cell">
+        <input name="{{ gk }}_{{ t }}_pct" type="number" min="0" max="100" class="rc-pct-input"
+               value="{{ existing.get(gk ~ '_' ~ t ~ '_pct','') }}" placeholder="%">
+      </td>
+      {% endfor %}
+    </tr>{% endfor %}
+    <tr>
+      <td colspan="7" style="background:#f9f9f9;">
+        <strong>Comments:</strong>
+        <textarea name="{{ key }}_comments" class="rc-ta" rows="2"
+                  placeholder="Comments for {{ label }}…">{{ existing.get(key ~ '_comments','') }}</textarea>
+      </td>
+    </tr>
+  </table>
+  {% endmacro %}
+
+  {{ iep_section('SOCIALIZATION',          'socialization') }}
+  {{ iep_section('EMOTIONAL — To attain goal at 100%', 'emotional') }}
+  {{ iep_section('BEHAVIORAL — To attain goal at 100%', 'behavioral', rows=5) }}
+  {{ iep_section('FINE MOTOR',             'fine_motor') }}
+  {{ iep_section('GROSS MOTOR',            'gross_motor') }}
+  {{ iep_section('LANGUAGE DEVELOPMENT',   'language_dev', show_func=true) }}
+  {{ iep_section('MATH',                   'math', show_func=true) }}
+  {{ iep_section('READING',                'reading') }}
+  {{ iep_section('LIFE / SELF-HELP SKILLS','life_skills') }}
+  {{ iep_section('PROJECT',                'project', rows=3) }}
+
+  <!-- General comments -->
+  <div style="margin-top:8px;">
+    <strong>General Comments:</strong><br>
+    <textarea name="comments" class="rc-ta" rows="3"
+              style="border:1px solid #ccc;padding:4px;margin-top:2px;"
+              placeholder="Overall comments about the student's progress…">{{ existing.get('comments','') }}</textarea>
+  </div>
+
+</div><!-- end rc-paper -->
+
+<!-- Bottom save -->
+<div style="max-width:780px;margin:0 auto 40px;display:flex;gap:8px;">
+  <button type="submit" class="btn btn-primary"><i class="bi bi-floppy me-1"></i>Save Report Card</button>
+  <a href="/students/{{ student.id }}" class="btn btn-outline-secondary">Cancel</a>
+</div>
+</form>
+{% endblock %}

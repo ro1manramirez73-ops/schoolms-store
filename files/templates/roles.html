@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Roles & Permissions — {{ school_name }}{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="fw-bold mb-0">Roles & Permissions</h2>
+    <p class="text-muted small mb-0">Control what each role can access. Admin always has full access.</p>
+  </div>
+</div>
+
+{% if request.args.get('saved') %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+  <i class="bi bi-check-circle-fill me-2"></i>Permissions saved successfully.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<!-- Permissions grid -->
+<form method="POST" action="/admin/roles">
+  <input type="hidden" name="action" value="save">
+  <div class="card mb-4">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-bordered mb-0" style="min-width:700px;">
+          <thead class="table-dark">
+            <tr>
+              <th style="min-width:130px;">Permission</th>
+              {% for role, perms in role_data %}
+              <th class="text-center" style="min-width:90px;">
+                {{ role }}
+                {% if role == 'admin' %}
+                <span class="badge bg-danger ms-1" style="font-size:.6rem;">full</span>
+                {% endif %}
+              </th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for perm_key, perm_label in all_permissions %}
+            <tr>
+              <td class="fw-semibold" style="font-size:.85rem;">{{ perm_label }}</td>
+              {% for role, perms in role_data %}
+              <td class="text-center">
+                {% if role == 'admin' %}
+                  <i class="bi bi-check-circle-fill text-success"></i>
+                {% else %}
+                  <input type="checkbox" name="perm_{{ role }}" value="{{ perm_key }}"
+                         class="form-check-input"
+                         {% if perm_key in perms %}checked{% endif %}>
+                {% endif %}
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <button type="submit" class="btn btn-primary">
+    <i class="bi bi-floppy me-1"></i>Save Permissions
+  </button>
+</form>
+
+<hr class="my-4">
+
+<!-- Add custom role -->
+<div class="card mb-4" style="max-width:520px;">
+  <div class="card-header fw-semibold"><i class="bi bi-plus-circle me-2 text-primary"></i>Add Custom Role</div>
+  <div class="card-body">
+    <form method="POST" action="/admin/roles">
+      <input type="hidden" name="action" value="add_role">
+      <div class="mb-3">
+        <label class="form-label">Role Name</label>
+        <input name="new_role" class="form-control form-control-sm" placeholder="e.g. nurse, librarian" required>
+        <div class="form-text">Lowercase, no spaces (underscores OK).</div>
+      </div>
+      <label class="form-label">Permissions</label>
+      <div class="row g-1 mb-3">
+        {% for perm_key, perm_label in all_permissions %}
+        <div class="col-6">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="new_role_perms" value="{{ perm_key }}" id="np_{{ perm_key }}">
+            <label class="form-check-label small" for="np_{{ perm_key }}">{{ perm_label }}</label>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-plus me-1"></i>Add Role</button>
+    </form>
+  </div>
+</div>
+
+<!-- Delete custom roles -->
+{% set _builtin = ['admin','teacher','accountant','frontdesk','parent','student','viewer'] %}
+{% set custom_roles = [] %}
+{% for _item in role_data %}{% if _item[0] not in _builtin %}{% if custom_roles.append(_item) %}{% endif %}{% endif %}{% endfor %}
+{% if custom_roles %}
+<div class="card" style="max-width:520px;">
+  <div class="card-header fw-semibold text-danger"><i class="bi bi-trash me-2"></i>Delete Custom Role</div>
+  <div class="card-body">
+    {% for role, perms in custom_roles %}
+    <form method="POST" action="/admin/roles" class="d-inline me-2 mb-2"
+          onsubmit="return confirm('Delete role \'{{ role }}\'? Users with this role will lose access.')">
+      <input type="hidden" name="action" value="delete_role">
+      <input type="hidden" name="role" value="{{ role }}">
+      <button type="submit" class="btn btn-outline-danger btn-sm">
+        <i class="bi bi-trash me-1"></i>{{ role }}
+      </button>
+    </form>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

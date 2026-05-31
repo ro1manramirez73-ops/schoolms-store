@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+{% block title %}Deployment & Connections — {{ school_name }}{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="fw-bold mb-0">Deployment & Connections</h2>
+    <p class="text-muted small mb-0">Control how the system is accessed and how many PCs can connect.</p>
+  </div>
+</div>
+
+{% if saved %}
+<div class="alert alert-success alert-dismissible fade show">
+  <i class="bi bi-check-circle-fill me-2"></i>Settings saved.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="row g-4">
+
+  <!-- ── Left column ── -->
+  <div class="col-lg-7">
+
+    <!-- Network Access -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white border-bottom fw-semibold py-3">
+        <i class="bi bi-hdd-network me-2 text-primary"></i>Network Access
+      </div>
+      <div class="card-body p-4">
+
+        <!-- Server mode tabs -->
+        <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="save">
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Deployment Mode</label>
+            <div class="row g-3">
+              <div class="col-sm-4">
+                <label class="d-block border rounded-3 p-3 text-center cursor-pointer {% if cfg.server_mode == 'lan' %}border-primary bg-primary bg-opacity-10{% endif %}"
+                       style="cursor:pointer;">
+                  <input type="radio" name="server_mode" value="lan" class="d-none"
+                         {% if cfg.server_mode == 'lan' %}checked{% endif %}>
+                  <i class="bi bi-wifi fs-2 {% if cfg.server_mode == 'lan' %}text-primary{% else %}text-muted{% endif %} d-block mb-1"></i>
+                  <div class="fw-semibold small">Local Network</div>
+                  <div class="text-muted" style="font-size:.75rem;">Other PCs on same Wi-Fi</div>
+                </label>
+              </div>
+              <div class="col-sm-4">
+                <label class="d-block border rounded-3 p-3 text-center {% if cfg.server_mode == 'cloudflare' %}border-primary bg-primary bg-opacity-10{% endif %}"
+                       style="cursor:pointer;">
+                  <input type="radio" name="server_mode" value="cloudflare" class="d-none"
+                         {% if cfg.server_mode == 'cloudflare' %}checked{% endif %}>
+                  <i class="bi bi-cloud-arrow-up fs-2 {% if cfg.server_mode == 'cloudflare' %}text-primary{% else %}text-muted{% endif %} d-block mb-1"></i>
+                  <div class="fw-semibold small">Cloudflare Tunnel</div>
+                  <div class="text-muted" style="font-size:.75rem;">Free online access, no port-forward</div>
+                </label>
+              </div>
+              <div class="col-sm-4">
+                <label class="d-block border rounded-3 p-3 text-center {% if cfg.server_mode == 'vps' %}border-primary bg-primary bg-opacity-10{% endif %}"
+                       style="cursor:pointer;">
+                  <input type="radio" name="server_mode" value="vps" class="d-none"
+                         {% if cfg.server_mode == 'vps' %}checked{% endif %}>
+                  <i class="bi bi-server fs-2 {% if cfg.server_mode == 'vps' %}text-primary{% else %}text-muted{% endif %} d-block mb-1"></i>
+                  <div class="fw-semibold small">Cloud / VPS</div>
+                  <div class="text-muted" style="font-size:.75rem;">DigitalOcean, Linode, AWS…</div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Current LAN URL -->
+          <div class="alert alert-light border mb-3 py-2 px-3">
+            <div class="small text-muted mb-1">This server's local network address:</div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <code class="fw-bold fs-6" id="lanUrl">{{ lan_url }}</code>
+              <button type="button" class="btn btn-outline-secondary btn-sm"
+                      onclick="navigator.clipboard.writeText('{{ lan_url }}');this.textContent='Copied!';">
+                <i class="bi bi-clipboard me-1"></i>Copy
+              </button>
+            </div>
+            <div class="text-muted mt-1" style="font-size:.78rem;">
+              Other computers on the same Wi-Fi can open this URL in their browser.
+            </div>
+          </div>
+
+          <!-- Connection Limit -->
+          <div class="row g-3 mb-4">
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Max Simultaneous PCs
+                <i class="bi bi-info-circle text-muted ms-1" data-bs-toggle="tooltip"
+                   title="0 = unlimited. When the limit is reached, new logins are blocked until someone logs out."></i>
+              </label>
+              <div class="input-group">
+                <input type="number" name="max_connections" class="form-control"
+                       value="{{ cfg.max_connections }}" min="0" max="999">
+                <span class="input-group-text text-muted small">0 = unlimited</span>
+              </div>
+              <div class="form-text">Currently <strong>{{ active_count }}</strong> active connection(s).</div>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Auto-Logout After (hours)</label>
+              <div class="input-group">
+                <input type="number" name="session_timeout_h" class="form-control"
+                       value="{{ cfg.session_timeout_h }}" min="1" max="72">
+                <span class="input-group-text text-muted small">hours</span>
+              </div>
+              <div class="form-text">Idle sessions are removed after this time.</div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn text-white px-4" style="background:#4f46e5;">
+            <i class="bi bi-save me-2"></i>Save Settings
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Setup Instructions -->
+    <div class="card border-0 shadow-sm mb-4" id="setupInstructions">
+      <div class="card-header bg-white border-bottom fw-semibold py-3">
+        <i class="bi bi-journal-code me-2 text-primary"></i>Setup Instructions
+      </div>
+      <div class="card-body p-0">
+
+        <!-- LAN Tab -->
+        <div class="p-4 {% if cfg.server_mode != 'lan' %}d-none{% endif %}" id="inst-lan">
+          <h6 class="fw-bold">Local Network Setup (same Wi-Fi)</h6>
+          <ol class="small text-muted ps-3 mb-3">
+            <li class="mb-1">Make sure this computer is connected to the school Wi-Fi.</li>
+            <li class="mb-1">Start the server: run <code>wsgi.py</code> or double-click the desktop shortcut.</li>
+            <li class="mb-1">On any other PC or tablet on the same network, open a browser and go to:<br>
+              <code class="text-primary">{{ lan_url }}</code>
+            </li>
+            <li class="mb-1">To always use the same IP, set a <strong>static IP</strong> on this machine in your router or Windows network settings.</li>
+          </ol>
+          <div class="alert alert-warning py-2 px-3 mb-0" style="font-size:.8rem;">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            <strong>Firewall:</strong> If other PCs cannot reach the URL, run <code>open_firewall.bat</code> (included in the project) to allow port {{ port }} through Windows Firewall.
+          </div>
+        </div>
+
+        <!-- Cloudflare Tab -->
+        <div class="p-4 {% if cfg.server_mode != 'cloudflare' %}d-none{% endif %}" id="inst-cloudflare">
+          <h6 class="fw-bold">Cloudflare Tunnel Setup (free, no port-forward needed)</h6>
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span class="badge {% if cloudflare_running %}bg-success{% else %}bg-secondary{% endif %}">
+              {% if cloudflare_running %}Running{% else %}Not detected{% endif %}
+            </span>
+            <span class="text-muted small">cloudflared process status</span>
+          </div>
+          <ol class="small text-muted ps-3 mb-3">
+            <li class="mb-1">Download <strong>cloudflared</strong> from <code>https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/</code></li>
+            <li class="mb-1">Place <code>cloudflared.exe</code> in the project folder (already done if you see it in <code>cloudflared/</code>).</li>
+            <li class="mb-1">Run the included <code>setup_cloudflare.bat</code> — it will open a browser to authenticate with your free Cloudflare account.</li>
+            <li class="mb-1">Once authenticated, run <code>install_cloudflare_service.bat</code> to start the tunnel automatically on boot.</li>
+            <li class="mb-1">Cloudflare will give you a public <code>https://xxxx.trycloudflare.com</code> URL — share that with staff.</li>
+          </ol>
+          <div class="alert alert-info py-2 px-3 mb-0" style="font-size:.8rem;">
+            <i class="bi bi-info-circle me-1"></i>
+            The tunnel is free for up to 50 users. No domain name or port-forwarding required.
+          </div>
+        </div>
+
+        <!-- VPS Tab -->
+        <div class="p-4 {% if cfg.server_mode != 'vps' %}d-none{% endif %}" id="inst-vps">
+          <h6 class="fw-bold">Cloud / VPS Deployment</h6>
+          <ol class="small text-muted ps-3 mb-3">
+            <li class="mb-1">Get a Linux VPS — <strong>DigitalOcean</strong>, <strong>Linode</strong>, <strong>AWS EC2</strong>, or <strong>Vultr</strong> (from ~$6/month).</li>
+            <li class="mb-1">SSH into the server and run:<br>
+              <code>sudo apt update && sudo apt install python3 python3-pip python3-venv nginx -y</code>
+            </li>
+            <li class="mb-1">Upload the project: <code>scp -r . user@your-server:/var/www/schoolms</code></li>
+            <li class="mb-1">Create venv, install requirements:<br>
+              <code>python3 -m venv .venv && .venv/bin/pip install -r requirements.txt</code>
+            </li>
+            <li class="mb-1">Copy <code>.env.example</code> to <code>.env</code>, generate a new <code>SECRET_KEY</code>, fill in your database URL.</li>
+            <li class="mb-1">Run with Gunicorn: <code>gunicorn --config gunicorn.conf.py wsgi:app</code></li>
+            <li class="mb-1">Set up Nginx as a reverse proxy using the included <code>nginx.conf</code>.</li>
+            <li class="mb-1">Get a free SSL certificate: <code>sudo certbot --nginx -d yourdomain.com</code></li>
+          </ol>
+          <div class="alert alert-info py-2 px-3 mb-0" style="font-size:.8rem;">
+            <i class="bi bi-info-circle me-1"></i>
+            For production, switch <code>DATABASE_URL</code> in <code>.env</code> to PostgreSQL and set <code>SECRET_KEY</code> to a freshly generated value.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Right column ── -->
+  <div class="col-lg-5">
+
+    <!-- Active Connections -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+        <span class="fw-semibold"><i class="bi bi-pc-display me-2 text-primary"></i>Active Connections
+          <span class="badge bg-primary ms-1">{{ active_count }}</span>
+        </span>
+        {% if active_count > 1 %}
+        <form method="POST" class="mb-0" onsubmit="return confirm('Disconnect all other sessions?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="kick_all">
+          <button class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-x-circle me-1"></i>Disconnect All Others
+          </button>
+        </form>
+        {% endif %}
+      </div>
+      <div class="card-body p-0">
+        {% if active_sessions %}
+        <ul class="list-group list-group-flush">
+          {% for s in active_sessions %}
+          <li class="list-group-item py-3 px-4">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="fw-semibold small">
+                  {{ s.full_name or s.username or 'Unknown' }}
+                  <span class="badge bg-light text-dark ms-1" style="font-size:.7rem;">{{ s.role }}</span>
+                  {% if s.token == my_tok %}
+                  <span class="badge bg-success ms-1" style="font-size:.7rem;">You</span>
+                  {% endif %}
+                </div>
+                <div class="text-muted" style="font-size:.75rem;">
+                  <i class="bi bi-hdd-network me-1"></i>{{ s.ip_address or '—' }}
+                  &nbsp;·&nbsp;
+                  <i class="bi bi-clock me-1"></i>{{ s.last_seen[:16].replace('T',' ') }}
+                </div>
+                <div class="text-muted text-truncate" style="font-size:.7rem;max-width:220px;">
+                  {{ s.user_agent[:60] if s.user_agent else '—' }}
+                </div>
+              </div>
+              {% if s.token != my_tok %}
+              <form method="POST" class="ms-2 flex-shrink-0">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="kick_session">
+                <input type="hidden" name="token" value="{{ s.token }}">
+                <button class="btn btn-sm btn-outline-danger" title="Disconnect">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-center text-muted py-4 small">No active connections tracked yet.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Quick Summary -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-bottom fw-semibold py-3">
+        <i class="bi bi-bar-chart me-2 text-primary"></i>Connection Summary
+      </div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between py-3 px-4">
+          <span class="small text-muted">Active now</span>
+          <span class="fw-semibold">{{ active_count }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between py-3 px-4">
+          <span class="small text-muted">Connection limit</span>
+          <span class="fw-semibold">{% if cfg.max_connections == '0' %}Unlimited{% else %}{{ cfg.max_connections }}{% endif %}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between py-3 px-4">
+          <span class="small text-muted">Session timeout</span>
+          <span class="fw-semibold">{{ cfg.session_timeout_h }} hr</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between py-3 px-4">
+          <span class="small text-muted">Deployment mode</span>
+          <span class="fw-semibold text-capitalize">{{ cfg.server_mode }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between py-3 px-4">
+          <span class="small text-muted">Local network URL</span>
+          <code class="small">{{ lan_url }}</code>
+        </li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// Sync radio buttons to show the right instruction panel
+document.querySelectorAll('input[name="server_mode"]').forEach(r => {
+  r.closest('label').addEventListener('click', () => {
+    document.querySelectorAll('input[name="server_mode"]').forEach(x => {
+      const lbl = x.closest('label');
+      lbl.classList.remove('border-primary','bg-primary','bg-opacity-10');
+      lbl.querySelector('i').classList.remove('text-primary');
+      lbl.querySelector('i').classList.add('text-muted');
+    });
+    const lbl = r.closest('label');
+    lbl.classList.add('border-primary','bg-primary','bg-opacity-10');
+    lbl.querySelector('i').classList.remove('text-muted');
+    lbl.querySelector('i').classList.add('text-primary');
+
+    ['lan','cloudflare','vps'].forEach(m => {
+      document.getElementById('inst-'+m)?.classList.add('d-none');
+    });
+    document.getElementById('inst-'+r.value)?.classList.remove('d-none');
+  });
+});
+
+// Init tooltips
+document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el =>
+  new bootstrap.Tooltip(el));
+</script>
+
+{% endblock %}

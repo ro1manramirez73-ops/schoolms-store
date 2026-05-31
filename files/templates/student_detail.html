@@ -1,0 +1,1378 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ student.first_name }} {{ student.last_name }} — {{ school_name }}{% endblock %}
+{% block page_title %}Student Profile{% endblock %}
+{% block content %}
+
+<!-- Back -->
+<a href="{{ '/walk-ins' if student.student_type == 'Walk-in' else '/students' }}"
+   class="d-inline-flex align-items-center gap-1 text-muted text-decoration-none mb-3" style="font-size:.8rem;">
+  <i class="bi bi-arrow-left"></i> Back to {{ 'Walk-in Clients' if student.student_type == 'Walk-in' else 'Students' }}
+</a>
+
+<!-- Profile Header Card -->
+<div class="card mb-4" style="border-left:4px solid #4f46e5;">
+  <div class="card-body">
+    <div class="row align-items-center g-3">
+      <div class="col-auto position-relative" style="width:88px;">
+        {% if student.photo %}
+        <img src="{{ student.photo }}" alt="{{ student.first_name }} {{ student.last_name }}"
+             style="width:80px;height:80px;border-radius:18px;object-fit:cover;
+                    border:3px solid #e0e7ff;display:block;">
+        {% else %}
+        <div style="width:80px;height:80px;border-radius:18px;
+                    background:linear-gradient(135deg,#4f46e5,#818cf8);
+                    display:flex;align-items:center;justify-content:center;
+                    color:#fff;font-size:1.6rem;font-weight:700;">
+          {{ student.first_name[0] }}{{ student.last_name[0] }}
+        </div>
+        {% endif %}
+        {% if session.role in ('admin', 'teacher') %}
+        <label for="photoUpload" title="Upload passport photo"
+               style="position:absolute;bottom:-5px;right:-5px;
+                      background:#4f46e5;color:#fff;border-radius:50%;
+                      width:26px;height:26px;display:flex;align-items:center;
+                      justify-content:center;cursor:pointer;font-size:.7rem;
+                      box-shadow:0 2px 8px rgba(79,70,229,.45);">
+          <i class="bi bi-camera-fill"></i>
+        </label>
+        <form id="photoUploadForm" method="POST" enctype="multipart/form-data"
+              action="/students/{{ student.id }}/upload-photo" style="display:none;">
+          <input id="photoUpload" type="file" name="photo" accept="image/*"
+                 onchange="document.getElementById('photoUploadForm').submit()">
+        </form>
+        {% endif %}
+      </div>
+      <div class="col">
+        <h4 class="fw-bold mb-0">{{ student.first_name }} {{ student.last_name }}</h4>
+        <div class="text-muted small mt-1">
+          <i class="bi bi-hash"></i> {{ student.student_id }}
+          {% if student.student_type != 'Walk-in' %}
+          &nbsp;&bull;&nbsp;
+          <i class="bi bi-building"></i> {{ student.class_name or 'No classroom' }}
+          &nbsp;&bull;&nbsp;
+          <i class="bi bi-calendar3"></i> Enrolled {{ student.enrollment_date|fmt_date }}
+          {% else %}
+          &nbsp;&bull;&nbsp;
+          <i class="bi bi-calendar3"></i> First visit {{ student.enrollment_date|fmt_date }}
+          {% endif %}
+        </div>
+        <div class="mt-2">
+          {% if student.student_type == 'Walk-in' %}
+          <span class="badge rounded-pill" style="background:#e0f2fe;color:#0369a1;"><i class="bi bi-person-walking me-1"></i>Walk-in Client</span>
+          {% endif %}
+          <span class="badge rounded-pill" style="background:{{ '#d1fae5' if student.status=='Active' else '#f3f4f6' }};color:{{ '#065f46' if student.status=='Active' else '#374151' }};">
+            {{ student.status }}
+          </span>
+          {% if student.gender %}<span class="badge rounded-pill" style="background:#ede9fe;color:#4f46e5;">{{ student.gender }}</span>{% endif %}
+          {% if student.medical_notes %}
+          <span class="badge rounded-pill" style="background:#fef3c7;color:#92400e;"><i class="bi bi-heart-pulse me-1"></i>Medical note on file</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-auto d-flex gap-2">
+        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editStudentModal">
+          <i class="bi bi-pencil me-1"></i>Edit
+        </button>
+        {% if student.student_type != 'Walk-in' and session.role in ('admin','teacher') %}
+        {% set rc_type = student.report_card_type or 'standard' %}
+        <a href="/students/{{ student.id }}/report-card-form?type={{ rc_type }}&year=2025-2026"
+           class="btn btn-sm {% if rc_type == 'iep' %}btn-outline-purple{% else %}btn-outline-secondary{% endif %}"
+           style="{% if rc_type == 'iep' %}border-color:#7c3aed;color:#7c3aed;{% endif %}">
+          <i class="bi bi-clipboard2-{% if rc_type == 'iep' %}pulse{% else %}check{% endif %} me-1"></i>
+          Fill Report Card
+          <span class="badge ms-1 rounded-pill" style="font-size:.65rem;background:{% if rc_type == 'iep' %}#7c3aed{% else %}#4f46e5{% endif %};color:#fff;">{{ rc_type|upper }}</span>
+        </a>
+        {% else %}
+        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#reportCardModal">
+          <i class="bi bi-file-earmark-pdf me-1"></i>Report Card
+        </button>
+        {% endif %}
+        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#progressReportModal">
+          <i class="bi bi-graph-up me-1"></i>Progress Report
+        </button>
+        <a href="/parent/fee-statement?student_id={{ student.id }}" target="_blank"
+           class="btn btn-sm btn-outline-success">
+          <i class="bi bi-receipt me-1"></i>Fee Statement
+        </a>
+        {% if can('finances') %}
+        <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#monthlyStmtModal">
+          <i class="bi bi-calendar-month me-1"></i>Monthly Statement
+        </button>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if student.medical_notes %}
+    <div class="alert alert-warning d-flex align-items-center gap-2 mt-3 mb-0 py-2" style="font-size:.8rem;border-radius:9px;">
+      <i class="bi bi-heart-pulse-fill"></i><strong>Medical:</strong> {{ student.medical_notes }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Info row -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-person me-2 text-muted"></i>Personal Info</div>
+      <div class="card-body">
+        <div class="row g-2" style="font-size:.82rem;">
+          <div class="col-6"><div class="text-muted mb-1">Date of Birth</div><div class="fw-semibold">{{ student.dob|fmt_date }}{% if student.dob %} <span class="text-muted" style="font-size:.78rem;">({{ student.dob|age }} yrs)</span>{% endif %}</div></div>
+          <div class="col-6"><div class="text-muted mb-1">Email</div><div class="fw-semibold">{{ student.email or '—' }}</div></div>
+          <div class="col-6"><div class="text-muted mb-1">Phone</div><div class="fw-semibold">{{ student.phone or '—' }}</div></div>
+          <div class="col-6"><div class="text-muted mb-1">Emergency Contact</div><div class="fw-semibold">{{ student.emergency_contact or '—' }}</div></div>
+          <div class="col-12"><div class="text-muted mb-1">Address</div><div class="fw-semibold">{{ student.address or '—' }}</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-people me-2 text-muted"></i>Parents / Guardians</div>
+      <div class="card-body" style="font-size:.82rem;">
+        <!-- Mother / Guardian -->
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <div style="width:34px;height:34px;border-radius:50%;background:#ede9fe;color:#7c3aed;
+                      display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0;">
+            <i class="bi bi-person-hearts"></i>
+          </div>
+          <div>
+            <div class="fw-semibold">{{ student.parent_name or '—' }}</div>
+            <div class="text-muted" style="font-size:.75rem;">Mother / Guardian</div>
+          </div>
+        </div>
+        <div class="row g-1 mb-3 ps-1">
+          <div class="col-6"><span class="text-muted">Phone </span><span class="fw-semibold">{{ student.parent_phone or '—' }}</span></div>
+          <div class="col-6"><span class="text-muted">Email </span><span class="fw-semibold">{{ student.parent_email or '—' }}</span></div>
+        </div>
+        <!-- Father -->
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <div style="width:34px;height:34px;border-radius:50%;background:#dbeafe;color:#1d4ed8;
+                      display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0;">
+            <i class="bi bi-person-badge"></i>
+          </div>
+          <div>
+            <div class="fw-semibold">{{ student.father_name or '—' }}</div>
+            <div class="text-muted" style="font-size:.75rem;">Father</div>
+          </div>
+        </div>
+        <div class="row g-1 ps-1">
+          <div class="col-6"><span class="text-muted">Phone </span><span class="fw-semibold">{{ student.father_phone or '—' }}</span></div>
+          <div class="col-6"><span class="text-muted">Email </span><span class="fw-semibold">{{ student.father_email or '—' }}</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-3" id="studentTabs">
+  {% if can('finances') %}
+  <li class="nav-item"><a class="nav-link {% if student.student_type == 'Walk-in' %}active{% endif %}" data-bs-toggle="tab" href="#tab-fees"><i class="bi bi-cash-stack me-1"></i>Fees & Payments</a></li>
+  {% endif %}
+  {% if student.student_type != 'Walk-in' %}
+  <li class="nav-item"><a class="nav-link {% if not can('finances') %}active{% endif %}" data-bs-toggle="tab" href="#tab-grades"><i class="bi bi-journal-text me-1"></i>Grades</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-attendance"><i class="bi bi-check2-square me-1"></i>Attendance</a></li>
+  {% if session.role in ('admin','teacher') %}
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-report-cards"><i class="bi bi-file-earmark-text me-1"></i>Report Cards {% if saved_rcs %}<span class="badge rounded-pill bg-primary ms-1">{{ saved_rcs|length }}</span>{% endif %}</a></li>
+  {% endif %}
+  {% endif %}
+</ul>
+
+<div class="tab-content">
+
+  <!-- ── Fees & Payments Tab ── -->
+  <div class="tab-pane fade {% if can('finances') %}show active{% endif %}" id="tab-fees">
+    <div class="row g-3 mb-3">
+      {% set all_charged = (fees|sum(attribute='amount')) + (plans|sum(attribute='plan.total_amount') if plans else 0) %}
+      {% set all_paid    = (fees|sum(attribute='paid_amount')) %}
+      {% if plans %}{% for item in plans %}{% set all_paid = all_paid + item.installments|sum(attribute='paid_amount') %}{% endfor %}{% endif %}
+      <div class="col-6 col-sm-3">
+        <div class="card text-center py-3">
+          <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;">Total Charged</div>
+          <div class="fw-bold fs-4 mt-1">{{ all_charged|money }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-sm-3">
+        <div class="card text-center py-3">
+          <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;">Total Paid</div>
+          <div class="fw-bold fs-4 text-success mt-1">{{ all_paid|money }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-sm-3">
+        <div class="card text-center py-3">
+          <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;">Outstanding</div>
+          <div class="fw-bold fs-4 text-danger mt-1">{{ (all_charged - all_paid)|money }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-sm-3">
+        <div class="card text-center py-3" style="border-color:{% if credit_balance > 0 %}#10b981{% else %}#e5e7eb{% endif %};">
+          <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;">Credit Balance</div>
+          <div class="fw-bold fs-4 mt-1" style="color:{% if credit_balance > 0 %}#059669{% else %}#9ca3af{% endif %};">{{ credit_balance|money }}</div>
+          {% if credit_balance > 0 %}<div class="text-muted" style="font-size:.65rem;">available</div>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    {% if can('finances') %}
+    <div class="d-flex gap-2 mb-3 flex-wrap">
+      <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addPlanModal">
+        <i class="bi bi-calendar3 me-1"></i>Add Payment Plan
+      </button>
+      <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#addFeeModal">
+        <i class="bi bi-plus me-1"></i>One-time Charge
+      </button>
+      <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#addCreditModal">
+        <i class="bi bi-piggy-bank me-1"></i>Add Credit
+      </button>
+    </div>
+    {% endif %}
+
+    <!-- Payment Plans -->
+    {% if plans %}
+    {% for item in plans %}
+    {% set p = item.plan %}
+    {% set insts = item.installments %}
+    {% set plan_paid   = insts|sum(attribute='paid_amount') %}
+    {% set net_amount  = p.total_amount - (p.reduce or 0) - (p.scholarship or 0) %}
+    {% set plan_bal    = net_amount - plan_paid %}
+    <div class="card mb-3">
+      <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <span class="fw-semibold">{{ p.description }}</span>
+          <span class="badge rounded-pill" style="background:{{ '#ede9fe' if p.plan_type=='Monthly' else ('#dbeafe' if p.plan_type=='BiMonthly' else '#fef3c7') }};
+                color:{{ '#4f46e5' if p.plan_type=='Monthly' else ('#1d4ed8' if p.plan_type=='BiMonthly' else '#92400e') }};">
+            <i class="bi bi-{{ 'calendar3' if p.plan_type=='Monthly' else ('calendar-range' if p.plan_type=='BiMonthly' else 'calendar2-range') }} me-1"></i>
+            {{ p.plan_type }} &bull; {{ p.installment_count }} payments
+          </span>
+          {% if p.academic_year %}<span class="text-muted small">{{ p.academic_year }}</span>{% endif %}
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <span class="small">
+            <span class="text-muted">Total</span> <strong>{{ p.total_amount|money }}</strong>
+            {% if p.reduce and p.reduce > 0 %}
+              &nbsp;<span class="text-muted">Reduction</span> <strong class="text-warning">-{{ p.reduce|money }}</strong>
+            {% endif %}
+            {% if p.scholarship and p.scholarship > 0 %}
+              &nbsp;<span class="text-muted">Scholarship</span> <strong class="text-info">-{{ p.scholarship|money }}</strong>
+            {% endif %}
+            {% if (p.reduce and p.reduce > 0) or (p.scholarship and p.scholarship > 0) %}
+              &nbsp;<span class="text-muted">Net</span> <strong>{{ net_amount|money }}</strong>
+            {% endif %}
+            &nbsp;<span class="text-muted">Paid</span> <strong class="text-success">{{ plan_paid|money }}</strong>
+            &nbsp;<span class="text-muted">Due</span> <strong class="text-danger">{{ plan_bal|money }}</strong>
+          </span>
+          {% if can('finances') %}
+          <button class="btn btn-sm btn-link text-secondary p-0" style="font-size:.75rem;"
+                  data-bs-toggle="modal" data-bs-target="#editPlanModal{{ p.id }}">
+            <i class="bi bi-pencil"></i> Edit
+          </button>
+          {% endif %}
+          {% if session.role == 'admin' %}
+          <form method="POST" action="/payment-plans/delete/{{ p.id }}" class="d-inline"
+                onsubmit="return confirm('Delete this payment plan?')">
+            <button type="submit" class="btn btn-sm btn-link text-danger p-0" style="font-size:.75rem;">
+              <i class="bi bi-trash"></i> Delete
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="px-3 pt-2 pb-0">
+        {% set pct = (plan_paid / net_amount * 100)|round if net_amount > 0 else 0 %}
+        <div class="d-flex justify-content-between mb-1" style="font-size:.7rem;color:#64748b;">
+          <span>Payment progress</span><span>{{ pct }}% paid</span>
+        </div>
+        <div class="progress mb-2" style="height:6px;border-radius:4px;background:#f1f5f9;">
+          <div class="progress-bar" style="width:{{ pct }}%;background:linear-gradient(90deg,#4f46e5,#10b981);border-radius:4px;"></div>
+        </div>
+      </div>
+
+      <div class="card-body p-0">
+        <table class="table mb-0">
+          <thead class="table-light">
+            <tr>
+              <th style="width:40px;">#</th>
+              <th>Due Date</th>
+              <th>Amount</th>
+              <th>Paid</th>
+              <th>Balance</th>
+              <th>Status</th>
+              {% if can('finances') %}<th style="width:80px;"></th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for inst in insts %}
+            {% set bal = inst.amount - inst.paid_amount %}
+            <tr style="{{ 'background:#f0fdf4;' if inst.status=='Paid' else ('background:#fffbeb;' if inst.status=='Partial' else '') }}">
+              <td class="text-muted fw-semibold">{{ inst.installment_num }}</td>
+              <td>
+                <span style="font-size:.82rem;">{{ inst.due_date|fmt_date }}</span>
+                {% if inst.due_date and inst.due_date < now_date and inst.status != 'Paid' %}
+                <span class="badge ms-1" style="background:#fee2e2;color:#b91c1c;font-size:.65rem;">Overdue +$50</span>
+                {% endif %}
+              </td>
+              <td class="fw-semibold">{{ inst.amount|money }}</td>
+              <td class="text-success">{{ inst.paid_amount|money }}</td>
+              <td>
+                {% if bal > 0 %}<span class="text-danger fw-semibold">{{ bal|money }}</span>
+                {% else %}<span class="text-success"><i class="bi bi-check-circle-fill"></i></span>{% endif %}
+              </td>
+              <td>
+                <span class="badge rounded-pill" style="background:{{ '#d1fae5' if inst.status=='Paid' else ('#fef3c7' if inst.status=='Partial' else '#fee2e2') }};
+                      color:{{ '#065f46' if inst.status=='Paid' else ('#92400e' if inst.status=='Partial' else '#991b1b') }};">
+                  {{ inst.status }}
+                </span>
+              </td>
+              {% if can('finances') %}
+              <td>
+                {% if inst.status != 'Paid' %}
+                <div class="d-flex gap-1">
+                  <button class="btn btn-sm btn-success py-0 px-2"
+                          style="font-size:.72rem;"
+                          data-bs-toggle="modal" data-bs-target="#payInst{{ inst.id }}">
+                    <i class="bi bi-cash me-1"></i>Pay
+                  </button>
+                  <form method="POST" action="/payment-plans/remind/{{ inst.id }}" class="d-inline"
+                        onsubmit="return confirm('Send payment reminder to parent?')">
+                    <button type="submit" class="btn btn-sm btn-outline-primary py-0 px-2"
+                            style="font-size:.72rem;" title="Send reminder to parent">
+                      <i class="bi bi-bell"></i>
+                    </button>
+                  </form>
+                </div>
+                {% else %}
+                <i class="bi bi-check-circle-fill text-success"></i>
+                {% endif %}
+              </td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Edit Plan Modals -->
+    {% for item in plans %}
+    {% set p = item.plan %}
+    <div class="modal fade" id="editPlanModal{{ p.id }}" tabindex="-1">
+      <div class="modal-dialog">
+        <form method="POST" action="/payment-plans/edit/{{ p.id }}">
+          <input type="hidden" name="next" value="/students/{{ student.id }}">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title"><i class="bi bi-pencil me-2 text-primary"></i>Edit Payment Plan</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label">Description *</label>
+                  <input name="description" class="form-control" value="{{ p.description }}" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Total Amount ($)</label>
+                  <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="number" name="total_amount" class="form-control"
+                           step="0.01" min="0" value="{{ p.total_amount }}">
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Academic Year</label>
+                  <input name="academic_year" class="form-control" value="{{ p.academic_year or '' }}" placeholder="e.g. 2025/26">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Discount / Reduction ($)</label>
+                  <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="number" name="reduce" class="form-control"
+                           step="0.01" min="0" value="{{ p.reduce or 0 }}">
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Scholarship ($)</label>
+                  <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="number" name="scholarship" class="form-control"
+                           step="0.01" min="0" value="{{ p.scholarship or 0 }}">
+                  </div>
+                </div>
+                <div class="col-12">
+                  <div class="alert alert-info py-2 mb-0" style="font-size:.82rem;">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Changing the amounts will recalculate the remaining <strong>unpaid</strong> installments. Already-paid installments are not affected.
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-floppy me-1"></i>Save Changes</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+
+    <!-- One-time charges -->
+    {% if fees %}
+    <div class="card">
+      <div class="card-header"><i class="bi bi-receipt me-2 text-muted"></i>One-time Charges</div>
+      <div class="card-body p-0">
+        <table class="table mb-0">
+          <thead class="table-light">
+            <tr><th>Type</th><th>Amount</th><th>Paid</th><th>Balance</th><th>Due</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for f in fees %}
+            <tr>
+              <td class="fw-semibold">{{ f.fee_type }}</td>
+              <td>{{ f.amount|money }}</td>
+              <td class="text-success">{{ f.paid_amount|money }}</td>
+              <td class="{{ 'text-danger fw-semibold' if f.amount > f.paid_amount else 'text-muted' }}">{{ (f.amount - f.paid_amount)|money }}</td>
+              <td class="text-muted small">{{ f.due_date|fmt_date }}</td>
+              <td>
+                <span class="badge rounded-pill" style="background:{{ '#d1fae5' if f.status=='Paid' else ('#fef3c7' if f.status=='Partial' else '#fee2e2') }};
+                      color:{{ '#065f46' if f.status=='Paid' else ('#92400e' if f.status=='Partial' else '#991b1b') }};">
+                  {{ f.status }}
+                </span>
+              </td>
+              <td>
+                {% if f.status != 'Paid' and can('finances') %}
+                <button class="btn btn-sm btn-outline-success py-0" style="font-size:.72rem;"
+                        data-bs-toggle="modal" data-bs-target="#payFee{{ f.id }}">Pay</button>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if not fees and not plans %}
+    <div class="card">
+      <div class="card-body text-center text-muted py-5">
+        <i class="bi bi-cash-coin" style="font-size:2.5rem;opacity:.25;"></i>
+        <p class="mt-2 mb-0">No charges or payment plans yet.</p>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Credit History -->
+    {% if credit_history %}
+    <div class="card mt-3">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold"><i class="bi bi-piggy-bank me-2 text-success"></i>Credits & Donations</span>
+        <span class="badge rounded-pill" style="background:#d1fae5;color:#065f46;">Balance: {{ credit_balance|money }}</span>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <thead class="table-light">
+            <tr><th>Date</th><th>Type</th><th>Description</th><th>Amount</th>{% if can('finances') %}<th></th>{% endif %}</tr>
+          </thead>
+          <tbody>
+            {% for c in credit_history %}
+            <tr>
+              <td class="text-muted small">{{ c.date }}</td>
+              <td><span class="badge rounded-pill" style="background:{% if c.amount > 0 %}#d1fae5;color:#065f46{% else %}#fee2e2;color:#991b1b{% endif %};">{{ c.type }}</span></td>
+              <td class="small">{{ c.description or '—' }}{% if c.donor_name %} <span class="text-muted">({{ c.donor_name }})</span>{% endif %}</td>
+              <td class="fw-semibold {% if c.amount > 0 %}text-success{% else %}text-danger{% endif %}">
+                {% if c.amount > 0 %}+{% endif %}{{ c.amount|money }}
+              </td>
+              {% if can('finances') %}
+              <td>
+                {% if c.amount > 0 %}
+                <button class="btn btn-xs btn-outline-secondary py-0 px-1" style="font-size:.7rem;"
+                        data-bs-toggle="modal" data-bs-target="#editCreditModal{{ c.id }}">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                {% endif %}
+              </td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% elif credit_balance == 0 and can('finances') %}
+    <div class="mt-3 text-muted small text-center">
+      <i class="bi bi-info-circle me-1"></i>No credits on file. Use <strong>Add Credit</strong> to record donations, scholarships, or carry-over balances.
+    </div>
+    {% endif %}
+  </div>
+
+<!-- Edit Credit Modals -->
+{% if can('finances') %}
+{% for c in credit_history %}{% if c.amount > 0 %}
+<div class="modal fade" id="editCreditModal{{ c.id }}" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="POST" action="/students/credit/{{ c.id }}/edit">
+      <input type="hidden" name="next" value="/students/{{ student.id }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Credit</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Credit Type *</label>
+              <select name="credit_type" class="form-select" required>
+                <option value="Seat Fee"       {% if c.type=='Seat Fee' %}selected{% endif %}>Seat Fee</option>
+                <option value="Donation"       {% if c.type=='Donation' %}selected{% endif %}>Donation</option>
+                <option value="Scholarship"    {% if c.type=='Scholarship' %}selected{% endif %}>Scholarship</option>
+                <option value="Carry-over"     {% if c.type=='Carry-over' %}selected{% endif %}>Carry-over from Previous Year</option>
+                <option value="Overpayment"    {% if c.type=='Overpayment' %}selected{% endif %}>Overpayment Refund</option>
+                <option value="Discount"       {% if c.type=='Discount' %}selected{% endif %}>Discount / Waiver</option>
+                <option value="Other"          {% if c.type=='Other' %}selected{% endif %}>Other</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Amount ($) *</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" name="amount" class="form-control" step="0.01" min="0.01" required value="{{ c.amount }}">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Date *</label>
+              <input type="date" name="credit_date" class="form-control" required value="{{ c.date }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Description</label>
+              <input name="description" class="form-control" value="{{ c.description or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Donor / Source</label>
+              <input name="donor_name" class="form-control" value="{{ c.donor_name or '' }}">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Save Changes</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}{% endfor %}
+{% endif %}
+
+  <!-- ── Grades Tab ── -->
+  <div class="tab-pane fade {% if not can('finances') %}show active{% endif %}" id="tab-grades">
+    <div class="card">
+      <div class="card-body p-0">
+        <table class="table mb-0">
+          <thead class="table-light">
+            <tr><th>Subject</th><th>Exam Type</th><th>Score</th><th>Grade</th><th>Term</th><th>Year</th><th>Date</th></tr>
+          </thead>
+          <tbody>
+            {% for g in grades %}
+            <tr>
+              <td class="fw-semibold">{{ g.subject_name or '—' }}</td>
+              <td class="text-muted">{{ g.exam_type or '—' }}</td>
+              <td>
+                <span class="fw-bold">{{ g.score }}</span><span class="text-muted"> / {{ g.max_score }}</span>
+              </td>
+              <td>
+                <span class="badge fw-semibold" style="font-size:.75rem;background:{{ '#d1fae5' if g.grade_letter in ['A+','A','A-'] else ('#dbeafe' if g.grade_letter in ['B+','B','B-'] else ('#fef3c7' if g.grade_letter in ['C+','C','C-'] else ('#fee2e2' if g.grade_letter in ['D','F'] else '#f1f5f9'))) }};
+                      color:{{ '#065f46' if g.grade_letter in ['A+','A','A-'] else ('#1d4ed8' if g.grade_letter in ['B+','B','B-'] else ('#92400e' if g.grade_letter in ['C+','C','C-'] else ('#991b1b' if g.grade_letter in ['D','F'] else '#475569'))) }};">
+                  {{ g.grade_letter or '—' }}
+                </span>
+              </td>
+              <td class="text-muted">{{ g.term or '—' }}</td>
+              <td class="text-muted">{{ g.academic_year or '—' }}</td>
+              <td class="text-muted">{{ g.date|fmt_date }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center text-muted py-5">
+              <i class="bi bi-journal-x" style="font-size:2rem;opacity:.25;display:block;margin-bottom:.5rem;"></i>
+              No grades recorded yet.
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Attendance Tab ── -->
+  <div class="tab-pane fade" id="tab-attendance">
+    {% set total_att = attendance|length %}
+    {% set present_count = attendance|selectattr('status','equalto','Present')|list|length %}
+    {% if total_att > 0 %}
+    <div class="d-flex align-items-center gap-4 mb-3 p-3 card">
+      <div class="text-center">
+        <div class="fw-bold fs-4 text-success">{{ present_count }}</div>
+        <div class="text-muted" style="font-size:.72rem;">Present</div>
+      </div>
+      <div class="text-center">
+        <div class="fw-bold fs-4 text-danger">{{ total_att - present_count }}</div>
+        <div class="text-muted" style="font-size:.72rem;">Absent / Late</div>
+      </div>
+      <div class="flex-grow-1">
+        <div class="d-flex justify-content-between mb-1" style="font-size:.72rem;color:#64748b;">
+          <span>Attendance rate</span>
+          <span>{{ (present_count / total_att * 100)|round(1) }}%</span>
+        </div>
+        <div class="progress" style="height:8px;border-radius:4px;">
+          <div class="progress-bar bg-success" style="width:{{ (present_count / total_att * 100)|round }}%;border-radius:4px;"></div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    <div class="card">
+      <div class="card-body p-0">
+        <table class="table mb-0">
+          <thead class="table-light">
+            <tr><th>Date</th><th>Subject</th><th>Status</th><th>Remarks</th></tr>
+          </thead>
+          <tbody>
+            {% for a in attendance %}
+            <tr>
+              <td>{{ a.date }}</td>
+              <td class="text-muted">{{ a.subject_name or '—' }}</td>
+              <td>
+                <span class="badge rounded-pill" style="background:{{ '#d1fae5' if a.status=='Present' else ('#fef3c7' if a.status=='Late' else '#fee2e2') }};
+                      color:{{ '#065f46' if a.status=='Present' else ('#92400e' if a.status=='Late' else '#991b1b') }};">
+                  {{ a.status }}
+                </span>
+              </td>
+              <td class="text-muted small">{{ a.remarks or '—' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center text-muted py-5">
+              <i class="bi bi-calendar-x" style="font-size:2rem;opacity:.25;display:block;margin-bottom:.5rem;"></i>
+              No attendance records.
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Report Cards Tab ── -->
+  {% if student.student_type != 'Walk-in' and session.role in ('admin','teacher') %}
+  <div class="tab-pane fade" id="tab-report-cards">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <h6 class="mb-0 fw-semibold">Saved Report Cards</h6>
+      <div class="d-flex gap-2">
+        {% set rc_type = student.report_card_type or 'standard' %}
+        <a href="/students/{{ student.id }}/report-card-form?type={{ rc_type }}&year=2025-2026"
+           class="btn btn-sm btn-primary">
+          <i class="bi bi-clipboard2-{% if rc_type == 'iep' %}pulse{% else %}check{% endif %} me-1"></i>
+          New {{ rc_type|upper }} Card
+        </a>
+        <a href="/students/{{ student.id }}/report-card-form?type={{ 'standard' if rc_type == 'iep' else 'iep' }}&year=2025-2026"
+           class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-clipboard2-{% if rc_type == 'iep' %}check{% else %}pulse{% endif %} me-1"></i>
+          New {{ 'Standard' if rc_type == 'iep' else 'IEP' }}
+        </a>
+      </div>
+    </div>
+    {% if saved_rcs %}
+    <div class="table-responsive">
+      <table class="table table-sm table-hover">
+        <thead class="table-light">
+          <tr><th>Type</th><th>Year</th><th>Teacher</th><th>Last Updated</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for rc in saved_rcs %}
+          <tr>
+            <td>
+              {% if rc.card_type == 'iep' %}
+              <span class="badge rounded-pill" style="background:#ede9fe;color:#5b21b6;">IEP</span>
+              {% else %}
+              <span class="badge rounded-pill" style="background:#e0e7ff;color:#3730a3;">Standard</span>
+              {% endif %}
+            </td>
+            <td>{{ rc.academic_year }}</td>
+            <td class="text-muted">{{ rc.teacher_name or '—' }}</td>
+            <td class="text-muted small">{{ rc.updated_at[:10] if rc.updated_at else '—' }}</td>
+            <td class="text-end">
+              <a href="/students/{{ student.id }}/report-card-form?type={{ rc.card_type }}&year={{ rc.academic_year }}"
+                 class="btn btn-xs btn-outline-primary me-1" style="font-size:.72rem;padding:2px 8px;">
+                <i class="bi bi-pencil me-1"></i>Edit
+              </a>
+              <form method="POST" action="/students/{{ student.id }}/report-card-form/{{ rc.id }}/delete"
+                    style="display:inline;" onsubmit="return confirm('Delete this report card?')">
+                <button type="submit" class="btn btn-xs btn-outline-danger"
+                        style="font-size:.72rem;padding:2px 8px;">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center text-muted py-5">
+      <i class="bi bi-file-earmark-text" style="font-size:2.5rem;opacity:.25;display:block;margin-bottom:.5rem;"></i>
+      No report cards saved yet.<br>
+      <small>Use the buttons above to create one.</small>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div><!-- end tab-content -->
+
+
+<!-- ══════════════ MODALS ══════════════ -->
+
+<!-- Pay installment modals -->
+{% for item in plans %}{% for inst in item.installments %}{% if inst.status != 'Paid' %}
+{% set inst_bal = inst.amount - inst.paid_amount %}
+{% set is_overdue = inst.due_date and inst.due_date < now_date %}
+{% set late_fee = 50 if is_overdue else 0 %}
+<div class="modal fade" id="payInst{{ inst.id }}" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <form method="POST" action="/payment-plans/pay/{{ inst.id }}">
+      <input type="hidden" name="next" value="/students/{{ student.id }}">
+      <input type="hidden" name="late_fee" value="{{ late_fee }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Pay Installment #{{ inst.installment_num }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="p-3 rounded-3 mb-3 text-center" style="background:#f8fafc;">
+            <div class="text-muted small">{{ item.plan.description }}</div>
+            <div class="fw-bold fs-5 text-danger mt-1">{{ inst_bal|money }}</div>
+            <div class="text-muted" style="font-size:.72rem;">Balance due &bull; Due {{ inst.due_date|fmt_date }}</div>
+          </div>
+          {% if is_overdue %}
+          <div class="alert alert-warning py-2 mb-3 d-flex justify-content-between align-items-center" style="font-size:.82rem;">
+            <span><i class="bi bi-exclamation-triangle-fill me-1"></i>Overdue — late fee applied</span>
+            <strong>+ $50.00</strong>
+          </div>
+          {% endif %}
+          <div class="mb-3">
+            <label class="form-label">Installment Amount ($)</label>
+            <input type="number" name="pay_amount" class="form-control" step="0.01" min="0.01"
+                   value="{{ "%.2f"|format(inst_bal) }}" required>
+          </div>
+          {% if is_overdue %}
+          <div class="d-flex justify-content-between px-1 mb-3 fw-semibold" style="font-size:.9rem;">
+            <span>Total to collect</span>
+            <span class="text-danger">${{ "%.2f"|format(inst_bal + 50) }}</span>
+          </div>
+          {% endif %}
+          <div class="mb-2">
+            <label class="form-label">Payment Method</label>
+            <select name="payment_method" class="form-select">
+              <option>Cash</option><option>Bank Transfer</option><option>Cheque</option><option>Card</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-cash me-1"></i>Confirm Payment</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}{% endfor %}{% endfor %}
+
+<!-- Pay one-time fee modals -->
+{% for f in fees %}{% if f.status != 'Paid' %}
+{% set fee_bal = f.amount - f.paid_amount %}
+<div class="modal fade" id="payFee{{ f.id }}" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <form method="POST" action="/fees/pay/{{ f.id }}">
+      <input type="hidden" name="next" value="/students/{{ student.id }}">
+      <input type="hidden" name="credit_amount" id="creditAmt{{ f.id }}" value="0">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Record Payment</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="p-3 rounded-3 mb-3 text-center" style="background:#f8fafc;">
+            <div class="text-muted small">{{ f.fee_type }}</div>
+            <div class="fw-bold fs-5 text-danger mt-1" id="balDisplay{{ f.id }}">{{ fee_bal|money }}</div>
+            <div class="text-muted" style="font-size:.72rem;">Balance due</div>
+          </div>
+          {% if credit_balance > 0 %}
+          <div class="mb-3 p-2 rounded-3" style="background:#f0fdf4;border:1px solid #a7f3d0;">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="small fw-semibold text-success"><i class="bi bi-piggy-bank me-1"></i>Available Credit: <strong>{{ credit_balance|money }}</strong></span>
+              <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" id="useCredit{{ f.id }}"
+                       onchange="toggleCredit{{ f.id }}(this.checked)">
+                <label class="form-check-label small" for="useCredit{{ f.id }}">Use credit</label>
+              </div>
+            </div>
+            <div id="creditRow{{ f.id }}" style="display:none;">
+              <label class="form-label small mb-1">Apply credit ($)</label>
+              <input type="number" class="form-control form-control-sm" id="creditInput{{ f.id }}"
+                     step="0.01" min="0" max="{{ [credit_balance, fee_bal]|min }}"
+                     value="0" oninput="updateCash{{ f.id }}(this.value)">
+            </div>
+          </div>
+          <script>
+          function toggleCredit{{ f.id }}(on) {
+            document.getElementById('creditRow{{ f.id }}').style.display = on ? '' : 'none';
+            if (!on) {
+              document.getElementById('creditInput{{ f.id }}').value = 0;
+              updateCash{{ f.id }}(0);
+            } else {
+              var mx = Math.min({{ credit_balance }}, {{ fee_bal }});
+              document.getElementById('creditInput{{ f.id }}').value = mx.toFixed(2);
+              updateCash{{ f.id }}(mx);
+            }
+          }
+          function updateCash{{ f.id }}(cv) {
+            cv = parseFloat(cv) || 0;
+            var bal = {{ fee_bal }};
+            var cash = Math.max(0, bal - cv).toFixed(2);
+            document.getElementById('creditAmt{{ f.id }}').value = cv.toFixed(2);
+            document.getElementById('payAmt{{ f.id }}').value = cash;
+            var req = parseFloat(cash) > 0;
+            document.getElementById('payAmt{{ f.id }}').required = req;
+            document.getElementById('payAmt{{ f.id }}').min = req ? '0.01' : '0';
+          }
+          </script>
+          {% endif %}
+          <div class="mb-2">
+            <label class="form-label">Cash / Payment Amount ($)</label>
+            <input type="number" name="pay_amount" id="payAmt{{ f.id }}" class="form-control" step="0.01" min="0.01"
+                   max="{{ fee_bal }}" value="{{ "%.2f"|format(fee_bal) }}" required>
+          </div>
+          <div>
+            <label class="form-label">Payment Method</label>
+            <select name="payment_method" class="form-select form-select-sm">
+              <option>Cash</option>
+              <option>Check</option>
+              <option>Bank Transfer</option>
+              <option>Credit Card</option>
+              <option>Online</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-receipt me-1"></i>Confirm &amp; Print Receipt</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}{% endfor %}
+
+<!-- Add Credit Modal -->
+<div class="modal fade" id="addCreditModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="POST" action="/students/{{ student.id }}/add-credit">
+      <input type="hidden" name="next" value="/students/{{ student.id }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-piggy-bank me-2 text-success"></i>Add Credit / Donation</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-success py-2 small mb-3">
+            <i class="bi bi-info-circle me-1"></i>Credits can be applied toward any fee payment. They appear in the student's credit balance.
+          </div>
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Credit Type *</label>
+              <select name="credit_type" class="form-select" required>
+                <option value="">— Select type —</option>
+                <option value="Seat Fee">Seat Fee</option>
+                <option value="Donation">Donation</option>
+                <option value="Scholarship">Scholarship</option>
+                <option value="Carry-over">Carry-over from Previous Year</option>
+                <option value="Overpayment">Overpayment Refund</option>
+                <option value="Discount">Discount / Waiver</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Amount ($) *</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" name="amount" class="form-control" step="0.01" min="0.01" required placeholder="0.00">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Date *</label>
+              <input type="date" name="credit_date" class="form-control" required
+                     value="{{ now_date }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Donor / Source Name <span class="text-muted fw-normal">(optional)</span></label>
+              <input type="text" name="donor_name" class="form-control" placeholder="e.g. John Smith, Community Foundation">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Description / Notes <span class="text-muted fw-normal">(optional)</span></label>
+              <textarea name="description" class="form-control" rows="2" placeholder="e.g. Annual scholarship award, carry-over from 2024/25…"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-plus-circle me-1"></i>Add Credit</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Payment Plan Modal -->
+<div class="modal fade" id="addPlanModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <form method="POST" action="/payment-plans/add">
+      <input type="hidden" name="student_id" value="{{ student.id }}">
+      <input type="hidden" name="next" value="/students/{{ student.id }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-calendar3 me-2 text-primary"></i>Add Payment Plan</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="p-3 rounded-3 mb-3 d-flex align-items-center gap-3" style="background:#f8fafc;border:1px solid #e2e8f0;">
+            <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#4f46e5,#818cf8);
+                        display:flex;align-items:center;justify-content:center;color:#fff;font-size:.9rem;font-weight:700;flex-shrink:0;">
+              {{ student.first_name[0] }}{{ student.last_name[0] }}
+            </div>
+            <div>
+              <div class="fw-semibold">{{ student.first_name }} {{ student.last_name }}</div>
+              <div class="text-muted small">{{ student.student_id }} &bull; {{ student.class_name or 'No classroom' }}</div>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Charge Description *</label>
+              <input name="description" class="form-control" placeholder="e.g. Annual Tuition 2025/26" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Total Annual Amount ($) *</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" name="total_amount" id="totalAmt" class="form-control"
+                       step="0.01" min="1" required placeholder="0.00" oninput="previewPlan()">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Academic Year</label>
+              <input name="academic_year" class="form-control" placeholder="e.g. 2025/26">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Discount / Reduction ($)</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" name="reduce" id="reduceAmt" class="form-control"
+                       step="0.01" min="0" placeholder="0.00" oninput="previewPlan()">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Scholarship ($)</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" name="scholarship" id="scholarshipAmt" class="form-control"
+                       step="0.01" min="0" placeholder="0.00" oninput="previewPlan()">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Payment Plan *</label>
+              <select name="plan_type" id="planType" class="form-select" required onchange="previewPlan()">
+                <option value="">— Select plan —</option>
+                <option value="Monthly">Monthly &mdash; 10 payments (Sept–Jun)</option>
+                <option value="BiMonthly">Bi-Monthly &mdash; 5 payments (every 2 months)</option>
+                <option value="Term">By Term &mdash; 3 payments (per term)</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">First Payment Date *</label>
+              <input type="date" name="start_date" id="startDate" class="form-control" required onchange="previewPlan()">
+            </div>
+          </div>
+
+          <!-- Live Preview -->
+          <div id="planPreview" class="mt-4" style="display:none;">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <i class="bi bi-list-check text-primary"></i>
+              <span class="fw-semibold" style="font-size:.85rem;">Installment Schedule Preview</span>
+              <span id="previewSummary" class="badge rounded-pill" style="background:#ede9fe;color:#4f46e5;"></span>
+            </div>
+            <div class="rounded-3 overflow-hidden" style="border:1px solid #e2e8f0;">
+              <table class="table table-sm mb-0">
+                <thead class="table-light">
+                  <tr><th>#</th><th>Due Date</th><th>Amount</th><th>Status</th></tr>
+                </thead>
+                <tbody id="previewBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-calendar-check me-1"></i>Create Payment Plan</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add One-time Charge Modal -->
+<div class="modal fade" id="addFeeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="POST" action="/fees/add">
+      <input type="hidden" name="student_id" value="{{ student.id }}">
+      <input type="hidden" name="next" value="/students/{{ student.id }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-receipt me-2 text-muted"></i>Add One-time Charge</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Charge Type *</label>
+              <select name="fee_type" class="form-select" id="feeTypeSelect" required>
+                <option value="">— Select —</option>
+                <optgroup label="Tuition &amp; Enrollment">
+                  <option>Tuition Fee</option>
+                  <option>Registration</option>
+                  <option>Re-enrollment Fee</option>
+                </optgroup>
+                <optgroup label="Academic Support">
+                  <option>Assessment Fee</option>
+                  <option>Tutoring</option>
+                  <option>Exam Fee</option>
+                  <option>Lab Fee</option>
+                </optgroup>
+                <optgroup label="Health &amp; Therapy">
+                  <option>Speech Therapy</option>
+                  <option>Occupational Therapy</option>
+                  <option>Physical Therapy</option>
+                  <option>Counseling / Psychology</option>
+                  <option>Nursing / Medical Fee</option>
+                </optgroup>
+                <optgroup label="Activities &amp; Programs">
+                  <option>Activity Fee</option>
+                  <option>Sports Fee</option>
+                  <option>Field Trip</option>
+                  <option>Arts &amp; Music</option>
+                  <option>After-School Program</option>
+                </optgroup>
+                <optgroup label="General">
+                  <option>Books &amp; Supplies</option>
+                  <option>Uniform</option>
+                  <option>Transportation</option>
+                  <option>Lunch Program</option>
+                  <option>Technology Fee</option>
+                  <option>Library Fee</option>
+                  <option>Accident Insurance</option>
+                  <option>Teacher Development Fee</option>
+                  <option>Late Payment Fee</option>
+                  <option>Other</option>
+                </optgroup>
+              </select>
+              <input type="text" id="feeTypeCustom" name="fee_type_custom" class="form-control mt-1" placeholder="Describe charge…" style="display:none;">
+              <script>
+              (function(){
+                var sel = document.getElementById('feeTypeSelect');
+                var txt = document.getElementById('feeTypeCustom');
+                sel.addEventListener('change', function(){
+                  if(sel.value === 'Other'){
+                    txt.style.display = '';
+                    txt.required = true;
+                    sel.name = '';
+                    txt.name = 'fee_type';
+                  } else {
+                    txt.style.display = 'none';
+                    txt.required = false;
+                    sel.name = 'fee_type';
+                    txt.name = 'fee_type_custom';
+                  }
+                });
+              })();
+              </script>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Amount ($) *</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" name="amount" class="form-control" step="0.01" min="0.01" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Due Date</label>
+              <input type="date" name="due_date" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Term</label>
+              <select name="term" class="form-select">
+                <option>Term 1</option><option>Term 2</option><option>Term 3</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Academic Year</label>
+              <input name="academic_year" class="form-control" placeholder="e.g. 2025/26">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Add Charge</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Report Card Modal -->
+<div class="modal fade" id="reportCardModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>Report Card PDF</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Term</label>
+          <select id="rcTerm" class="form-select">
+            <option>Term 1</option><option>Term 2</option><option>Term 3</option>
+          </select>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Academic Year</label>
+          <input id="rcYear" class="form-control" placeholder="e.g. 2025">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger btn-sm" onclick="downloadRC()">
+          <i class="bi bi-download me-1"></i>Download PDF
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Progress Report Modal -->
+<div class="modal fade" id="progressReportModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-graph-up text-primary me-2"></i>Progress Report PDF</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">
+          <label class="form-label">Academic Year</label>
+          <input id="prYear" class="form-control" placeholder="e.g. 2025-2026" value="{{ request.args.get('year','2025-2026') }}">
+        </div>
+        <p class="text-muted small mb-0">Includes all three terms and full attendance summary.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="downloadPR()">
+          <i class="bi bi-download me-1"></i>Download PDF
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Student Modal -->
+<div class="modal fade" id="editStudentModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <form method="POST" action="/students/edit/{{ student.id }}">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Edit Student</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <div class="row g-2">
+            <div class="col-md-4"><label class="form-label">Student ID *</label><input name="student_id" class="form-control" value="{{ student.student_id }}" required></div>
+            <div class="col-md-4"><label class="form-label">First Name *</label><input name="first_name" class="form-control" value="{{ student.first_name }}" required></div>
+            <div class="col-md-4"><label class="form-label">Last Name *</label><input name="last_name" class="form-control" value="{{ student.last_name }}" required></div>
+            <div class="col-md-3"><label class="form-label">Date of Birth</label><input type="date" name="dob" class="form-control" value="{{ student.dob or '' }}"></div>
+            <div class="col-md-3"><label class="form-label">Expected Graduation</label><input type="date" name="graduation_date" class="form-control" value="{{ student.graduation_date or '' }}" title="Auto-sets status to Graduated on this date"></div>
+            <div class="col-md-3"><label class="form-label">Gender</label>
+              <select name="gender" class="form-select">
+                <option value="">—</option>
+                <option {% if student.gender=='Male' %}selected{% endif %}>Male</option>
+                <option {% if student.gender=='Female' %}selected{% endif %}>Female</option>
+                <option {% if student.gender=='Other' %}selected{% endif %}>Other</option>
+              </select>
+            </div>
+            <div class="col-md-3"><label class="form-label">Status</label>
+              <select name="status" class="form-select">
+                <option {% if student.status=='Active' %}selected{% endif %}>Active</option>
+                <option {% if student.status=='Inactive' %}selected{% endif %}>Inactive</option>
+                <option {% if student.status=='Graduated' %}selected{% endif %}>Graduated</option>
+              </select>
+            </div>
+            <div class="col-md-3"><label class="form-label">Classroom</label>
+              <select name="class_id" class="form-select">
+                <option value="">— No classroom —</option>
+                {% for c in classes %}
+                <option value="{{ c.id }}" {% if c.id == student.class_id %}selected{% endif %}>
+                  {{ c.name }}{% if c.academic_year %} ({{ c.academic_year }}){% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3"><label class="form-label">Report Card Type</label>
+              <select name="report_card_type" class="form-select">
+                <option value="standard" {% if student.report_card_type != 'iep' %}selected{% endif %}>Standard</option>
+                <option value="iep" {% if student.report_card_type == 'iep' %}selected{% endif %}>IEP</option>
+              </select>
+            </div>
+            <div class="col-md-6"><label class="form-label">Email</label><input name="email" class="form-control" value="{{ student.email or '' }}"></div>
+            <div class="col-md-6"><label class="form-label">Phone</label><input name="phone" class="form-control" value="{{ student.phone or '' }}"></div>
+            <div class="col-12"><label class="form-label">Address</label><input name="address" class="form-control" value="{{ student.address or '' }}"></div>
+            <div class="col-12"><div class="fw-semibold small text-muted mb-1 mt-1"><i class="bi bi-person-hearts me-1"></i>Mother / Guardian</div></div>
+            <div class="col-md-4"><label class="form-label">Name</label><input name="parent_name" class="form-control" value="{{ student.parent_name or '' }}"></div>
+            <div class="col-md-4"><label class="form-label">Phone</label><input name="parent_phone" class="form-control" value="{{ student.parent_phone or '' }}"></div>
+            <div class="col-md-4"><label class="form-label">Email</label><input name="parent_email" class="form-control" value="{{ student.parent_email or '' }}"></div>
+            <div class="col-12"><div class="fw-semibold small text-muted mb-1 mt-1"><i class="bi bi-person-badge me-1"></i>Father</div></div>
+            <div class="col-md-4"><label class="form-label">Name</label><input name="father_name" class="form-control" value="{{ student.father_name or '' }}"></div>
+            <div class="col-md-4"><label class="form-label">Phone</label><input name="father_phone" class="form-control" value="{{ student.father_phone or '' }}"></div>
+            <div class="col-md-4"><label class="form-label">Email</label><input name="father_email" class="form-control" value="{{ student.father_email or '' }}"></div>
+            <div class="col-12"><label class="form-label">Emergency Contact</label><input name="emergency_contact" class="form-control" value="{{ student.emergency_contact or '' }}"></div>
+            <div class="col-12"><label class="form-label">Medical Notes</label><textarea name="medical_notes" class="form-control" rows="2">{{ student.medical_notes or '' }}</textarea></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Monthly Statement Modal -->
+<div class="modal fade" id="monthlyStmtModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-calendar-month me-2 text-warning"></i>Monthly Statement</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-3">Select the period to include in the PDF statement.</p>
+        <div class="mb-3">
+          <label class="form-label">From Date</label>
+          <input type="date" id="stmtFrom" class="form-control" value="{{ now_date[:7] }}-01">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">To Date</label>
+          <input type="date" id="stmtTo" class="form-control" value="{{ now_date }}">
+        </div>
+        <div class="d-flex gap-2 mt-3 flex-wrap">
+          <button class="btn btn-outline-secondary btn-sm" onclick="setLastMonth()">Last Month</button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="setThisMonth()">This Month</button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="setThisYear()">This Year</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning btn-sm" onclick="downloadStatement()">
+          <i class="bi bi-download me-1"></i>Download PDF
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById('rcYear').value = new Date().getFullYear();
+  function downloadRC() {
+    const term = document.getElementById('rcTerm').value;
+    const year = document.getElementById('rcYear').value;
+    window.location.href = '/students/{{ student.id }}/report-card?term=' + encodeURIComponent(term) + '&year=' + encodeURIComponent(year);
+  }
+
+  function downloadPR() {
+    const year = document.getElementById('prYear').value || '2025-2026';
+    window.location.href = '/students/{{ student.id }}/progress-report?year=' + encodeURIComponent(year);
+  }
+
+  function downloadStatement() {
+    const f = document.getElementById('stmtFrom').value;
+    const t = document.getElementById('stmtTo').value;
+    if (!f || !t) { alert('Please select both dates.'); return; }
+    window.open('/students/{{ student.id }}/monthly-statement?from_date=' + f + '&to_date=' + t, '_blank');
+  }
+  function setLastMonth() {
+    const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1);
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0');
+    const last = new Date(y, d.getMonth()+1, 0).getDate();
+    document.getElementById('stmtFrom').value = y+'-'+m+'-01';
+    document.getElementById('stmtTo').value   = y+'-'+m+'-'+String(last).padStart(2,'0');
+  }
+  function setThisMonth() {
+    const d = new Date();
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0');
+    const last = new Date(y, d.getMonth()+1, 0).getDate();
+    document.getElementById('stmtFrom').value = y+'-'+m+'-01';
+    document.getElementById('stmtTo').value   = y+'-'+m+'-'+String(last).padStart(2,'0');
+  }
+  function setThisYear() {
+    const y = new Date().getFullYear();
+    document.getElementById('stmtFrom').value = y+'-01-01';
+    document.getElementById('stmtTo').value   = y+'-12-31';
+  }
+
+  const PLANS = { Monthly:{count:10,months:1}, BiMonthly:{count:5,months:2}, Term:{count:3,months:4} };
+
+  function addMonths(d, n) {
+    const r = new Date(d); r.setMonth(r.getMonth() + n); return r;
+  }
+
+  function previewPlan() {
+    const total       = parseFloat(document.getElementById('totalAmt').value) || 0;
+    const reduce      = parseFloat(document.getElementById('reduceAmt').value) || 0;
+    const scholarship = parseFloat(document.getElementById('scholarshipAmt').value) || 0;
+    const net         = Math.max(total - reduce - scholarship, 0);
+    const type  = document.getElementById('planType').value;
+    const start = document.getElementById('startDate').value;
+    const preview = document.getElementById('planPreview');
+    const body  = document.getElementById('previewBody');
+    const sum   = document.getElementById('previewSummary');
+    if (!total || !type || !start) { preview.style.display='none'; return; }
+    const cfg = PLANS[type];
+    const per = Math.floor(net/cfg.count*100)/100;
+    const last = Math.round((net - per*(cfg.count-1))*100)/100;
+    const sd = new Date(start + 'T00:00:00');
+    let rows = '';
+    for (let i=0; i<cfg.count; i++) {
+      const due = addMonths(sd, cfg.months*i).toISOString().slice(0,10);
+      const amt = (i===cfg.count-1) ? last : per;
+      rows += `<tr><td class="text-muted fw-semibold">${i+1}</td><td>${due}</td><td class="fw-bold">$${amt.toFixed(2)}</td><td><span class="badge" style="background:#fee2e2;color:#991b1b;font-size:.68rem;">Unpaid</span></td></tr>`;
+    }
+    body.innerHTML = rows;
+    let summaryText = cfg.count + ' installments · $' + per.toFixed(2) + '/each';
+    if (reduce > 0 || scholarship > 0) {
+      summaryText += ' · Net: $' + net.toFixed(2);
+    }
+    sum.textContent = summaryText;
+    preview.style.display = '';
+  }
+</script>
+{% endblock %}

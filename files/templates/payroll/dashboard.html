@@ -1,0 +1,140 @@
+{% extends "payroll/_base.html" %}
+{% block head %}{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block payroll_content %}
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <h5 class="mb-0 fw-700">Dashboard — {{ year }}</h5>
+  <form method="get" class="d-flex align-items-center gap-2">
+    <label class="form-label mb-0 text-muted small">Year</label>
+    <select name="year" class="form-select form-select-sm" style="width:100px" onchange="this.form.submit()">
+      {% for y in years %}<option value="{{ y }}" {{ 'selected' if y==year }}>{{ y }}</option>{% endfor %}
+    </select>
+    <form method="post" action="{{ url_for('payroll_bp.sync_staff') }}" class="d-inline">
+      <button class="btn btn-sm btn-outline-primary">🔄 Sync Staff</button>
+    </form>
+  </form>
+</div>
+
+{% if not rows %}
+<div class="alert alert-info">No employees yet. Go to <a href="{{ url_for('payroll_bp.employees') }}">Employees</a> to add staff or sync from school.</div>
+{% else %}
+
+<div class="kpi-grid">
+  <div class="kpi">
+    <div class="k-label">Employees</div>
+    <div class="k-value">{{ num_employees }}</div>
+  </div>
+  <div class="kpi">
+    <div class="k-label">Gross Annual</div>
+    <div class="k-value">${{ "{:,.0f}".format(total_gross) }}</div>
+  </div>
+  <div class="kpi">
+    <div class="k-label">Net Annual</div>
+    <div class="k-value">${{ "{:,.0f}".format(total_net) }}</div>
+  </div>
+  <div class="kpi">
+    <div class="k-label">YTD Paid ({{ year }})</div>
+    <div class="k-value" style="color:var(--primary)">${{ "{:,.0f}".format(total_ytd) }}</div>
+  </div>
+  <div class="kpi">
+    <div class="k-label">Remaining</div>
+    <div class="k-value" style="color:#ef4444">${{ "{:,.0f}".format(total_remain) }}</div>
+  </div>
+  <div class="kpi">
+    <div class="k-label">Net/Month</div>
+    <div class="k-value">${{ "{:,.0f}".format(total_net_m) }}</div>
+  </div>
+</div>
+
+<div class="pr-section mb-3">
+  <h6>Net Annual vs YTD Paid — {{ year }}</h6>
+  <canvas id="payrollChart" height="90"></canvas>
+</div>
+
+<div class="pr-section">
+  <h6>Staff Payroll Summary</h6>
+  <div class="table-responsive">
+    <table class="pr-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Pay Type</th>
+          <th class="num">Gross Annual</th>
+          <th class="num">Net Annual</th>
+          <th class="num">YTD Paid</th>
+          <th class="num">Remaining</th>
+          <th style="min-width:120px">Progress</th>
+          <th class="num">Ded/mo</th>
+          <th class="num">Net/mo</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td><a href="{{ url_for('payroll_bp.employee_report', name=r.name, year=year) }}" class="fw-600 text-decoration-none">{{ r.name }}</a></td>
+          <td>
+            <span class="badge-pay-type {{ 'badge-m' if r.pay_type=='Monthly' else ('badge-w' if r.pay_type=='Weekly' else 'badge-bw') }}">
+              {{ r.pay_type }}
+            </span>
+          </td>
+          <td class="num">${{ "{:,.2f}".format(r.gross_annual) }}</td>
+          <td class="num">${{ "{:,.2f}".format(r.net_annual) }}</td>
+          <td class="num">${{ "{:,.2f}".format(r.ytd) }}</td>
+          <td class="num">${{ "{:,.2f}".format(r.remaining) }}</td>
+          <td style="min-width:120px">
+            <div style="font-size:.7rem;color:var(--muted);margin-bottom:2px">{{ r.progress }}%</div>
+            <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:{{ [r.progress,100]|min }}%"></div></div>
+          </td>
+          <td class="num">${{ "{:,.2f}".format(r.ded_m) }}</td>
+          <td class="num">${{ "{:,.2f}".format(r.net_m) }}</td>
+          <td>
+            <a href="{{ url_for('payroll_bp.employee_report', name=r.name, year=year) }}" class="btn btn-sm btn-outline-secondary py-0 px-2">View</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2">TOTALS ({{ num_employees }} employees)</td>
+          <td class="num">${{ "{:,.2f}".format(total_gross) }}</td>
+          <td class="num">${{ "{:,.2f}".format(total_net) }}</td>
+          <td class="num">${{ "{:,.2f}".format(total_ytd) }}</td>
+          <td class="num">${{ "{:,.2f}".format(total_remain) }}</td>
+          <td></td>
+          <td></td>
+          <td class="num">${{ "{:,.2f}".format(total_net_m) }}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<script>
+(async () => {
+  const resp = await fetch("{{ url_for('payroll_bp.api_chart', year=year) }}");
+  const d    = await resp.json();
+  new Chart(document.getElementById('payrollChart'), {
+    type: 'bar',
+    data: {
+      labels: d.names,
+      datasets: [
+        { label: 'Net Annual', data: d.net_annual, backgroundColor: 'rgba(30,60,114,0.25)', borderColor: 'rgba(30,60,114,0.7)', borderWidth: 1 },
+        { label: 'YTD Paid',   data: d.ytd,        backgroundColor: 'rgba(30,60,114,0.85)', borderColor: 'rgba(30,60,114,1)',   borderWidth: 1 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        y: { ticks: { callback: v => '$' + v.toLocaleString() } }
+      }
+    }
+  });
+})();
+</script>
+{% endblock %}

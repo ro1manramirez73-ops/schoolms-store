@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>Student Portal — {{ school_name }}</title>
+  <link rel="icon" type="image/x-icon" href="/static/icons/schoolms.ico">
+  <link rel="icon" type="image/svg+xml" href="/static/icons/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
+    html { font-size: 16px; }
+    body { background: #f1f5f9; margin: 0; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+    .topbar {
+      background: linear-gradient(90deg, #0f172a, #1e1b4b);
+      padding: .85rem 1.75rem;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .topbar .brand { display: flex; align-items: center; gap: .5rem; }
+    .topbar-right { display: flex; align-items: center; gap: .75rem; }
+    .topbar-right .user-name { color: #c7d2fe; font-size: .82rem; font-weight: 500; }
+    .topbar-right .btn-out {
+      background: rgba(255,255,255,.08); color: #94a3b8; border: none;
+      border-radius: 8px; padding: .35rem .75rem; font-size: .78rem; text-decoration: none; transition: .15s;
+    }
+    .topbar-right .btn-out:hover { background: rgba(255,255,255,.15); color: #fff; }
+
+    .page-wrap { max-width: 1000px; margin: 0 auto; padding: 1.75rem 1.25rem; }
+
+    /* Profile card */
+    .profile-card {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+      padding: 1.5rem; margin-bottom: 1.5rem;
+      display: flex; align-items: center; gap: 1.25rem;
+    }
+    .profile-avatar {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: linear-gradient(135deg, #4f46e5, #818cf8);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: 1.5rem; flex-shrink: 0;
+    }
+    .profile-info .name { font-weight: 700; font-size: 1.1rem; color: #0f172a; }
+    .profile-info .meta { color: #64748b; font-size: .8rem; margin-top: .2rem; }
+
+    /* Cards */
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .card-body { padding: 1.125rem; }
+
+    /* Tabs */
+    .tab-nav { display: flex; gap: .25rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .tab-nav a {
+      padding: .5rem .875rem; font-size: .82rem; font-weight: 500; color: #64748b;
+      text-decoration: none; border-radius: 8px 8px 0 0; transition: .15s; white-space: nowrap;
+    }
+    .tab-nav a:hover { color: #4f46e5; background: rgba(79,70,229,.06); }
+    .tab-nav a.active { color: #4f46e5; font-weight: 600; border-bottom: 2px solid #4f46e5; margin-bottom: -2px; }
+
+    /* Table */
+    .table { font-size: .825rem; }
+    .table th { font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: #64748b; border-bottom: 2px solid #e2e8f0; padding: .6rem .875rem; }
+    .table td { padding: .6rem .875rem; vertical-align: middle; border-color: #f1f5f9; }
+    .table tbody tr:last-child td { border-bottom: none; }
+    .table-hover tbody tr:hover { background: #f8faff; }
+
+    /* Badges */
+    .badge { font-weight: 500; font-size: .7rem; padding: .3em .6em; border-radius: 6px; }
+
+    /* Due tag */
+    .due-overdue { color: #b91c1c; font-weight: 600; }
+
+    /* ── Tablet: 768px and below ── */
+    @media (max-width: 768px) {
+      html { font-size: 15px; }
+
+      .topbar {
+        padding: 0.65rem 1rem;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .topbar .brand {
+        flex: 1;
+        gap: 0.35rem;
+      }
+
+      .topbar .brand img {
+        height: 32px !important;
+      }
+
+      .brand-sub {
+        font-size: 0.65rem !important;
+      }
+
+      .topbar-right {
+        gap: 0.5rem;
+        width: 100%;
+        justify-content: flex-end;
+      }
+
+      .topbar-right .user-name {
+        font-size: 0.75rem;
+      }
+
+      .topbar-right .btn-out {
+        font-size: 0.7rem;
+        padding: 0.3rem 0.65rem;
+      }
+
+      .page-wrap {
+        padding: 1rem 0.875rem;
+      }
+
+      .profile-card {
+        padding: 1.25rem;
+        gap: 1rem;
+      }
+
+      .profile-avatar {
+        width: 56px;
+        height: 56px;
+        font-size: 1.25rem;
+      }
+
+      .profile-info .name {
+        font-size: 1rem;
+      }
+
+      .profile-info .meta {
+        font-size: 0.75rem;
+      }
+
+      .tab-nav {
+        gap: 0.15rem;
+        margin-bottom: 1rem;
+      }
+
+      .tab-nav a {
+        padding: 0.45rem 0.7rem;
+        font-size: 0.75rem;
+      }
+
+      .tab-nav a i {
+        font-size: 0.8rem;
+      }
+
+      .table {
+        font-size: 0.75rem;
+      }
+
+      .table th,
+      .table td {
+        padding: 0.4rem 0.5rem;
+      }
+
+      .card {
+        margin-bottom: 0.875rem;
+      }
+
+      .card-body {
+        padding: 0.875rem;
+      }
+
+      .badge {
+        font-size: 0.6rem;
+      }
+    }
+
+    /* ── Mobile: 480px to 767px ── */
+    @media (max-width: 767px) {
+      html { font-size: 14px; }
+
+      .page-wrap {
+        padding: 0.875rem;
+      }
+
+      .topbar {
+        padding: 0.6rem 0.75rem;
+      }
+
+      .profile-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 1rem;
+      }
+
+      .profile-card .profile-avatar {
+        width: 48px;
+        height: 48px;
+        font-size: 1.1rem;
+      }
+
+      .profile-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .profile-info .name {
+        font-size: 0.95rem;
+      }
+
+      .profile-info .meta {
+        font-size: 0.7rem;
+        text-align: center;
+      }
+
+      .tab-nav {
+        gap: 0.1rem;
+        margin-bottom: 0.875rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 0.25rem;
+      }
+
+      .tab-nav a {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.7rem;
+      }
+
+      .table {
+        font-size: 0.7rem;
+      }
+
+      .table th {
+        font-size: 0.62rem;
+      }
+
+      .table th,
+      .table td {
+        padding: 0.35rem 0.4rem;
+      }
+
+      .card {
+        margin-bottom: 0.75rem;
+      }
+
+      .card-body {
+        padding: 0.75rem;
+      }
+
+      .badge {
+        font-size: 0.55rem;
+      }
+    }
+
+    /* ── Mobile: Small screens (< 480px) ── */
+    @media (max-width: 479px) {
+      html { font-size: 13px; }
+
+      .topbar {
+        padding: 0.5rem 0.6rem;
+        gap: 0.3rem;
+      }
+
+      .topbar .brand {
+        gap: 0.25rem;
+      }
+
+      .topbar .brand img {
+        height: 28px !important;
+      }
+
+      .brand-sub {
+        font-size: 0.6rem !important;
+      }
+
+      .topbar-right {
+        width: 100%;
+        gap: 0.4rem;
+      }
+
+      .topbar-right .user-name {
+        display: none;
+      }
+
+      .topbar-right .btn-out {
+        font-size: 0.65rem;
+        padding: 0.25rem 0.55rem;
+        width: 100%;
+      }
+
+      .page-wrap {
+        padding: 0.75rem 0.65rem;
+        max-width: 100%;
+      }
+
+      .profile-card {
+        padding: 0.85rem;
+        margin-bottom: 1rem;
+      }
+
+      .profile-avatar {
+        width: 44px;
+        height: 44px;
+        font-size: 1rem;
+      }
+
+      .profile-info .name {
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .profile-info .meta {
+        font-size: 0.62rem;
+      }
+
+      .tab-nav {
+        gap: 0;
+        margin-bottom: 0.75rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .tab-nav a {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.62rem;
+        flex-shrink: 0;
+      }
+
+      .tab-nav a i {
+        display: none;
+      }
+
+      .table {
+        font-size: 0.65rem;
+      }
+
+      .table th {
+        font-size: 0.55rem;
+        padding: 0.25rem 0.3rem;
+      }
+
+      .table td {
+        padding: 0.3rem 0.3rem;
+      }
+
+      .table-hover tbody tr:hover {
+        background: transparent;
+      }
+
+      .card {
+        border-radius: 8px;
+        margin-bottom: 0.65rem;
+      }
+
+      .card-body {
+        padding: 0.65rem;
+      }
+
+      .badge {
+        font-size: 0.5rem;
+        padding: 0.15em 0.4em;
+      }
+
+      .alert {
+        padding: 0.65rem 0.75rem;
+        font-size: 0.68rem;
+      }
+
+      /* Stack sections */
+      .row {
+        gap: 0.5rem;
+      }
+
+      .col-md-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+      }
+    }
+
+    /* ── Landscape orientation (height < 500px) ── */
+    @media (max-height: 500px) and (orientation: landscape) {
+      .topbar {
+        padding: 0.4rem 0.6rem;
+      }
+
+      .page-wrap {
+        padding: 0.6rem 0.5rem;
+      }
+
+      .profile-card {
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .tab-nav {
+        margin-bottom: 0.6rem;
+      }
+    }
+
+    @media print {
+      .topbar, .tab-nav, .stat-row, .profile-card, .no-print { display: none !important; }
+      body { background: #fff; }
+      .page-wrap { padding: 0; max-width: 100%; }
+      #tab-grades, #tab-attendance, #tab-calendar, #tab-announcements { display: none !important; }
+      #tab-assignments { display: block !important; }
+      .card { border: 1px solid #ccc !important; box-shadow: none !important;
+              break-inside: avoid; page-break-inside: avoid; }
+      .print-header { display: block !important; }
+    }
+    .print-header { display: none; }
+  </style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-sub" style="color:#64748b;font-size:.72rem;">Student Portal</div>
+  </div>
+  <div class="topbar-right">
+    <span class="user-name"><i class="bi bi-person-circle me-1"></i>{{ session.full_name }}</span>
+    <a href="/logout" class="btn-out"><i class="bi bi-box-arrow-right me-1"></i>Sign Out</a>
+  </div>
+</div>
+
+<div class="page-wrap">
+
+<!-- Print-only header (hidden on screen) -->
+<div class="print-header" style="border-bottom:2px solid #4f46e5;padding-bottom:.75rem;margin-bottom:1.25rem;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+    <div>
+      <div style="font-size:1.1rem;font-weight:700;color:#0f172a;">{{ school_name }}</div>
+      <div style="font-size:.8rem;color:#64748b;">{{ school_address }}</div>
+    </div>
+    <div style="text-align:right;font-size:.8rem;color:#64748b;">
+      <div style="font-weight:600;color:#0f172a;">Assignment List</div>
+      {% if student %}
+      <div>{{ student.first_name }} {{ student.last_name }} &bull; {{ student.class_name or '' }}</div>
+      {% endif %}
+      <div>Printed: {{ today }}</div>
+    </div>
+  </div>
+</div>
+
+{% if not student %}
+<div class="alert alert-warning" style="border-radius:12px;">
+  <i class="bi bi-exclamation-triangle-fill me-2"></i>
+  No student record is linked to this account. Please contact the school.
+</div>
+{% else %}
+
+<!-- Profile -->
+<div class="profile-card">
+  <div class="profile-avatar">{{ student.first_name[0] }}{{ student.last_name[0] }}</div>
+  <div class="profile-info">
+    <div class="name">{{ student.first_name }} {{ student.last_name }}</div>
+    <div class="meta">
+      Student ID: {{ student.student_id }}
+      {% if student.class_name %}&nbsp;&bull;&nbsp; Class: {{ student.class_name }}{% endif %}
+      {% if student.gender %}&nbsp;&bull;&nbsp; {{ student.gender }}{% endif %}
+    </div>
+    <div class="mt-2">
+      <span class="badge bg-{{ 'success' if student.status == 'Active' else 'secondary' }}">{{ student.status }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tab-nav" id="studentTabNav">
+  <a href="#" class="active" data-tab="grades"><i class="bi bi-journal-text me-1"></i>Grades</a>
+  <a href="#" data-tab="assignments"><i class="bi bi-clipboard-check me-1"></i>Assignments</a>
+  <a href="#" data-tab="attendance"><i class="bi bi-check2-square me-1"></i>Attendance</a>
+  <a href="#" data-tab="calendar"><i class="bi bi-calendar-event me-1"></i>Calendar</a>
+  <a href="#" data-tab="announcements"><i class="bi bi-megaphone me-1"></i>Announcements</a>
+</div>
+
+<!-- Tab: Grades -->
+<div id="tab-grades">
+  <div class="card">
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr><th>Subject</th><th>Type</th><th>Score</th><th>Grade</th><th>Term</th><th>Date</th></tr>
+        </thead>
+        <tbody>
+          {% for g in grades %}
+          <tr>
+            <td class="fw-semibold">{{ g.subject_name or '—' }}</td>
+            <td class="text-muted">{{ g.exam_type or '—' }}</td>
+            <td>{{ g.score }}/{{ g.max_score }}</td>
+            <td>
+              <span class="badge bg-{{ 'success' if g.grade_letter in ['A+','A','A-'] else ('primary' if g.grade_letter in ['B+','B','B-'] else ('warning' if g.grade_letter in ['C+','C','C-'] else ('danger' if g.grade_letter == 'F' else 'secondary'))) }}">
+                {{ g.grade_letter or '—' }}
+              </span>
+            </td>
+            <td class="text-muted">{{ g.term or '—' }}</td>
+            <td class="text-muted">{{ g.date }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-center text-muted py-4">No grades recorded yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Tab: Assignments -->
+<div id="tab-assignments" style="display:none;">
+  {% if assignments %}
+  <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <span class="fw-semibold" style="color:#0f172a;">
+      {{ assignments|length }} assignment{{ 's' if assignments|length != 1 else '' }}
+    </span>
+    <button onclick="printAssignments()" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-printer me-1"></i> Print Assignments
+    </button>
+  </div>
+  <div class="d-flex flex-column gap-3">
+    {% for a in assignments %}
+    {% set graded  = a.my_score is not none %}
+    {% set overdue = a.due_date and a.due_date < today and not graded %}
+    {% set due_soon = a.due_date and a.due_date == today and not graded %}
+
+    <div class="card" style="border-left: 4px solid
+      {{ '#16a34a' if graded else ('#dc2626' if overdue else ('#f59e0b' if due_soon else '#4f46e5')) }};">
+      <div class="card-body">
+
+        <!-- Title row -->
+        <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap mb-2">
+          <div>
+            <span class="fw-bold" style="font-size:.95rem;color:#0f172a;">{{ a.title }}</span>
+            {% if graded %}
+              <span class="badge ms-2" style="background:#d1fae5;color:#065f46;">
+                <i class="bi bi-check-circle me-1"></i>Graded
+              </span>
+            {% elif overdue %}
+              <span class="badge ms-2" style="background:#fee2e2;color:#b91c1c;">
+                <i class="bi bi-exclamation-circle me-1"></i>Overdue
+              </span>
+            {% elif due_soon %}
+              <span class="badge ms-2" style="background:#fef3c7;color:#92400e;">
+                <i class="bi bi-clock me-1"></i>Due Today
+              </span>
+            {% else %}
+              <span class="badge ms-2" style="background:#ede9fe;color:#4f46e5;">
+                <i class="bi bi-hourglass-split me-1"></i>Pending
+              </span>
+            {% endif %}
+          </div>
+          <!-- Score pill -->
+          <div style="text-align:right;flex-shrink:0;">
+            {% if graded %}
+            <span class="fw-bold" style="font-size:1rem;color:#059669;">
+              {{ a.my_score }} / {{ a.max_score }}
+            </span>
+            {% else %}
+            <span class="text-muted" style="font-size:.85rem;">Max: {{ a.max_score }} pts</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Meta row -->
+        <div class="d-flex flex-wrap gap-3 mb-3" style="font-size:.78rem;color:#64748b;">
+          {% if a.subject_name %}
+          <span><i class="bi bi-book me-1" style="color:#4f46e5;"></i>{{ a.subject_name }}</span>
+          {% endif %}
+          {% if a.teacher_name %}
+          <span><i class="bi bi-person-badge me-1" style="color:#4f46e5;"></i>{{ a.teacher_name }}</span>
+          {% endif %}
+          {% if a.due_date %}
+          <span style="color:{{ '#dc2626' if overdue else ('#f59e0b' if due_soon else '#64748b') }};">
+            <i class="bi bi-calendar-event me-1"></i>Due: {{ a.due_date|fmt_date }}
+          </span>
+          {% endif %}
+        </div>
+
+        <!-- Description (the actual homework instructions) -->
+        {% if a.description %}
+        <div style="background:#f8fafc;border-radius:8px;padding:.75rem 1rem;
+                    font-size:.88rem;color:#334155;line-height:1.6;white-space:pre-wrap;
+                    border:1px solid #e2e8f0;">{{ a.description }}</div>
+        {% endif %}
+
+        <!-- Teacher feedback (only when graded) -->
+        {% if graded and a.feedback %}
+        <div class="mt-2 d-flex gap-2 align-items-start"
+             style="background:#f0fdf4;border-radius:8px;padding:.65rem .9rem;
+                    border:1px solid #bbf7d0;">
+          <i class="bi bi-chat-left-text-fill mt-1" style="color:#16a34a;font-size:.85rem;flex-shrink:0;"></i>
+          <div>
+            <div style="font-size:.72rem;font-weight:600;color:#15803d;margin-bottom:.15rem;">
+              Teacher's Feedback
+            </div>
+            <div style="font-size:.85rem;color:#334155;white-space:pre-wrap;">{{ a.feedback }}</div>
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card">
+    <div class="card-body text-center text-muted py-5">
+      <i class="bi bi-clipboard-x d-block mb-2" style="font-size:2rem;"></i>
+      No assignments posted yet.
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Tab: Attendance -->
+<div id="tab-attendance" style="display:none;">
+  <div class="card">
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr><th>Date</th><th>Subject</th><th>Status</th><th>Remarks</th></tr>
+        </thead>
+        <tbody>
+          {% for a in attendance %}
+          <tr>
+            <td>{{ a.date }}</td>
+            <td class="text-muted">{{ a.subject_name or '—' }}</td>
+            <td>
+              <span class="badge bg-{{ 'success' if a.status == 'Present' else ('warning' if a.status == 'Late' else 'danger') }}">
+                {{ a.status }}
+              </span>
+            </td>
+            <td class="text-muted">{{ a.remarks or '—' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="text-center text-muted py-4">No attendance records.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Tab: Calendar -->
+<div id="tab-calendar" style="display:none;">
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">
+            <button onclick="scPrev()" style="background:transparent;border:1px solid #e2e8f0;border-radius:6px;width:28px;height:28px;cursor:pointer;color:#64748b;"><i class="bi bi-chevron-left"></i></button>
+            <span id="scTitle" style="font-weight:600;font-size:.85rem;"></span>
+            <button onclick="scNext()" style="background:transparent;border:1px solid #e2e8f0;border-radius:6px;width:28px;height:28px;cursor:pointer;color:#64748b;"><i class="bi bi-chevron-right"></i></button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;" id="scHeaders"></div>
+        </div>
+        <div class="card-body pt-2">
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;" id="scGrid"></div>
+          <div id="scDetail" class="mt-3" style="display:none;">
+            <div class="fw-semibold mb-2 text-muted" style="font-size:.8rem;" id="scDetailDate"></div>
+            <div id="scDetailBody"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-clock-history me-2 text-warning"></i>Upcoming</div>
+        <div class="card-body">
+          {% if upcoming_events %}
+          {% for e in upcoming_events %}
+          <div style="display:flex;gap:.6rem;align-items:flex-start;padding:.5rem 0;border-bottom:1px solid #f1f5f9;">
+            <div style="width:10px;height:10px;border-radius:50%;background:{{ e.color }};flex-shrink:0;margin-top:4px;"></div>
+            <div>
+              <div class="fw-semibold" style="font-size:.8rem;">{{ e.title }}</div>
+              <div class="text-muted" style="font-size:.7rem;">{{ e.event_date }}{% if e.start_time %} at {{ e.start_time }}{% endif %}</div>
+            </div>
+          </div>
+          {% endfor %}
+          {% else %}
+          <p class="text-muted small mb-0">No upcoming events.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab: Announcements -->
+<div id="tab-announcements" style="display:none;">
+  <div class="card">
+    <div class="card-body">
+      {% for a in announcements %}
+      <div class="mb-3 {% if not loop.last %}pb-3 border-bottom{% endif %}">
+        <div class="d-flex align-items-start gap-2">
+          {% if a.is_pinned %}<i class="bi bi-pin-angle-fill text-danger mt-1" style="font-size:.75rem;flex-shrink:0;"></i>{% endif %}
+          <div>
+            <div class="fw-semibold" style="font-size:.85rem;color:#0f172a;">{{ a.title }}</div>
+            <div class="text-muted" style="font-size:.78rem;margin-top:.15rem;line-height:1.5;">{{ a.body }}</div>
+            <div class="text-muted" style="font-size:.68rem;margin-top:.3rem;">{{ a.created_at|fmt_datetime }}</div>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="text-center text-muted py-3" style="font-size:.82rem;">No announcements right now.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const tabs = document.querySelectorAll('#studentTabNav a');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', e => {
+      e.preventDefault();
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('[id^="tab-"]').forEach(p => p.style.display = 'none');
+      document.getElementById('tab-' + tab.dataset.tab).style.display = '';
+      if (tab.dataset.tab === 'calendar') scRender();
+    });
+  });
+
+  // Student mini-calendar
+  const SC_EVENTS = {{ events_by_date | tojson }};
+  const SC_TODAY  = '{{ today }}';
+  const SC_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const SC_DAYS   = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  let scYear = new Date().getFullYear(), scMonth = new Date().getMonth();
+  function scPad(n){ return String(n).padStart(2,'0'); }
+
+  function scRender() {
+    document.getElementById('scTitle').textContent = SC_MONTHS[scMonth] + ' ' + scYear;
+    document.getElementById('scHeaders').innerHTML = SC_DAYS.map(d=>`<div style="text-align:center;font-size:.62rem;font-weight:600;color:#94a3b8;padding:.2rem 0;">${d}</div>`).join('');
+    const grid = document.getElementById('scGrid');
+    const first = new Date(scYear, scMonth, 1).getDay();
+    const days  = new Date(scYear, scMonth+1, 0).getDate();
+    let html = '';
+    for (let i=0;i<first;i++) html += '<div style="min-height:44px;"></div>';
+    for (let d=1;d<=days;d++){
+      const ds = `${scYear}-${scPad(scMonth+1)}-${scPad(d)}`;
+      const isToday = ds === SC_TODAY;
+      const evs = SC_EVENTS[ds]||[];
+      const todayCss = isToday ? 'background:#ede9fe;' : '';
+      html += `<div style="min-height:44px;border-radius:6px;padding:2px 3px;cursor:pointer;${todayCss}" onclick="scSelect('${ds}')">
+                 <div style="font-size:.75rem;font-weight:600;color:${isToday?'#4f46e5':'#374151'};width:20px;height:20px;display:flex;align-items:center;justify-content:center;${isToday?'background:#4f46e5;color:#fff;border-radius:50%;':''}">${d}</div>
+                 ${evs.slice(0,2).map(e=>`<div style="font-size:.58rem;padding:1px 4px;border-radius:3px;background:${e.color}22;color:${e.color};margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.title}</div>`).join('')}
+               </div>`;
+    }
+    grid.innerHTML = html;
+    document.getElementById('scDetail').style.display='none';
+  }
+
+  function scSelect(ds) {
+    const evs = SC_EVENTS[ds]||[];
+    const dt = new Date(ds+'T12:00:00');
+    document.getElementById('scDetailDate').textContent = dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+    document.getElementById('scDetailBody').innerHTML = evs.length
+      ? evs.map(ev=>`<div class="mb-2 p-2 rounded" style="border-left:3px solid ${ev.color};background:${ev.color}0d;"><div class="fw-semibold" style="font-size:.82rem;">${ev.title}</div>${ev.description?`<div style="font-size:.77rem;color:#374151;">${ev.description}</div>`:''}</div>`).join('')
+      : '<p class="text-muted small mb-0">No events on this day.</p>';
+    document.getElementById('scDetail').style.display='';
+  }
+
+  function scPrev(){ if(scMonth===0){scMonth=11;scYear--;}else scMonth--; scRender(); }
+  function scNext(){ if(scMonth===11){scMonth=0;scYear++;}else scMonth++; scRender(); }
+
+  function printAssignments() {
+    // Make sure the assignments tab is the visible one before printing
+    document.querySelectorAll('[id^="tab-"]').forEach(p => p.style.display = 'none');
+    document.getElementById('tab-assignments').style.display = 'block';
+    window.print();
+    // Restore the active tab after the print dialog closes
+    document.getElementById('tab-assignments').style.display = 'block';
+  }
+</script>
+<div id="idleOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.75);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:2rem 2.5rem;max-width:360px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+    <div style="width:56px;height:56px;border-radius:50%;background:#fee2e2;color:#ef4444;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin:0 auto .75rem;">&#128336;</div>
+    <h5 style="font-weight:700;color:#0f172a;margin-bottom:.4rem;">Session Timeout</h5>
+    <p style="font-size:.85rem;color:#64748b;margin-bottom:1.25rem;">You will be signed out in <strong id="idleCountdown" style="color:#ef4444;">10</strong> seconds due to inactivity.</p>
+    <button onclick="resetIdleTimer()" style="background:#4f46e5;color:#fff;border:none;border-radius:9px;padding:.65rem 1.5rem;font-weight:600;width:100%;cursor:pointer;">Stay Signed In</button>
+  </div>
+</div>
+<script>
+(function(){
+  const IDLE_TIMEOUT=60,WARN_BEFORE=10;
+  let idleTimer,countdownTimer,countdown;
+  const overlay=document.getElementById('idleOverlay'),countEl=document.getElementById('idleCountdown');
+  function showWarning(){countdown=WARN_BEFORE;countEl.textContent=countdown;overlay.style.display='flex';countdownTimer=setInterval(function(){countdown--;countEl.textContent=countdown;if(countdown<=0){clearInterval(countdownTimer);window.location.href='/logout';}},1000);}
+  window.resetIdleTimer=function(){clearTimeout(idleTimer);clearInterval(countdownTimer);overlay.style.display='none';idleTimer=setTimeout(showWarning,(IDLE_TIMEOUT-WARN_BEFORE)*1000);};
+  ['mousemove','mousedown','keydown','scroll','touchstart','click'].forEach(function(e){document.addEventListener(e,resetIdleTimer,true);});
+  resetIdleTimer();
+})();
+</script>
+<script>
+(function() {
+  var token = document.querySelector('meta[name="csrf-token"]');
+  if (!token) return;
+  var csrfValue = token.getAttribute('content');
+  document.querySelectorAll('form').forEach(function(form) {
+    var method = (form.getAttribute('method') || 'get').toLowerCase();
+    if (method !== 'post') return;
+    if (form.querySelector('input[name="csrf_token"]')) return;
+    var inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'csrf_token'; inp.value = csrfValue;
+    form.appendChild(inp);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1081 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>Teacher Portal — {{ school_name }}</title>
+  <link rel="icon" type="image/x-icon" href="/static/icons/schoolms.ico">
+  <link rel="icon" type="image/svg+xml" href="/static/icons/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
+    html { font-size: 16px; }
+    body { background: #f1f5f9; margin: 0; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+    .topbar {
+      background: linear-gradient(90deg, #0f172a, #1e1b4b);
+      padding: .85rem 1.75rem;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .topbar .brand { display: flex; align-items: center; gap: .5rem; }
+    .topbar-right { display: flex; align-items: center; gap: .75rem; }
+    .topbar-right .user-name { color: #c7d2fe; font-size: .82rem; font-weight: 500; }
+    .topbar-right .btn-out {
+      background: rgba(255,255,255,.08); color: #94a3b8; border: none;
+      border-radius: 8px; padding: .35rem .75rem; font-size: .78rem; text-decoration: none;
+      transition: .15s;
+    }
+    .topbar-right .btn-out:hover { background: rgba(255,255,255,.15); color: #fff; }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 1.75rem 1.25rem; }
+
+    /* Greeting */
+    .greeting { margin-bottom: 1.5rem; }
+    .greeting h4 { font-weight: 700; font-size: 1.2rem; color: #0f172a; margin: 0; }
+    .greeting p  { color: #64748b; font-size: .83rem; margin: .25rem 0 0; }
+
+    /* Stat cards */
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-card {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+      padding: 1.1rem 1.25rem; position: relative; overflow: hidden;
+    }
+    .stat-card .sc-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; margin-bottom: .6rem;
+    }
+    .stat-card .sc-label { font-size: .72rem; color: #64748b; font-weight: 500; margin-bottom: .2rem; }
+    .stat-card .sc-value { font-size: 1.65rem; font-weight: 700; line-height: 1; }
+
+    /* Cards */
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .card-header {
+      background: transparent; border-bottom: 1px solid #e2e8f0;
+      padding: .875rem 1.125rem; font-weight: 600; font-size: .88rem;
+      border-radius: 12px 12px 0 0; display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .card-body { padding: 1.125rem; }
+
+    /* Tabs */
+    .tab-nav { display: flex; gap: .25rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .tab-nav a {
+      padding: .5rem .875rem; font-size: .82rem; font-weight: 500; color: #64748b;
+      text-decoration: none; border-radius: 8px 8px 0 0; transition: .15s; white-space: nowrap;
+    }
+    .tab-nav a:hover { color: #4f46e5; background: rgba(79,70,229,.06); }
+    .tab-nav a.active { color: #4f46e5; font-weight: 600; border-bottom: 2px solid #4f46e5; margin-bottom: -2px; background: transparent; }
+
+    /* Table */
+    .table { font-size: .825rem; }
+    .table th { font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: #64748b; border-bottom: 2px solid #e2e8f0; padding: .6rem .875rem; }
+    .table td { padding: .6rem .875rem; vertical-align: middle; border-color: #f1f5f9; }
+    .table tbody tr:last-child td { border-bottom: none; }
+    .table-hover tbody tr:hover { background: #f8faff; }
+
+    /* Badges */
+    .badge { font-weight: 500; font-size: .7rem; padding: .3em .6em; border-radius: 6px; }
+
+    /* Buttons */
+    .btn { font-size: .82rem; font-weight: 500; border-radius: 8px; }
+    .btn-primary { background: #4f46e5; border-color: #4f46e5; }
+    .btn-primary:hover { background: #3730a3; border-color: #3730a3; }
+    .btn-sm { padding: .3rem .7rem; font-size: .78rem; }
+
+    /* Modal */
+    .modal-content { border-radius: 14px; border: none; box-shadow: 0 20px 60px rgba(0,0,0,.15); }
+    .modal-header { border-bottom: 1px solid #e2e8f0; padding: 1.125rem 1.25rem; }
+    .modal-footer { border-top: 1px solid #e2e8f0; padding: .875rem 1.25rem; }
+    .modal-title { font-size: .95rem; font-weight: 700; }
+    .form-control, .form-select { border-radius: 8px; border-color: #e2e8f0; font-size: .825rem; padding: .45rem .75rem; }
+    .form-control:focus, .form-select:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,.12); }
+    .form-label { font-size: .78rem; font-weight: 600; color: #64748b; margin-bottom: .3rem; }
+
+    /* Due-soon pill */
+    .due-tag { font-size: .68rem; padding: .2em .55em; border-radius: 20px; }
+    .due-overdue { background: #fee2e2; color: #b91c1c; }
+    .due-soon    { background: #fef3c7; color: #92400e; }
+    .due-ok      { background: #d1fae5; color: #065f46; }
+
+    /* Bell / notifications */
+    .bell-btn {
+      position: relative; background: rgba(255,255,255,.08); border: none;
+      border-radius: 8px; width: 34px; height: 34px; color: #94a3b8;
+      display: flex; align-items: center; justify-content: center; cursor: pointer; transition: .15s;
+      text-decoration: none;
+    }
+    .bell-btn:hover { background: rgba(255,255,255,.15); color: #fff; }
+    .bell-badge {
+      position: absolute; top: -4px; right: -4px;
+      background: #ef4444; color: #fff; font-size: .55rem; font-weight: 700;
+      width: 16px; height: 16px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* Mini calendar */
+    .mini-cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
+    .mini-cal-hdr  { text-align: center; font-size: .62rem; font-weight: 600; color: #94a3b8; padding: .2rem 0; }
+    .mini-cal-day  { min-height: 48px; border-radius: 6px; padding: 2px 3px; cursor: pointer; transition: .1s; }
+    .mini-cal-day:hover { background: #f1f5f9; }
+    .mini-cal-day.today { background: #ede9fe; }
+    .mini-cal-day.today .mini-day-num { background: #4f46e5; color: #fff; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
+    .mini-cal-day.empty { cursor: default; }
+    .mini-day-num  { font-size: .75rem; font-weight: 600; color: #374151; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
+    .mini-pill     { font-size: .58rem; padding: 1px 4px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px; }
+    .cal-nav-mini  { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; }
+    .cal-nav-mini span { font-weight: 600; font-size: .85rem; }
+    .cal-nav-mini button { background: transparent; border: 1px solid #e2e8f0; border-radius: 6px; width: 28px; height: 28px; cursor: pointer; color: #64748b; }
+    .upcoming-item { display: flex; gap: .6rem; align-items: flex-start; padding: .5rem 0; border-bottom: 1px solid #f1f5f9; }
+    .upcoming-item:last-child { border-bottom: none; }
+
+    /* ── Tablet: 768px and below ── */
+    @media (max-width: 768px) {
+      html { font-size: 15px; }
+
+      .topbar {
+        padding: 0.65rem 1rem;
+        gap: 0.5rem;
+      }
+
+      .topbar .brand {
+        flex: 1;
+        gap: 0.35rem;
+      }
+
+      .topbar .brand img {
+        height: 32px !important;
+      }
+
+      .brand-sub {
+        font-size: 0.65rem !important;
+      }
+
+      .topbar-right {
+        gap: 0.5rem;
+        width: 100%;
+        justify-content: flex-end;
+      }
+
+      .topbar-right .user-name {
+        font-size: 0.75rem;
+      }
+
+      .topbar-right .btn-out {
+        font-size: 0.7rem;
+        padding: 0.3rem 0.65rem;
+      }
+
+      .page-wrap {
+        padding: 1rem 0.875rem;
+      }
+
+      .greeting h4 {
+        font-size: 1rem;
+      }
+
+      .greeting p {
+        font-size: 0.75rem;
+      }
+
+      .stat-row {
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+
+      .stat-card {
+        padding: 0.9rem 1rem;
+      }
+
+      .stat-card .sc-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+        margin-bottom: 0.4rem;
+      }
+
+      .stat-card .sc-value {
+        font-size: 1.35rem;
+      }
+
+      .card {
+        margin-bottom: 0.875rem;
+      }
+
+      .card-header {
+        padding: 0.75rem 0.95rem;
+        font-size: 0.82rem;
+      }
+
+      .card-body {
+        padding: 0.875rem;
+      }
+
+      .tab-nav {
+        gap: 0.15rem;
+        margin-bottom: 1rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .tab-nav a {
+        padding: 0.45rem 0.7rem;
+        font-size: 0.75rem;
+      }
+
+      .table {
+        font-size: 0.75rem;
+      }
+
+      .table th,
+      .table td {
+        padding: 0.4rem 0.5rem;
+      }
+
+      .btn {
+        font-size: 0.75rem;
+      }
+
+      .btn-sm {
+        padding: 0.25rem 0.6rem;
+        font-size: 0.7rem;
+      }
+
+      .badge {
+        font-size: 0.6rem;
+      }
+
+      .form-control, .form-select {
+        padding: 0.4rem 0.65rem;
+        font-size: 0.78rem;
+      }
+
+      .form-label {
+        font-size: 0.73rem;
+      }
+
+      .bell-btn {
+        width: 32px;
+        height: 32px;
+      }
+    }
+
+    /* ── Mobile: 480px to 767px ── */
+    @media (max-width: 767px) {
+      html { font-size: 14px; }
+
+      .page-wrap {
+        padding: 0.875rem;
+      }
+
+      .topbar {
+        padding: 0.6rem 0.75rem;
+      }
+
+      .greeting {
+        margin-bottom: 1rem;
+      }
+
+      .greeting h4 {
+        font-size: 0.95rem;
+      }
+
+      .greeting p {
+        font-size: 0.7rem;
+      }
+
+      .stat-row {
+        gap: 0.6rem;
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stat-card {
+        padding: 0.8rem 0.9rem;
+      }
+
+      .stat-card .sc-label {
+        font-size: 0.65rem;
+      }
+
+      .stat-card .sc-value {
+        font-size: 1.25rem;
+      }
+
+      .card-header {
+        padding: 0.7rem 0.85rem;
+        font-size: 0.78rem;
+      }
+
+      .card-body {
+        padding: 0.75rem;
+      }
+
+      .tab-nav {
+        gap: 0.1rem;
+        margin-bottom: 0.875rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .tab-nav a {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.7rem;
+      }
+
+      .table {
+        font-size: 0.7rem;
+      }
+
+      .table th {
+        font-size: 0.62rem;
+      }
+
+      .table th,
+      .table td {
+        padding: 0.35rem 0.4rem;
+      }
+
+      .badge {
+        font-size: 0.55rem;
+      }
+
+      .form-control, .form-select {
+        padding: 0.35rem 0.55rem;
+        font-size: 0.73rem;
+      }
+    }
+
+    /* ── Mobile: Small screens (< 480px) ── */
+    @media (max-width: 479px) {
+      html { font-size: 13px; }
+
+      .topbar {
+        padding: 0.5rem 0.6rem;
+        gap: 0.3rem;
+      }
+
+      .topbar .brand {
+        gap: 0.25rem;
+      }
+
+      .topbar .brand img {
+        height: 28px !important;
+      }
+
+      .brand-sub {
+        font-size: 0.6rem !important;
+      }
+
+      .topbar-right {
+        width: 100%;
+        gap: 0.4rem;
+      }
+
+      .topbar-right .user-name {
+        display: none;
+      }
+
+      .topbar-right .btn-out {
+        font-size: 0.65rem;
+        padding: 0.25rem 0.55rem;
+        flex: 1;
+      }
+
+      .page-wrap {
+        padding: 0.75rem 0.65rem;
+        max-width: 100%;
+      }
+
+      .greeting {
+        margin-bottom: 0.875rem;
+      }
+
+      .greeting h4 {
+        font-size: 0.85rem;
+      }
+
+      .greeting p {
+        font-size: 0.62rem;
+      }
+
+      .stat-row {
+        gap: 0.5rem;
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stat-card {
+        padding: 0.7rem 0.8rem;
+      }
+
+      .stat-card .sc-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+        margin-bottom: 0.3rem;
+      }
+
+      .stat-card .sc-label {
+        font-size: 0.6rem;
+      }
+
+      .stat-card .sc-value {
+        font-size: 1.1rem;
+      }
+
+      .card {
+        border-radius: 8px;
+        margin-bottom: 0.65rem;
+      }
+
+      .card-header {
+        padding: 0.6rem 0.7rem;
+        font-size: 0.73rem;
+      }
+
+      .card-body {
+        padding: 0.65rem;
+      }
+
+      .tab-nav {
+        gap: 0;
+        margin-bottom: 0.75rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .tab-nav a {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.62rem;
+        flex-shrink: 0;
+      }
+
+      .table {
+        font-size: 0.65rem;
+      }
+
+      .table th {
+        font-size: 0.55rem;
+        padding: 0.25rem 0.3rem;
+      }
+
+      .table td {
+        padding: 0.3rem 0.3rem;
+      }
+
+      .btn {
+        padding: 0.25rem 0.5rem !important;
+        font-size: 0.65rem;
+      }
+
+      .btn-sm {
+        padding: 0.2rem 0.4rem !important;
+        font-size: 0.6rem;
+      }
+
+      .badge {
+        font-size: 0.5rem;
+        padding: 0.15em 0.4em;
+      }
+
+      .bell-btn {
+        width: 30px;
+        height: 30px;
+      }
+
+      .bell-badge {
+        width: 14px;
+        height: 14px;
+        font-size: 0.5rem;
+      }
+
+      .form-control, .form-select {
+        padding: 0.3rem 0.5rem;
+        font-size: 0.68rem;
+      }
+
+      .form-label {
+        font-size: 0.63rem;
+      }
+
+      .alert {
+        padding: 0.65rem 0.75rem;
+        font-size: 0.68rem;
+      }
+    }
+
+    /* ── Landscape orientation (height < 500px) ── */
+    @media (max-height: 500px) and (orientation: landscape) {
+      .topbar {
+        padding: 0.4rem 0.6rem;
+      }
+
+      .page-wrap {
+        padding: 0.6rem 0.5rem;
+      }
+
+      .greeting {
+        margin-bottom: 0.5rem;
+      }
+
+      .stat-row {
+        margin-bottom: 0.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-sub" style="color:#64748b;font-size:.72rem;">Teacher Portal</div>
+  </div>
+  <div class="topbar-right">
+    <span class="user-name"><i class="bi bi-person-circle me-1"></i>{{ session.full_name }}</span>
+    <a href="#" class="bell-btn" data-bs-toggle="modal" data-bs-target="#msgsModal" onclick="markRead()">
+      <i class="bi bi-bell"></i>
+      {% set uc = unread_count() %}{% if uc > 0 %}<span class="bell-badge">{{ uc }}</span>{% endif %}
+    </a>
+    <a href="/logout" class="btn-out"><i class="bi bi-box-arrow-right me-1"></i>Sign Out</a>
+  </div>
+</div>
+
+<div class="page-wrap">
+
+  <!-- Greeting -->
+  <div class="greeting">
+    <h4>Good day, {{ (session.full_name or 'there').split()[0] }}</h4>
+    <p>Here's your teaching overview for today, {{ today }}.</p>
+  </div>
+
+  <!-- Stat cards -->
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="sc-icon" style="background:#ede9fe;color:#4f46e5;"><i class="bi bi-building"></i></div>
+      <div class="sc-label">My Classes</div>
+      <div class="sc-value" style="color:#4f46e5;">{{ my_classes|length }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-icon" style="background:#d1fae5;color:#10b981;"><i class="bi bi-clipboard-check"></i></div>
+      <div class="sc-label">My Assignments</div>
+      <div class="sc-value" style="color:#10b981;">{{ my_assignments|length }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-icon" style="background:#fef3c7;color:#f59e0b;"><i class="bi bi-alarm"></i></div>
+      <div class="sc-label">Due Upcoming</div>
+      <div class="sc-value" style="color:#f59e0b;">{{ due_soon|length }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-icon" style="background:#fee2e2;color:#ef4444;"><i class="bi bi-book"></i></div>
+      <div class="sc-label">Subjects</div>
+      <div class="sc-value" style="color:#ef4444;">{{ my_subjects|length }}</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-nav" id="teacherTabNav">
+    <a href="#" class="active" data-tab="assignments">
+      <i class="bi bi-clipboard-check me-1"></i>Assignments
+    </a>
+    <a href="#" data-tab="classes">
+      <i class="bi bi-building me-1"></i>My Classes
+    </a>
+    <a href="#" data-tab="reports">
+      <i class="bi bi-file-earmark-text me-1"></i>Report Cards
+    </a>
+    <a href="#" data-tab="calendar">
+      <i class="bi bi-calendar-event me-1"></i>Calendar
+    </a>
+    <a href="#" data-tab="announcements">
+      <i class="bi bi-megaphone me-1"></i>Announcements
+    </a>
+  </div>
+
+  <!-- Tab: Assignments -->
+  <div id="tab-assignments">
+    <div class="card">
+      <div class="card-header">
+        <span><i class="bi bi-clipboard-check me-2 text-primary"></i>My Assignments</span>
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addAssignModal">
+          <i class="bi bi-plus me-1"></i>New Assignment
+        </button>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Subject</th>
+              <th>Classroom</th>
+              <th>Due Date</th>
+              <th>Max Score</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in my_assignments %}
+            {% set is_overdue = a.due_date and a.due_date < today %}
+            {% set is_soon = a.due_date and a.due_date >= today and a.due_date <= (today[:8] ~ '%02d'|format((today[8:]|int) + 7)) %}
+            <tr>
+              <td class="fw-semibold">{{ a.title }}</td>
+              <td class="text-muted">{{ a.subject_name or '—' }}</td>
+              <td class="text-muted">{{ a.class_name or '—' }}</td>
+              <td>
+                {% if a.due_date %}
+                  {% if is_overdue %}
+                    <span class="due-tag due-overdue"><i class="bi bi-exclamation-circle me-1"></i>{{ a.due_date }}</span>
+                  {% else %}
+                    <span class="due-tag due-ok"><i class="bi bi-clock me-1"></i>{{ a.due_date }}</span>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>{{ a.max_score }}</td>
+              <td>
+                <form method="POST" action="/assignments/delete/{{ a.id }}" class="d-inline"
+                      onsubmit="return confirm('Delete this assignment?')">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" style="font-size:.72rem;padding:.2rem .55rem;">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6" class="text-center text-muted py-4">
+                <i class="bi bi-clipboard-x d-block mb-2" style="font-size:1.5rem;"></i>
+                No assignments yet. Click "New Assignment" to create one.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Classes -->
+  <div id="tab-classes" style="display:none;">
+    {% if my_classes %}
+    <div class="row g-3">
+      {% for c in my_classes %}
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="d-flex align-items-start gap-3">
+              <div style="width:44px;height:44px;border-radius:10px;background:#ede9fe;color:#4f46e5;
+                          display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">
+                <i class="bi bi-building"></i>
+              </div>
+              <div class="flex-grow-1">
+                <div class="fw-bold" style="font-size:.9rem;">{{ c.name }}</div>
+                <div class="text-muted" style="font-size:.75rem;">
+                  Grade: {{ c.grade or '—' }} &nbsp;&bull;&nbsp; Room: {{ c.room or '—' }}
+                </div>
+                <div class="mt-1">
+                  <span class="badge" style="background:#ede9fe;color:#4f46e5;">
+                    <i class="bi bi-people me-1"></i>{{ c.student_count }} students
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="d-flex gap-2 mt-3">
+              <a href="/attendance?class_id={{ c.id }}" class="btn btn-sm btn-outline-primary flex-fill" style="font-size:.75rem;">
+                <i class="bi bi-check2-square me-1"></i>Attendance
+              </a>
+              <a href="/grades?class_id={{ c.id }}" class="btn btn-sm btn-outline-secondary flex-fill" style="font-size:.75rem;">
+                <i class="bi bi-journal-text me-1"></i>Grades
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="card">
+      <div class="card-body text-center text-muted py-5">
+        <i class="bi bi-building-x d-block mb-2" style="font-size:2rem;"></i>
+        No classes assigned to you yet. Contact admin to link your classes.
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Tab: Report Cards -->
+  <div id="tab-reports" style="display:none;">
+    {% if my_classes %}
+      {% for c in my_classes %}
+      <div class="card mb-4">
+        <div class="card-header">
+          <span><i class="bi bi-people me-2 text-primary"></i>{{ c.name }}
+            <span class="badge ms-2" style="background:#ede9fe;color:#4f46e5;font-weight:500;">{{ c.student_count }} students</span>
+          </span>
+          <div class="d-flex gap-2">
+            <select id="termSel{{ c.id }}" class="form-select form-select-sm" style="width:auto;">
+              <option value="Term 1">Term 1</option>
+              <option value="Term 2">Term 2</option>
+              <option value="Term 3">Term 3</option>
+            </select>
+            <select id="yearSel{{ c.id }}" class="form-select form-select-sm" style="width:auto;">
+              <option value="2024">2024</option>
+              <option value="2025" selected>2025</option>
+              <option value="2026">2026</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          {% set students = class_students.get(c.id, []) %}
+          {% if students %}
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th class="ps-3">Student</th>
+                <th>Avg Score</th>
+                <th>Attendance</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in students %}
+              <tr>
+                <td class="ps-3">
+                  <div class="fw-semibold">{{ s.last_name }}, {{ s.first_name }}</div>
+                  <div class="text-muted" style="font-size:.72rem;">ID: {{ s.student_id }}</div>
+                </td>
+                <td>
+                  {% if s.avg_score %}
+                    <span class="fw-semibold {{ 'text-success' if s.avg_score >= 70 else ('text-warning' if s.avg_score >= 50 else 'text-danger') }}">
+                      {{ s.avg_score }}%
+                    </span>
+                  {% else %}
+                    <span class="text-muted">No grades</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if s.total_att > 0 %}
+                    {% set att_pct = (s.present_count / s.total_att * 100)|round(0)|int %}
+                    <span class="{{ 'text-success' if att_pct >= 80 else ('text-warning' if att_pct >= 60 else 'text-danger') }}">
+                      {{ att_pct }}%
+                    </span>
+                    <span class="text-muted" style="font-size:.72rem;">({{ s.present_count }}/{{ s.total_att }})</span>
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <a href="/grades?class_id={{ c.id }}" class="btn btn-sm btn-outline-primary me-1" style="font-size:.75rem;">
+                    <i class="bi bi-pencil-square me-1"></i>Enter Grades
+                  </a>
+                  <button onclick="openRC({{ s.id }}, '{{ c.id }}')"
+                          class="btn btn-sm btn-outline-success me-1" style="font-size:.75rem;">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>Report Card
+                  </button>
+                  <a href="/students/{{ s.id }}/progress-report" target="_blank"
+                     class="btn btn-sm btn-outline-secondary" style="font-size:.75rem;">
+                    <i class="bi bi-graph-up me-1"></i>Progress
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="text-center text-muted py-4" style="font-size:.85rem;">
+            No active students in this class yet.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="card">
+      <div class="card-body text-center text-muted py-5">
+        <i class="bi bi-journal-x d-block mb-2" style="font-size:2rem;"></i>
+        No classes assigned. Ask admin to link your account to a class.
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Tab: Calendar -->
+  <div id="tab-calendar" style="display:none;">
+    <div class="row g-3">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">
+            <div class="cal-nav-mini">
+              <button onclick="tcPrev()"><i class="bi bi-chevron-left"></i></button>
+              <span id="tcTitle"></span>
+              <button onclick="tcNext()"><i class="bi bi-chevron-right"></i></button>
+            </div>
+            <div class="mini-cal-grid" id="tcHeaders"></div>
+          </div>
+          <div class="card-body pt-2">
+            <div class="mini-cal-grid" id="tcGrid"></div>
+            <div id="tcDetail" class="mt-3" style="display:none;">
+              <div class="fw-semibold mb-2" style="font-size:.8rem;color:#64748b;" id="tcDetailDate"></div>
+              <div id="tcDetailBody"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="card h-100">
+          <div class="card-header"><span><i class="bi bi-clock-history me-2 text-warning"></i>Upcoming</span></div>
+          <div class="card-body">
+            {% if upcoming_events %}
+            {% for e in upcoming_events %}
+            <div class="upcoming-item">
+              <div style="width:10px;height:10px;border-radius:50%;background:{{ e.color }};flex-shrink:0;margin-top:4px;"></div>
+              <div>
+                <div class="fw-semibold" style="font-size:.8rem;">{{ e.title }}</div>
+                <div class="text-muted" style="font-size:.7rem;">{{ e.event_date }}{% if e.start_time %} at {{ e.start_time }}{% endif %}</div>
+                <span class="badge" style="background:{{ e.color }}22;color:{{ e.color }};font-size:.62rem;">{{ e.event_type }}</span>
+              </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p class="text-muted small mb-0">No upcoming events.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Announcements -->
+  <div id="tab-announcements" style="display:none;">
+    <div class="card">
+      <div class="card-header">
+        <span><i class="bi bi-megaphone me-2 text-warning"></i>School Announcements</span>
+      </div>
+      <div class="card-body">
+        {% for a in announcements %}
+        <div class="mb-3 {% if not loop.last %}pb-3 border-bottom{% endif %}">
+          <div class="d-flex align-items-start gap-2">
+            {% if a.is_pinned %}<i class="bi bi-pin-angle-fill text-danger mt-1" style="font-size:.75rem;flex-shrink:0;"></i>{% endif %}
+            <div>
+              <div class="fw-semibold" style="font-size:.85rem;color:#0f172a;">{{ a.title }}</div>
+              <div class="text-muted" style="font-size:.78rem;margin-top:.15rem;line-height:1.5;">{{ a.body }}</div>
+              <div class="text-muted" style="font-size:.68rem;margin-top:.3rem;">{{ a.created_at|fmt_datetime }}</div>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-3" style="font-size:.82rem;">No announcements right now.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Add Assignment Modal -->
+<div class="modal fade" id="addAssignModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <form method="POST" action="/assignments/add">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-clipboard-plus me-2 text-primary"></i>New Assignment</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Title *</label>
+              <input name="title" class="form-control" required placeholder="e.g. Chapter 5 Quiz">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Description</label>
+              <textarea name="description" class="form-control" rows="2" placeholder="Optional details..."></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Classroom</label>
+              <select name="class_id" class="form-select">
+                <option value="">— All Classrooms —</option>
+                {% for c in all_classes %}<option value="{{ c.id }}"{% if my_classes and my_classes[0].id == c.id %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Subject</label>
+              <select name="subject_id" class="form-select">
+                <option value="">— None —</option>
+                {% for s in all_subjects %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Due Date</label>
+              <input type="date" name="due_date" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Max Score</label>
+              <input type="number" name="max_score" class="form-control" value="100" min="1">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <input type="hidden" name="_next" value="/teacher-home">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle me-1"></i>Create Assignment</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Messages Modal -->
+<div class="modal fade" id="msgsModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content" style="border-radius:14px;border:none;box-shadow:0 20px 60px rgba(0,0,0,.15);">
+      <div class="modal-header" style="border-bottom:1px solid #e2e8f0;">
+        <h5 class="modal-title" style="font-size:.95rem;font-weight:700;">
+          <i class="bi bi-bell me-2 text-primary"></i>Notifications
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        {% if messages %}
+        {% for m in messages %}
+        <div class="px-3 py-2 border-bottom {% if not m.is_read %}{% endif %}" style="{{ 'background:#f0f4ff;' if not m.is_read else '' }}">
+          <div class="d-flex align-items-center gap-1 mb-1">
+            <span class="fw-semibold" style="font-size:.82rem;">{{ m.subject }}</span>
+            {% if not m.is_read %}<span class="badge bg-primary ms-1" style="font-size:.58rem;">New</span>{% endif %}
+          </div>
+          <div style="font-size:.77rem;color:#374151;">{{ m.body }}</div>
+          <div class="text-muted" style="font-size:.68rem;">{{ m.sent_at|fmt_datetime }}</div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center text-muted py-4" style="font-size:.82rem;">
+          <i class="bi bi-bell-slash d-block mb-2" style="font-size:1.5rem;"></i>No notifications yet.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Tab switching
+  const tabs = document.querySelectorAll('#teacherTabNav a');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', e => {
+      e.preventDefault();
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('[id^="tab-"]').forEach(p => p.style.display = 'none');
+      document.getElementById('tab-' + tab.dataset.tab).style.display = '';
+      if (tab.dataset.tab === 'calendar') tcRender();
+    });
+  });
+
+  // Mark notifications read
+  function markRead() {
+    fetch('/messages/mark-read', {method:'POST'});
+    document.querySelectorAll('.bell-badge').forEach(b => b.remove());
+  }
+
+  // Mini Calendar
+  const TC_EVENTS = {{ events_by_date | tojson }};
+  const TC_TODAY  = '{{ today }}';
+  const TC_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const TC_DAYS   = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  let tcYear = new Date().getFullYear(), tcMonth = new Date().getMonth();
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+
+  function tcRender() {
+    document.getElementById('tcTitle').textContent = TC_MONTHS[tcMonth] + ' ' + tcYear;
+    const hdr = document.getElementById('tcHeaders');
+    hdr.innerHTML = TC_DAYS.map(d=>`<div class="mini-cal-hdr">${d}</div>`).join('');
+    const grid = document.getElementById('tcGrid');
+    const first = new Date(tcYear, tcMonth, 1).getDay();
+    const days  = new Date(tcYear, tcMonth+1, 0).getDate();
+    let html = '';
+    for (let i=0;i<first;i++) html += '<div class="mini-cal-day empty"></div>';
+    for (let d=1;d<=days;d++){
+      const ds = `${tcYear}-${pad(tcMonth+1)}-${pad(d)}`;
+      const isToday = ds === TC_TODAY;
+      const evs = TC_EVENTS[ds]||[];
+      html += `<div class="mini-cal-day ${isToday?'today':''}" data-date="${ds}" onclick="tcSelect('${ds}')">
+                 <div class="mini-day-num">${d}</div>
+                 ${evs.slice(0,2).map(e=>`<div class="mini-pill" style="background:${e.color}22;color:${e.color};">${e.title}</div>`).join('')}
+                 ${evs.length>2?`<div style="font-size:.58rem;color:#94a3b8;">+${evs.length-2}</div>`:''}
+               </div>`;
+    }
+    grid.innerHTML = html;
+    document.getElementById('tcDetail').style.display='none';
+  }
+
+  function tcSelect(ds) {
+    const evs = TC_EVENTS[ds]||[];
+    const detail = document.getElementById('tcDetail');
+    const dt = new Date(ds+'T12:00:00');
+    document.getElementById('tcDetailDate').textContent = dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+    if (!evs.length) {
+      document.getElementById('tcDetailBody').innerHTML = '<p class="text-muted small mb-0">No events on this day.</p>';
+    } else {
+      document.getElementById('tcDetailBody').innerHTML = evs.map(ev=>`
+        <div class="mb-2 p-2 rounded" style="border-left:3px solid ${ev.color};background:${ev.color}0d;">
+          <div class="fw-semibold" style="font-size:.82rem;">${ev.title}</div>
+          ${ev.start_time?`<div class="text-muted" style="font-size:.72rem;"><i class="bi bi-clock me-1"></i>${ev.start_time}${ev.end_time?' – '+ev.end_time:''}</div>`:''}
+          ${ev.description?`<div style="font-size:.77rem;color:#374151;margin-top:.2rem;">${ev.description}</div>`:''}
+        </div>`).join('');
+    }
+    detail.style.display='';
+  }
+
+  function tcPrev(){ if(tcMonth===0){tcMonth=11;tcYear--;}else tcMonth--; tcRender(); }
+  function tcNext(){ if(tcMonth===11){tcMonth=0;tcYear++;}else tcMonth++; tcRender(); }
+
+  function openRC(studentId, classId) {
+    const term = document.getElementById('termSel' + classId)?.value || 'Term 1';
+    const year = document.getElementById('yearSel' + classId)?.value || '2025';
+    window.open(`/students/${studentId}/report-card?term=${encodeURIComponent(term)}&year=${year}`, '_blank');
+  }
+</script>
+<div id="idleOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.75);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:2rem 2.5rem;max-width:360px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+    <div style="width:56px;height:56px;border-radius:50%;background:#fee2e2;color:#ef4444;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin:0 auto .75rem;">&#128336;</div>
+    <h5 style="font-weight:700;color:#0f172a;margin-bottom:.4rem;">Session Timeout</h5>
+    <p style="font-size:.85rem;color:#64748b;margin-bottom:1.25rem;">You will be signed out in <strong id="idleCountdown" style="color:#ef4444;">10</strong> seconds due to inactivity.</p>
+    <button onclick="resetIdleTimer()" style="background:#4f46e5;color:#fff;border:none;border-radius:9px;padding:.65rem 1.5rem;font-weight:600;width:100%;cursor:pointer;">Stay Signed In</button>
+  </div>
+</div>
+<script>
+(function(){
+  const IDLE_TIMEOUT=60,WARN_BEFORE=10;
+  let idleTimer,countdownTimer,countdown;
+  const overlay=document.getElementById('idleOverlay'),countEl=document.getElementById('idleCountdown');
+  function showWarning(){countdown=WARN_BEFORE;countEl.textContent=countdown;overlay.style.display='flex';countdownTimer=setInterval(function(){countdown--;countEl.textContent=countdown;if(countdown<=0){clearInterval(countdownTimer);window.location.href='/logout';}},1000);}
+  window.resetIdleTimer=function(){clearTimeout(idleTimer);clearInterval(countdownTimer);overlay.style.display='none';idleTimer=setTimeout(showWarning,(IDLE_TIMEOUT-WARN_BEFORE)*1000);};
+  ['mousemove','mousedown','keydown','scroll','touchstart','click'].forEach(function(e){document.addEventListener(e,resetIdleTimer,true);});
+  resetIdleTimer();
+})();
+</script>
+<script>
+(function() {
+  var token = document.querySelector('meta[name="csrf-token"]');
+  if (!token) return;
+  var csrfValue = token.getAttribute('content');
+  document.querySelectorAll('form').forEach(function(form) {
+    var method = (form.getAttribute('method') || 'get').toLowerCase();
+    if (method !== 'post') return;
+    if (form.querySelector('input[name="csrf_token"]')) return;
+    var inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'csrf_token'; inp.value = csrfValue;
+    form.appendChild(inp);
+  });
+})();
+</script>
+</body>
+</html>

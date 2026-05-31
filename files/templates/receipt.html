@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}Receipt {{ receipt_num }} — {{ school_name }}{% endblock %}
+{% block page_title %}Payment Receipt{% endblock %}
+
+{% block head %}
+<style>
+  .receipt-wrap {
+    max-width: 480px; margin: 0 auto;
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+    padding: 2rem; box-shadow: 0 4px 24px rgba(0,0,0,.07);
+  }
+  .receipt-logo { text-align: center; margin-bottom: 1.25rem; }
+  .receipt-logo .school-name { font-size: 1.15rem; font-weight: 800; color: #0f172a; letter-spacing: .5px; }
+  .receipt-logo .school-sub  { font-size: .75rem; color: #64748b; }
+
+  .receipt-stamp {
+    text-align: center; margin: .75rem 0 1.25rem;
+  }
+  .receipt-stamp .paid-badge {
+    display: inline-flex; align-items: center; gap: .4rem;
+    background: #dcfce7; color: #15803d;
+    font-weight: 700; font-size: .95rem; padding: .45rem 1.2rem;
+    border-radius: 50px; border: 2px solid #86efac;
+  }
+  .receipt-stamp .partial-badge {
+    display: inline-flex; align-items: center; gap: .4rem;
+    background: #fef3c7; color: #b45309;
+    font-weight: 700; font-size: .95rem; padding: .45rem 1.2rem;
+    border-radius: 50px; border: 2px solid #fcd34d;
+  }
+
+  .receipt-num { text-align: center; font-size: .72rem; color: #94a3b8; margin-bottom: 1rem; }
+
+  .receipt-divider { border: none; border-top: 1.5px dashed #e2e8f0; margin: 1rem 0; }
+
+  .receipt-row { display: flex; justify-content: space-between; align-items: baseline; padding: .3rem 0; }
+  .receipt-row .lbl { font-size: .8rem; color: #64748b; }
+  .receipt-row .val { font-size: .85rem; color: #0f172a; font-weight: 500; text-align: right; max-width: 60%; }
+
+  .receipt-total {
+    background: #f8fafc; border-radius: 10px; padding: .85rem 1rem; margin-top: .5rem;
+  }
+  .receipt-total .t-row { display: flex; justify-content: space-between; padding: .2rem 0; font-size: .85rem; }
+  .receipt-total .t-row.big { font-size: 1rem; font-weight: 700; }
+  .receipt-total .t-row.big .amount { color: #4f46e5; }
+  .receipt-total .t-row .balance-due { color: #dc2626; }
+  .receipt-total .t-row .settled    { color: #16a34a; }
+
+  .receipt-footer { text-align: center; font-size: .72rem; color: #94a3b8; margin-top: 1.25rem; }
+
+  .btn-receipt-actions { display: flex; gap: .75rem; justify-content: center; margin-top: 1.5rem; }
+
+  @media print {
+    .sidebar, .topbar, .btn-receipt-actions, .no-print { display: none !important; }
+    body, .main-content { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+    .receipt-wrap { box-shadow: none; border: none; max-width: 100%; padding: 1rem; }
+    .page-header  { display: none !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="receipt-wrap">
+
+  <!-- School header -->
+  <div class="receipt-logo">
+    <div class="school-name">{{ school_name | upper }}</div>
+    <div class="school-sub">{{ school_address }}</div>
+  </div>
+
+  <hr class="receipt-divider">
+
+  <!-- Paid / Partial stamp -->
+  <div class="receipt-stamp">
+    {% if fee.status == 'Paid' %}
+    <span class="paid-badge"><i class="bi bi-patch-check-fill"></i> PAID IN FULL</span>
+    {% else %}
+    <span class="partial-badge"><i class="bi bi-clock-fill"></i> PARTIAL PAYMENT</span>
+    {% endif %}
+  </div>
+
+  <div class="receipt-num">Receipt #{{ receipt_num }}</div>
+
+  <!-- Transaction details -->
+  <div class="receipt-row">
+    <span class="lbl">Date</span>
+    <span class="val">{{ (txn.date if txn else '')|default(today, true) }}</span>
+  </div>
+  <div class="receipt-row">
+    <span class="lbl">Client / Student</span>
+    <span class="val">{{ fee.student_name }}</span>
+  </div>
+  <div class="receipt-row">
+    <span class="lbl">ID</span>
+    <span class="val">{{ fee.student_code }}</span>
+  </div>
+  {% if fee.student_type != 'Walk-in' and fee.parent_name %}
+  <div class="receipt-row">
+    <span class="lbl">Parent / Guardian</span>
+    <span class="val">{{ fee.parent_name }}</span>
+  </div>
+  {% endif %}
+
+  <hr class="receipt-divider">
+
+  <div class="receipt-row">
+    <span class="lbl">Service / Fee</span>
+    <span class="val fw-semibold">{{ fee.fee_type }}</span>
+  </div>
+  {% if fee.term %}
+  <div class="receipt-row">
+    <span class="lbl">Term</span>
+    <span class="val">{{ fee.term }}</span>
+  </div>
+  {% endif %}
+  {% if fee.academic_year %}
+  <div class="receipt-row">
+    <span class="lbl">Academic Year</span>
+    <span class="val">{{ fee.academic_year }}</span>
+  </div>
+  {% endif %}
+  {% if txn %}
+  <div class="receipt-row">
+    <span class="lbl">Payment Method</span>
+    <span class="val">{{ txn.payment_method or 'Cash' }}</span>
+  </div>
+  <div class="receipt-row">
+    <span class="lbl">Processed by</span>
+    <span class="val">{{ txn.processed_by or '—' }}</span>
+  </div>
+  {% endif %}
+
+  <hr class="receipt-divider">
+
+  <!-- Totals box -->
+  <div class="receipt-total">
+    <div class="t-row">
+      <span class="lbl">Total Charged</span>
+      <span>{{ fee.amount|money }}</span>
+    </div>
+    <div class="t-row">
+      <span class="lbl">Previously Paid</span>
+      <span>{{ (fee.paid_amount - (txn.amount if txn else 0))|money }}</span>
+    </div>
+    {% if txn %}
+    <div class="t-row big">
+      <span>This Payment</span>
+      <span class="amount">{{ txn.amount|money }}</span>
+    </div>
+    {% endif %}
+    <hr style="border-color:#e2e8f0;margin:.5rem 0;">
+    <div class="t-row">
+      <span class="lbl">Total Paid</span>
+      <span class="fw-semibold">{{ fee.paid_amount|money }}</span>
+    </div>
+    <div class="t-row">
+      <span class="lbl">Remaining Balance</span>
+      {% set bal = fee.amount - fee.paid_amount %}
+      <span class="fw-semibold {{ 'balance-due' if bal > 0 else 'settled' }}">
+        {{ bal|money }}{% if bal <= 0 %} ✓{% endif %}
+      </span>
+    </div>
+  </div>
+
+  <!-- Account summary (all fees) -->
+  <div class="receipt-row mt-2">
+    <span class="lbl" style="font-size:.72rem;">Account total charged</span>
+    <span class="val" style="font-size:.72rem;">{{ total_charged|money }}</span>
+  </div>
+  <div class="receipt-row">
+    <span class="lbl" style="font-size:.72rem;">Account total paid</span>
+    <span class="val" style="font-size:.72rem;">{{ total_paid|money }}</span>
+  </div>
+  <div class="receipt-row">
+    <span class="lbl" style="font-size:.72rem;">Account outstanding</span>
+    <span class="val" style="font-size:.72rem;{{ 'color:#dc2626;' if balance > 0 else 'color:#16a34a;' }}">{{ balance|money }}</span>
+  </div>
+
+  <div class="receipt-footer">
+    Thank you for your payment!<br>
+    Please keep this receipt for your records.
+  </div>
+</div>
+
+<!-- Action buttons (hidden on print) -->
+<div class="btn-receipt-actions no-print">
+  <button class="btn btn-primary" onclick="window.print()">
+    <i class="bi bi-printer me-1"></i> Print Receipt
+  </button>
+  <a href="{{ back }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Back
+  </a>
+</div>
+
+<script>
+  // Auto-open print dialog
+  window.addEventListener('load', function(){ window.print(); });
+</script>
+{% endblock %}

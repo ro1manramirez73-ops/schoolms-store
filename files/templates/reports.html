@@ -1,0 +1,442 @@
+﻿{% extends "base.html" %}
+{% block title %}Reports — {{ school_name }}{% endblock %}
+{% block page_title %}Reports{% endblock %}
+{% block content %}
+
+<!-- Date Range Filter -->
+<form method="GET" action="/reports" class="card mb-4">
+  <div class="card-body">
+    <div class="row g-3 align-items-end">
+      <div class="col-auto">
+        <label class="form-label fw-semibold mb-1">Date Range</label>
+        <div class="d-flex align-items-center gap-2">
+          <input type="date" name="from_date" class="form-control form-control-sm" value="{{ from_date }}" style="width:150px;">
+          <span class="text-muted">to</span>
+          <input type="date" name="to_date" class="form-control form-control-sm" value="{{ to_date }}" style="width:150px;">
+        </div>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-funnel me-1"></i>Apply</button>
+      </div>
+      <div class="col-auto">
+        <a href="/reports" class="btn btn-outline-secondary btn-sm">Reset (Full Year)</a>
+      </div>
+      <div class="col ms-auto text-end">
+        <div class="text-muted small">Showing: <strong>{{ from_date }}</strong> → <strong>{{ to_date }}</strong></div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card text-center py-3" style="border-top:3px solid #10b981;">
+      <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;">Income Collected</div>
+      <div class="fw-bold fs-4 text-success mt-1">{{ income_total|money }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center py-3" style="border-top:3px solid #ef4444;">
+      <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;">Expenses</div>
+      <div class="fw-bold fs-4 text-danger mt-1">{{ expense_total|money }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center py-3" style="border-top:3px solid #f59e0b;">
+      <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;">Fees Outstanding</div>
+      <div class="fw-bold fs-4 text-warning mt-1">{{ fees_outstanding|money }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center py-3" style="border-top:3px solid #4f46e5;">
+      <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;">Net (Income − Exp.)</div>
+      <div class="fw-bold fs-4 mt-1" style="color:{% if income_total >= expense_total %}#059669{% else %}#dc2626{% endif %};">
+        {{ (income_total - expense_total)|money }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Reports Grid -->
+<div class="row g-4">
+
+  <!-- ── Financial Reports ── -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold"><i class="bi bi-cash-stack me-2 text-success"></i>Income by Category</span>
+        <a href="/reports/export/income?from_date={{ from_date }}&to_date={{ to_date }}"
+           class="btn btn-outline-success btn-sm"><i class="bi bi-download me-1"></i>Export CSV</a>
+      </div>
+      <div class="card-body p-0">
+        {% if income_by_cat %}
+        <table class="table table-sm mb-0">
+          <thead class="table-light">
+            <tr><th>Category</th><th class="text-end">Total</th><th style="width:120px;"></th></tr>
+          </thead>
+          <tbody>
+            {% set max_cat = income_by_cat[0].total if income_by_cat else 1 %}
+            {% for row in income_by_cat %}
+            <tr>
+              <td class="fw-semibold small">{{ row.category or '—' }}</td>
+              <td class="text-end text-success fw-semibold">{{ row.total|money }}</td>
+              <td>
+                <div class="progress" style="height:6px;margin-top:5px;">
+                  <div class="progress-bar bg-success" style="width:{{ (row.total/max_cat*100)|round }}%;"></div>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="text-center text-muted py-4">No income in this period.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Monthly Income Chart ── -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-bar-chart-line me-2 text-primary"></i>Monthly Income
+      </div>
+      <div class="card-body">
+        {% if monthly_income %}
+        <div style="position:relative;height:220px;">
+          <canvas id="monthlyChart"></canvas>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-5">No data for this period.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Outstanding Fees ── -->
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold"><i class="bi bi-exclamation-circle me-2 text-warning"></i>Students with Outstanding Fees</span>
+        <a href="/reports/export/outstanding"
+           class="btn btn-outline-warning btn-sm"><i class="bi bi-download me-1"></i>Export CSV</a>
+      </div>
+      <div class="card-body p-0">
+        {% if outstanding_students %}
+        <table class="table table-sm mb-0">
+          <thead class="table-light">
+            <tr><th>Student</th><th>ID</th><th>Classroom</th><th class="text-end">Amount Owed</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for s in outstanding_students %}
+            <tr>
+              <td class="fw-semibold">{{ s.name }}</td>
+              <td class="text-muted small">{{ s.sid }}</td>
+              <td class="text-muted small">{{ s.class_name or '—' }}</td>
+              <td class="text-end fw-bold text-danger">{{ s.owed|money }}</td>
+              <td><a href="/students" class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size:.7rem;">View</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="text-center text-muted py-4"><i class="bi bi-check-circle text-success me-2"></i>No outstanding fees.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Student Reports ── -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold"><i class="bi bi-people me-2 text-primary"></i>Student Status</span>
+        <a href="/reports/export/students"
+           class="btn btn-outline-primary btn-sm"><i class="bi bi-download me-1"></i>Export All Students CSV</a>
+      </div>
+      <div class="card-body">
+        <div class="row g-3 mb-3">
+          {% for row in student_stats %}
+          <div class="col-4 text-center">
+            <div class="fw-bold fs-4" style="color:{% if row.status=='Active' %}#059669{% elif row.status=='Graduated' %}#4f46e5{% else %}#6b7280{% endif %};">{{ row.cnt }}</div>
+            <div class="text-muted small">{{ row.status }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% if students_by_class %}
+        <div class="fw-semibold small text-muted mb-2">Active Students by Classroom</div>
+        {% for row in students_by_class %}
+        <div class="d-flex align-items-center justify-content-between mb-1" style="font-size:.82rem;">
+          <span>{{ row.class_name or 'No classroom' }}</span>
+          <span class="fw-semibold">{{ row.cnt }}</span>
+        </div>
+        <div class="progress mb-2" style="height:5px;">
+          {% set max_class = students_by_class[0].cnt if students_by_class else 1 %}
+          <div class="progress-bar" style="width:{{ (row.cnt/max_class*100)|round }}%;background:#4f46e5;"></div>
+        </div>
+        {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Attendance Reports ── -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold"><i class="bi bi-check2-square me-2 text-info"></i>Attendance Summary</span>
+        <a href="/reports/export/attendance?from_date={{ from_date }}&to_date={{ to_date }}"
+           class="btn btn-outline-info btn-sm"><i class="bi bi-download me-1"></i>Export CSV</a>
+      </div>
+      <div class="card-body">
+        {% set total_att = att_summary|sum(attribute='cnt') %}
+        {% if total_att > 0 %}
+        <div class="row g-3 mb-4">
+          {% for row in att_summary %}
+          <div class="col-4 text-center">
+            <div class="fw-bold fs-4" style="color:{% if row.status=='Present' %}#059669{% elif row.status=='Late' %}#d97706{% else %}#dc2626{% endif %};">{{ row.cnt }}</div>
+            <div class="text-muted small">{{ row.status }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% set present_cnt = att_summary|selectattr('status','equalto','Present')|sum(attribute='cnt') %}
+        <div class="mb-1 d-flex justify-content-between" style="font-size:.75rem;color:#64748b;">
+          <span>Overall attendance rate</span>
+          <span>{{ (present_cnt / total_att * 100)|round(1) }}%</span>
+        </div>
+        <div class="progress mb-4" style="height:8px;border-radius:4px;">
+          <div class="progress-bar bg-success" style="width:{{ (present_cnt/total_att*100)|round }}%;border-radius:4px;"></div>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-3">No attendance records in this period.</div>
+        {% endif %}
+
+        {% if low_attendance %}
+        <div class="fw-semibold small text-danger mb-2"><i class="bi bi-exclamation-triangle me-1"></i>Low Attendance Students</div>
+        <table class="table table-sm mb-0">
+          <thead class="table-light"><tr><th>Student</th><th>Classroom</th><th class="text-end">Rate</th></tr></thead>
+          <tbody>
+            {% for s in low_attendance %}
+            {% set rate = (s.present_days / s.total_days * 100)|round(1) if s.total_days > 0 else 0 %}
+            <tr>
+              <td class="small fw-semibold">{{ s.name }}</td>
+              <td class="text-muted small">{{ s.class_name or '—' }}</td>
+              <td class="text-end"><span class="badge" style="background:{% if rate >= 80 %}#d1fae5;color:#065f46{% elif rate >= 60 %}#fef3c7;color:#92400e{% else %}#fee2e2;color:#991b1b{% endif %};">{{ rate }}%</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Individual PDF Reports ── -->
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header fw-semibold"><i class="bi bi-file-earmark-pdf me-2 text-danger"></i>Individual Student Reports (PDF)</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="p-3 rounded-3 h-100" style="background:#f8fafc;border:1px solid #e2e8f0;">
+              <div class="fw-semibold mb-1"><i class="bi bi-journal-text me-2 text-primary"></i>Report Card</div>
+              <p class="text-muted small mb-2">Academic grades PDF per student, per term.</p>
+              <a href="/students" class="btn btn-outline-primary btn-sm">Go to Student → Report Card button</a>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3 rounded-3 h-100" style="background:#f8fafc;border:1px solid #e2e8f0;">
+              <div class="fw-semibold mb-1"><i class="bi bi-graph-up me-2 text-success"></i>Progress Report</div>
+              <p class="text-muted small mb-2">Grades + attendance summary PDF per student.</p>
+              <a href="/students" class="btn btn-outline-success btn-sm">Go to Student → Progress Report</a>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3 rounded-3 h-100" style="background:#f8fafc;border:1px solid #e2e8f0;">
+              <div class="fw-semibold mb-1"><i class="bi bi-receipt me-2 text-warning"></i>Fee Statement</div>
+              <p class="text-muted small mb-2">Full payment history PDF per student.</p>
+              <a href="/students" class="btn btn-outline-warning btn-sm">Go to Student → Fee Statement</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ── Profit & Loss + Balance Sheet ── -->
+  <div class="col-12">
+    {% set payroll_expense = payroll_grand_total %}
+    {% set total_revenue = income_total + fees_collected %}
+    {% set total_expenses = expense_total + payroll_expense %}
+    {% set net = total_revenue - total_expenses %}
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <span class="fw-semibold"><i class="bi bi-bank me-2 text-dark"></i>Profit &amp; Loss / Balance Sheet</span>
+        <div class="d-flex gap-2 align-items-center">
+          <span class="text-muted small">{{ from_date }} → {{ to_date }} · Payroll: {{ pay_year }}</span>
+          <a href="/reports/export/pl?from_date={{ from_date }}&to_date={{ to_date }}&pay_year={{ pay_year }}" class="btn btn-outline-dark btn-sm">
+            <i class="bi bi-download me-1"></i>Export CSV
+          </a>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="row g-4">
+          <!-- Revenue -->
+          <div class="col-lg-4">
+            <div class="fw-bold text-success mb-2 pb-1 border-bottom" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.6px;">
+              <i class="bi bi-arrow-up-circle me-1"></i>Revenue
+            </div>
+            <div class="d-flex justify-content-between py-1 small border-bottom"><span class="text-muted">Income (Finance Records)</span><span class="fw-semibold text-success">{{ income_total|money }}</span></div>
+            <div class="d-flex justify-content-between py-1 small border-bottom"><span class="text-muted">Student Fees Collected</span><span class="fw-semibold text-success">{{ fees_collected|money }}</span></div>
+            <div class="d-flex justify-content-between py-2 small fw-bold"><span>Total Revenue</span><span class="text-success fs-6">{{ total_revenue|money }}</span></div>
+          </div>
+          <!-- Expenses -->
+          <div class="col-lg-4">
+            <div class="fw-bold text-danger mb-2 pb-1 border-bottom" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.6px;">
+              <i class="bi bi-arrow-down-circle me-1"></i>Expenses
+            </div>
+            <div class="d-flex justify-content-between py-1 small border-bottom"><span class="text-muted">Operating Expenses</span><span class="fw-semibold text-danger">{{ expense_total|money }}</span></div>
+            <div class="d-flex justify-content-between py-1 small border-bottom"><span class="text-muted">Payroll ({{ pay_year }})</span><span class="fw-semibold text-danger">{{ payroll_expense|money }}</span></div>
+            <div class="d-flex justify-content-between py-2 small fw-bold"><span>Total Expenses</span><span class="text-danger fs-6">{{ total_expenses|money }}</span></div>
+          </div>
+          <!-- Net -->
+          <div class="col-lg-4 d-flex flex-column justify-content-center">
+            <div class="rounded-3 p-3 text-center" style="background:{% if net >= 0 %}#f0fdf4;border:1px solid #bbf7d0{% else %}#fef2f2;border:1px solid #fecaca{% endif %};">
+              <div class="text-muted small mb-1">Net Profit / (Loss)</div>
+              <div class="fw-bold mb-1" style="font-size:2rem;color:{% if net >= 0 %}#059669{% else %}#dc2626{% endif %};">{{ net|money }}</div>
+              <div class="badge" style="background:{% if net >= 0 %}#dcfce7;color:#166534{% else %}#fee2e2;color:#991b1b{% endif %};">
+                {% if net >= 0 %}Profit{% else %}Loss{% endif %}
+              </div>
+            </div>
+            <div class="mt-3 p-2 rounded-3" style="background:#fef9c3;border:1px solid #fde68a;">
+              <div class="d-flex justify-content-between small"><span class="text-muted">Fees Outstanding (A/R)</span><span class="fw-semibold" style="color:#b45309;">{{ fees_outstanding|money }}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Payroll Report ── -->
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <span class="fw-semibold"><i class="bi bi-people-fill me-2" style="color:#7c3aed;"></i>Payroll Report</span>
+        <div class="d-flex gap-2 align-items-center">
+          <!-- Year selector -->
+          <form method="GET" action="/reports" class="d-flex gap-2 align-items-center mb-0">
+            <input type="hidden" name="from_date" value="{{ from_date }}">
+            <input type="hidden" name="to_date" value="{{ to_date }}">
+            <select name="pay_year" class="form-select form-select-sm" style="width:90px;" onchange="this.form.submit()">
+              {% for yr in payroll_years %}
+              <option value="{{ yr }}" {% if yr|string == pay_year|string %}selected{% endif %}>{{ yr }}</option>
+              {% endfor %}
+            </select>
+          </form>
+          <a href="/reports/export/payroll?pay_year={{ pay_year }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-download me-1"></i>Export CSV
+          </a>
+        </div>
+      </div>
+
+      <!-- Period totals -->
+      <div class="card-body border-bottom pb-3">
+        <div class="row g-3 text-center">
+          <div class="col-4">
+            <div class="text-muted small mb-1">Weekly Paid</div>
+            <div class="fw-bold fs-5" style="color:#7c3aed;">{{ payroll_totals.get('W', 0)|money }}</div>
+          </div>
+          <div class="col-4">
+            <div class="text-muted small mb-1">Bi-Weekly Paid</div>
+            <div class="fw-bold fs-5" style="color:#7c3aed;">{{ payroll_totals.get('BW', 0)|money }}</div>
+          </div>
+          <div class="col-4">
+            <div class="text-muted small mb-1">Monthly Paid</div>
+            <div class="fw-bold fs-5" style="color:#7c3aed;">{{ payroll_totals.get('M', 0)|money }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Per-employee table -->
+      <div class="card-body p-0">
+        {% if payroll_by_emp %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">Employee</th>
+                <th class="text-end">Weekly</th>
+                <th class="text-end">Bi-Weekly</th>
+                <th class="text-end">Monthly</th>
+                <th class="text-end">Payments</th>
+                <th class="text-end pe-3">Total Paid</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in payroll_by_emp %}
+              <tr>
+                <td class="ps-3 fw-semibold small">{{ r.name }}</td>
+                <td class="text-end small text-muted">{% if r.weekly_total > 0 %}{{ r.weekly_total|money }}{% else %}—{% endif %}</td>
+                <td class="text-end small text-muted">{% if r.biweekly_total > 0 %}{{ r.biweekly_total|money }}{% else %}—{% endif %}</td>
+                <td class="text-end small text-muted">{% if r.monthly_total > 0 %}{{ r.monthly_total|money }}{% else %}—{% endif %}</td>
+                <td class="text-end small text-muted">{{ r.num_payments }}</td>
+                <td class="text-end pe-3 fw-bold" style="color:#7c3aed;">{{ r.total_paid|money }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot class="table-dark">
+              <tr>
+                <td class="ps-3 fw-bold">TOTAL</td>
+                <td class="text-end fw-bold">{{ payroll_totals.get('W', 0)|money }}</td>
+                <td class="text-end fw-bold">{{ payroll_totals.get('BW', 0)|money }}</td>
+                <td class="text-end fw-bold">{{ payroll_totals.get('M', 0)|money }}</td>
+                <td class="text-end fw-bold">{{ payroll_by_emp|sum(attribute='num_payments') }}</td>
+                <td class="text-end pe-3 fw-bold">{{ payroll_grand_total|money }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-4">No payroll data for {{ pay_year }}.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div><!-- end row -->
+{% endblock %}
+
+{% block scripts %}
+{% if monthly_income %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+const labels = {{ monthly_income | map(attribute='month') | list | tojson }};
+const data   = {{ monthly_income | map(attribute='total') | list | tojson }};
+new Chart(document.getElementById('monthlyChart'), {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [{
+      label: 'Income ($)',
+      data,
+      backgroundColor: '#4f46e540',
+      borderColor: '#4f46e5',
+      borderWidth: 2,
+      borderRadius: 5,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { ticks: { callback: v => '$' + v.toLocaleString() } }
+    }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

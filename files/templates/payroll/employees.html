@@ -1,0 +1,126 @@
+{% extends "payroll/_base.html" %}
+{% block payroll_content %}
+
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <h5 class="mb-0">Employees</h5>
+  <div class="d-flex gap-2 flex-wrap">
+    <form method="post" action="{{ url_for('payroll_bp.sync_staff') }}" class="d-inline">
+      <button class="btn btn-sm btn-outline-primary">🔄 Sync from School</button>
+    </form>
+    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addEmpModal">+ Add Employee</button>
+  </div>
+</div>
+
+{% if not employees %}
+<div class="alert alert-info">No employees yet. Add one manually or sync from the school staff list.</div>
+{% else %}
+<div class="pr-section">
+  <div class="table-responsive">
+    <table class="pr-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Pay Type</th>
+          <th class="num">Annual Salary</th>
+          <th class="num">Monthly Gross</th>
+          <th class="num">Employee NIB/mo</th>
+          <th class="num">Net/mo</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in employees %}
+        <tr>
+          <td class="text-muted small">{{ e.id or '—' }}</td>
+          <td><a href="{{ url_for('payroll_bp.employee_report', name=e.name) }}" class="fw-600 text-decoration-none">{{ e.name }}</a></td>
+          <td>
+            <span class="badge-pay-type {{ 'badge-m' if e.pay_type=='Monthly' else ('badge-w' if e.pay_type=='Weekly' else 'badge-bw') }}">
+              {{ e.pay_type or '—' }}
+            </span>
+          </td>
+          <td class="num">${{ "{:,.2f}".format(e.salary or 0) }}</td>
+          <td class="num">${{ "{:,.2f}".format(e.monthly or 0) }}</td>
+          <td class="num">${{ "{:,.2f}".format(e.nib_m or 0) }}</td>
+          <td class="num">${{ "{:,.2f}".format(e.balance_m or 0) }}</td>
+          <td>
+            <a href="{{ url_for('payroll_bp.employee_report', name=e.name) }}" class="btn btn-sm btn-outline-secondary py-0 px-2 me-1">Report</a>
+            <a href="{{ url_for('payroll_bp.register_payment', emp=e.name) }}" class="btn btn-sm btn-outline-primary py-0 px-2 me-1">Pay</a>
+            <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="confirmDelete('{{ e.name|e }}')">Del</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Add Employee Modal -->
+<div class="modal fade" id="addEmpModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Add Employee</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <form method="post" action="{{ url_for('payroll_bp.add_employee') }}">
+        <div class="modal-body">
+          <div class="mb-2">
+            <label class="form-label">Full Name <span class="text-danger">*</span></label>
+            <input name="name" class="form-control" required placeholder="First Last">
+          </div>
+          <div class="row g-2">
+            <div class="col">
+              <label class="form-label">Employee ID</label>
+              <input name="emp_id" class="form-control" placeholder="Optional">
+            </div>
+            <div class="col">
+              <label class="form-label">Pay Type</label>
+              <select name="pay_type" class="form-select">
+                <option value="Monthly">Monthly</option>
+                <option value="Bi-Weekly">Bi-Weekly</option>
+                <option value="Weekly">Weekly</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-2 mt-2">
+            <label class="form-label">Annual Salary ($)</label>
+            <input name="salary" type="number" step="0.01" min="0" class="form-control" placeholder="0.00">
+          </div>
+          <p class="small text-muted mb-0">NIB contributions (3.9% employee / 5.9% employer) will be calculated automatically.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Employee</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Employee Modal -->
+<div class="modal fade" id="delEmpModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white"><h5 class="modal-title">Delete Employee</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+      <form id="delEmpForm" method="post">
+        <div class="modal-body">
+          <p>Delete <strong id="delEmpName"></strong>? This also removes their deduction record. Payment history is kept.</p>
+          <label class="form-label">Password to confirm</label>
+          <input name="pwd" type="password" class="form-control" placeholder="Delete password" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function confirmDelete(name) {
+  document.getElementById('delEmpName').textContent = name;
+  document.getElementById('delEmpForm').action = '/payroll/employees/delete/' + encodeURIComponent(name);
+  new bootstrap.Modal(document.getElementById('delEmpModal')).show();
+}
+</script>
+{% endblock %}

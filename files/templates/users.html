@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+{% block title %}Users — {{ school_name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="fw-bold mb-0">User Management</h2>
+    <p class="text-muted small mb-0">{{ users|length }} accounts</p>
+  </div>
+  <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
+    <i class="bi bi-person-plus me-1"></i>Add User
+  </button>
+</div>
+
+{% if request.args.get('error') == 'username_taken' %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+  <i class="bi bi-exclamation-triangle-fill me-2"></i>
+  Username <strong>{{ request.args.get('username') }}</strong> is already taken. Choose a different username.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% elif request.args.get('error') == 'missing_fields' %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+  <i class="bi bi-exclamation-triangle-fill me-2"></i>
+  Username, password and full name are required.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% elif request.args.get('success') == 'user_added' %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+  <i class="bi bi-check-circle-fill me-2"></i>
+  User created successfully.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr><th class="ps-3">Username</th><th>Full Name</th><th>Email</th><th>Role</th><th>Linked To</th><th>Last Login</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td class="ps-3 fw-semibold" style="font-family:monospace;">{{ u.username }}</td>
+          <td>{{ u.full_name }}</td>
+          <td class="text-muted small">{{ u.email or '—' }}</td>
+          <td>
+            {% set role_colors = {'admin':'danger','teacher':'primary','accountant':'warning','frontdesk':'info','parent':'success','student':'secondary','viewer':'secondary'} %}
+            <span class="badge bg-{{ role_colors.get(u.role, 'secondary') }}">{{ u.role }}</span>
+          </td>
+          <td class="text-muted small">
+            {% if u.linked_id %}
+              {% if u.role in ('parent','student') %}
+                {% for s in students %}{% if s.id == u.linked_id %}<i class="bi bi-person me-1"></i>{{ s.first_name }} {{ s.last_name }}{% endif %}{% endfor %}
+              {% elif u.role == 'teacher' %}
+                {% for t in teachers %}{% if t.id == u.linked_id %}<i class="bi bi-person-badge me-1"></i>{{ t.first_name }} {{ t.last_name }}{% endif %}{% endfor %}
+              {% else %}—{% endif %}
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-muted small">{{ u.last_login|fmt_datetime if u.last_login else 'Never' }}</td>
+          <td><span class="badge bg-{{ 'success' if u.is_active else 'secondary' }}">{{ 'Active' if u.is_active else 'Inactive' }}</span></td>
+          <td class="pe-3">
+            <button class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle="modal" data-bs-target="#editModal{{ u.id }}">
+              <i class="bi bi-pencil"></i>
+            </button>
+            {% if u.id != session.user_id %}
+            <form method="POST" action="/users/delete/{{ u.id }}" class="d-inline"
+                  onsubmit="return confirm('Delete user {{ u.username }}?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-center text-muted py-4">No users found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Edit Modals -->
+{% for u in users %}
+<div class="modal fade" id="editModal{{ u.id }}" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="POST" action="/users/edit/{{ u.id }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit User — {{ u.username }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-2">
+            <div class="col-12"><label class="form-label small fw-semibold">Full Name *</label>
+              <input name="full_name" class="form-control form-control-sm" value="{{ u.full_name }}" required>
+            </div>
+            <div class="col-12"><label class="form-label small fw-semibold">Email</label>
+              <input name="email" class="form-control form-control-sm" value="{{ u.email or '' }}">
+            </div>
+            <div class="col-md-6"><label class="form-label small fw-semibold">Role</label>
+              <select name="role" class="form-select form-select-sm" onchange="toggleLinked(this, '{{ u.id }}')">
+                {% for r in ['admin','teacher','accountant','frontdesk','parent','student','viewer'] %}
+                <option {% if u.role == r %}selected{% endif %}>{{ r }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6"><label class="form-label small fw-semibold">Status</label>
+              <select name="is_active" class="form-select form-select-sm">
+                <option value="1" {% if u.is_active %}selected{% endif %}>Active</option>
+                <option value="0" {% if not u.is_active %}selected{% endif %}>Inactive</option>
+              </select>
+            </div>
+            <div class="col-12" id="linkedStudent{{ u.id }}" style="{{ '' if u.role in ('parent','student') else 'display:none;' }}">
+              <label class="form-label small fw-semibold">Linked Student <span class="text-muted">(required for parent/student role)</span></label>
+              <select name="linked_id" class="form-select form-select-sm">
+                <option value="">— None —</option>
+                {% for s in students %}
+                <option value="{{ s.id }}" {% if u.linked_id == s.id and u.role in ('parent','student') %}selected{% endif %}>
+                  {{ s.last_name }}, {{ s.first_name }} ({{ s.student_id }})
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12" id="linkedTeacher{{ u.id }}" style="{{ '' if u.role == 'teacher' else 'display:none;' }}">
+              <label class="form-label small fw-semibold">Linked Teacher Record</label>
+              <select name="linked_id" class="form-select form-select-sm">
+                <option value="">— None —</option>
+                {% for t in teachers %}
+                <option value="{{ t.id }}" {% if u.linked_id == t.id and u.role == 'teacher' %}selected{% endif %}>
+                  {{ t.last_name }}, {{ t.first_name }} ({{ t.teacher_id }})
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12"><label class="form-label small fw-semibold">New Password <span class="text-muted">(leave blank to keep)</span></label>
+              <input type="password" name="password" class="form-control form-control-sm">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="POST" action="/users/add">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Create User Account</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-2">
+            <div class="col-md-6"><label class="form-label small fw-semibold">Role</label>
+              <select name="role" id="addRoleSel" class="form-select form-select-sm" onchange="toggleLinked(this, 'New')">
+                <option value="student">student</option>
+                <option value="parent">parent</option>
+                <option value="teacher">teacher</option>
+                <option value="accountant">accountant</option>
+                <option value="frontdesk">frontdesk</option>
+                <option value="viewer">viewer</option>
+                <option value="admin">admin</option>
+              </select>
+            </div>
+            <div class="col-md-6"></div>
+            <div class="col-12" id="linkedStudentNew">
+              <label class="form-label small fw-semibold">Linked Student</label>
+              <select id="stuLinkSel" name="linked_id" class="form-select form-select-sm" onchange="autoFillFromStudent(this)">
+                <option value="">— Select Student —</option>
+                {% for s in students %}
+                <option value="{{ s.id }}"
+                        data-first="{{ s.first_name }}"
+                        data-last="{{ s.last_name }}"
+                        data-sid="{{ s.student_id }}">
+                  {{ s.last_name }}, {{ s.first_name }} ({{ s.student_id }})
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12" id="linkedTeacherNew" style="display:none;">
+              <label class="form-label small fw-semibold">Linked Teacher Record</label>
+              <select id="tchLinkSel" name="linked_id" class="form-select form-select-sm" onchange="autoFillFromTeacher(this)">
+                <option value="">— Select Teacher —</option>
+                {% for t in teachers %}
+                <option value="{{ t.id }}"
+                        data-first="{{ t.first_name }}"
+                        data-last="{{ t.last_name }}"
+                        data-tid="{{ t.teacher_id }}">
+                  {{ t.last_name }}, {{ t.first_name }} ({{ t.teacher_id }})
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12"><label class="form-label small fw-semibold">Full Name *</label>
+              <input id="addFullName" name="full_name" class="form-control form-control-sm" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Username *</label>
+              <div class="input-group input-group-sm">
+                <input id="addUsername" name="username" class="form-control form-control-sm" required>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="suggestUsername()" title="Auto-suggest">
+                  <i class="bi bi-magic"></i>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Password *</label>
+              <div class="input-group input-group-sm">
+                <input type="text" id="addPassword" name="password" class="form-control form-control-sm" required>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="genPassword()" title="Generate password">
+                  <i class="bi bi-shuffle"></i>
+                </button>
+              </div>
+            </div>
+            <div class="col-12"><label class="form-label small fw-semibold">Email</label>
+              <input id="addEmail" name="email" class="form-control form-control-sm">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Create Account</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function toggleLinked(select, suffix) {
+  const role = select.value;
+  const stuEl = document.getElementById('linkedStudent' + suffix);
+  const tchEl = document.getElementById('linkedTeacher' + suffix);
+  const showStu = ['parent','student'].includes(role);
+  const showTch = role === 'teacher';
+  if (stuEl) {
+    stuEl.style.display = showStu ? '' : 'none';
+    stuEl.querySelectorAll('select').forEach(s => s.disabled = !showStu);
+  }
+  if (tchEl) {
+    tchEl.style.display = showTch ? '' : 'none';
+    tchEl.querySelectorAll('select').forEach(s => s.disabled = !showTch);
+  }
+}
+
+function _slug(str) {
+  return str.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function autoFillFromStudent(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt.value) return;
+  const first = opt.dataset.first || '';
+  const last  = opt.dataset.last  || '';
+  const sid   = opt.dataset.sid   || '';
+  document.getElementById('addFullName').value  = first + ' ' + last;
+  document.getElementById('addUsername').value  = _slug(first).charAt(0) + _slug(last);
+}
+
+function autoFillFromTeacher(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt.value) return;
+  const first = opt.dataset.first || '';
+  const last  = opt.dataset.last  || '';
+  document.getElementById('addFullName').value  = first + ' ' + last;
+  document.getElementById('addUsername').value  = _slug(first).charAt(0) + _slug(last);
+}
+
+function suggestUsername() {
+  const full = document.getElementById('addFullName').value.trim().split(/\s+/);
+  if (full.length < 1) return;
+  const first = _slug(full[0]);
+  const last  = full.length > 1 ? _slug(full[full.length - 1]) : '';
+  document.getElementById('addUsername').value = first.charAt(0) + last;
+}
+
+function genPassword() {
+  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789@#!';
+  let pw = '';
+  for (let i = 0; i < 10; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+  document.getElementById('addPassword').value = pw;
+}
+
+// Init edit modals on load
+document.querySelectorAll('[id^="editModal"]').forEach(modal => {
+  const sel = modal.querySelector('select[name="role"]');
+  if (!sel) return;
+  const suffix = modal.id.replace('editModal', '');
+  toggleLinked(sel, suffix);
+  sel.addEventListener('change', () => toggleLinked(sel, suffix));
+});
+// Init add modal
+const addSel = document.getElementById('addRoleSel');
+if (addSel) {
+  toggleLinked(addSel, 'New');
+}
+// Auto-open add modal on error so user doesn't lose context
+{% if request.args.get('error') %}
+document.addEventListener('DOMContentLoaded', function(){
+  new bootstrap.Modal(document.getElementById('addModal')).show();
+});
+{% endif %}
+</script>
+{% endblock %}

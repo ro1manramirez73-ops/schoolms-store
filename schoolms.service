@@ -1,0 +1,14 @@
+[Unit]
+Description=SchoolMS Flask App
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/path/to/your/app
+Environment="PATH=/path/to/your/venv/bin"
+ExecStart=/path/to/your/venv/bin/gunicorn --config gunicorn.conf.py wsgi:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

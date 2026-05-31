@@ -1,0 +1,159 @@
+{% extends "payroll/_base.html" %}
+{% block payroll_content %}
+
+<div class="emp-select-bar">
+  <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
+    <label class="form-label mb-0 text-muted small">Employee</label>
+    <select name="name" class="form-select form-select-sm" style="min-width:200px" onchange="this.form.submit()">
+      {% for n in employees %}<option value="{{ n }}" {{ 'selected' if n==emp.name }}>{{ n }}</option>{% endfor %}
+    </select>
+    <label class="form-label mb-0 text-muted small">Year</label>
+    <select name="year" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
+      {% for y in years %}<option value="{{ y }}" {{ 'selected' if y==year }}>{{ y }}</option>{% endfor %}
+    </select>
+  </form>
+</div>
+
+{% if emp %}
+<div class="kpi-grid">
+  <div class="kpi"><div class="k-label">Annual Salary</div><div class="k-value">${{ "{:,.2f}".format(annual) }}</div></div>
+  <div class="kpi"><div class="k-label">YTD Paid ({{ year }})</div><div class="k-value" style="color:var(--primary)">${{ "{:,.2f}".format(ytd) }}</div></div>
+  <div class="kpi"><div class="k-label">Remaining</div><div class="k-value" style="color:#ef4444">${{ "{:,.2f}".format(remain) }}</div></div>
+  <div class="kpi"><div class="k-label">YTD Progress</div><div class="k-value">{{ pct }}%</div><div class="progress-bar-wrap mt-1"><div class="progress-bar-fill" style="width:{{ [pct,100]|min }}%"></div></div></div>
+</div>
+
+<div class="row g-3">
+  <!-- Left column -->
+  <div class="col-md-6">
+    <div class="pr-section">
+      <h6>Employee Info</h6>
+      <table class="pr-table">
+        <tbody>
+          <tr><td>ID</td><td class="num">{{ emp.id or '—' }}</td></tr>
+          <tr><td>Pay Type</td><td class="num">{{ emp.pay_type or '—' }}</td></tr>
+          <tr><td>Base Salary</td><td class="num">${{ "{:,.2f}".format(emp.salary or 0) }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pr-section">
+      <h6>Gross Pay</h6>
+      <table class="pr-table">
+        <thead><tr><th>Period</th><th class="num">Amount</th></tr></thead>
+        <tbody>
+          <tr><td>Weekly</td><td class="num">${{ "{:,.2f}".format(emp.weekly or 0) }}</td></tr>
+          <tr><td>Bi-Weekly</td><td class="num">${{ "{:,.2f}".format(emp.biweekly or 0) }}</td></tr>
+          <tr><td>Monthly</td><td class="num">${{ "{:,.2f}".format(emp.monthly or 0) }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pr-section">
+      <h6>NIB Contributions</h6>
+      <table class="pr-table">
+        <thead><tr><th>Period</th><th class="num">Employee NIB</th><th class="num">Employer NIB</th><th class="num">Remaining</th></tr></thead>
+        <tbody>
+          <tr><td>Weekly</td><td class="num">${{ "{:,.2f}".format(emp.nib_w or 0) }}</td><td class="num">${{ "{:,.2f}".format(emp.enib_w or 0) }}</td><td class="num">${{ "{:,.2f}".format(emp.w_r or 0) }}</td></tr>
+          <tr><td>Bi-Weekly</td><td class="num">${{ "{:,.2f}".format(emp.nib_bw or 0) }}</td><td class="num">${{ "{:,.2f}".format(emp.enib_bw or 0) }}</td><td class="num">${{ "{:,.2f}".format(emp.bw_r or 0) }}</td></tr>
+          <tr><td>Monthly</td><td class="num">${{ "{:,.2f}".format(emp.nib_m or 0) }}</td><td class="num">${{ "{:,.2f}".format(emp.enib_m or 0) }}</td><td class="num">${{ "{:,.2f}".format(emp.m_r or 0) }}</td></tr>
+          <tr><td>Yearly</td><td class="num">${{ "{:,.2f}".format(emp.nib_y or 0) }}</td><td class="num">—</td><td class="num">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Right column -->
+  <div class="col-md-6">
+    <div class="pr-section">
+      <h6>Deductions by Entity (Monthly)</h6>
+      {% if ded %}
+      <table class="pr-table">
+        <thead><tr><th>Entity</th><th class="num">Amount/mo</th></tr></thead>
+        <tbody>
+          {% for field, label in entities %}
+          {% if ded.get(field, 0) > 0 %}
+          <tr><td>{{ label }}</td><td class="num">${{ "{:,.2f}".format(ded[field]) }}</td></tr>
+          {% endif %}
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr><td>Total / Month</td><td class="num">${{ "{:,.2f}".format(ded.total_m or 0) }}</td></tr>
+        </tfoot>
+      </table>
+      {% else %}
+      <p class="text-muted small mb-0">No deductions set.</p>
+      {% endif %}
+    </div>
+
+    <div class="pr-section">
+      <h6>Net Balance (After Deductions)</h6>
+      <table class="pr-table">
+        <thead><tr><th>Period</th><th class="num">Balance</th></tr></thead>
+        <tbody>
+          <tr><td>Weekly</td><td class="num">${{ "{:,.2f}".format(emp.balance_w or 0) }}</td></tr>
+          <tr><td>Bi-Weekly</td><td class="num">${{ "{:,.2f}".format(emp.balance_bw or 0) }}</td></tr>
+          <tr><td>Monthly</td><td class="num">${{ "{:,.2f}".format(emp.balance_m or 0) }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pr-section">
+      <h6>Year-to-Date ({{ year }})</h6>
+      <table class="pr-table">
+        <thead><tr><th>Metric</th><th class="num">Amount</th></tr></thead>
+        <tbody>
+          <tr><td>YTD Paid</td><td class="num"><strong>${{ "{:,.2f}".format(ytd) }}</strong></td></tr>
+          <tr><td>Annual Salary</td><td class="num">${{ "{:,.2f}".format(annual) }}</td></tr>
+          <tr style="background:#fff8e1"><td><strong>Remaining</strong></td><td class="num"><strong>${{ "{:,.2f}".format(remain) }}</strong></td></tr>
+          <tr><td>Monthly Accrued (Annual÷12)</td><td class="num">${{ "{:,.2f}".format(annual/12) }}</td></tr>
+          <tr><td>Monthly Avg Paid (YTD÷{{ elapsed }}mo)</td><td class="num">${{ "{:,.2f}".format(ytd/elapsed if elapsed else 0) }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Deductions -->
+<div class="pr-section mt-3">
+  <h6>✏️ Edit Deductions</h6>
+  <p class="small text-muted">Enter monthly amounts — period totals are auto-calculated.</p>
+  <form method="post" action="{{ url_for('payroll_bp.save_deductions', name=emp.name) }}">
+    <input type="hidden" name="year" value="{{ year }}">
+    <div class="row g-2">
+      {% for field, label in entities %}
+      <div class="col-md-3 col-sm-6">
+        <label class="form-label">{{ label }}</label>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text">$</span>
+          <input name="{{ field }}" type="number" step="0.01" min="0" class="form-control"
+                 value="{{ '{:.2f}'.format(ded.get(field, 0) if ded else 0) }}">
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="mt-3">
+      <button type="submit" class="btn btn-primary btn-sm">💾 Save & Recalculate</button>
+    </div>
+  </form>
+</div>
+
+<!-- Edit Salary -->
+<div class="pr-section mt-2">
+  <h6>💰 Edit Base Salary</h6>
+  <form method="post" action="{{ url_for('payroll_bp.update_salary', name=emp.name) }}" class="row g-2 align-items-end">
+    <input type="hidden" name="year" value="{{ year }}">
+    <div class="col-sm-4">
+      <label class="form-label">Annual Salary ($)</label>
+      <input name="salary" type="number" step="0.01" min="0" class="form-control"
+             value="{{ '{:.2f}'.format(emp.salary or 0) }}">
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary btn-sm">💾 Update Salary</button>
+    </div>
+  </form>
+</div>
+
+{% else %}
+<div class="alert alert-info">Select an employee above.</div>
+{% endif %}
+{% endblock %}

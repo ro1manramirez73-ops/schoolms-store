@@ -1,0 +1,133 @@
+﻿{% extends "base.html" %}
+{% block title %}Grades — {{ school_name }}{% endblock %}
+{% block content %}
+<h2 class="fw-bold mb-3">Grades</h2>
+<div class="alert alert-light border mb-4 py-2 px-3" style="font-size:.75rem;line-height:1.6;">
+  <strong>Grading Scale:</strong>
+  <span class="badge bg-success ms-1">A+ 96-100</span>
+  <span class="badge bg-success">A 92-95</span>
+  <span class="badge bg-success">A- 89-91</span>
+  <span class="badge bg-primary">B+ 86-88</span>
+  <span class="badge bg-primary">B 82-85</span>
+  <span class="badge bg-primary">B- 79-81</span>
+  <span class="badge bg-warning text-dark">C+ 76-78</span>
+  <span class="badge bg-warning text-dark">C 72-75</span>
+  <span class="badge bg-warning text-dark">C- 69-71</span>
+  <span class="badge bg-secondary">D 60-68</span>
+  <span class="badge bg-danger">F 50-59</span>
+</div>
+
+<div class="row g-4">
+  <!-- Enter Grades -->
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header fw-semibold">Enter Grades</div>
+      <div class="card-body">
+        <form method="GET" class="mb-3">
+          {% if session.role != 'teacher' %}
+          <div class="mb-2">
+            <label class="form-label small">Classroom</label>
+            <select name="class_id" class="form-select form-select-sm" onchange="this.form.submit()">
+              <option value="">— Select Classroom —</option>
+              {% for c in classes %}<option value="{{ c.id }}" {% if selected_class==c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+            </select>
+          </div>
+          {% else %}
+          <input type="hidden" name="class_id" value="{{ selected_class }}">
+          <div class="mb-2 text-muted small"><i class="bi bi-door-open me-1"></i>{{ classes[0].name if classes else '' }}</div>
+          {% endif %}
+          <div>
+            <label class="form-label small">Subject</label>
+            {% if selected_class %}
+            <select name="subject_id" class="form-select form-select-sm" onchange="this.form.submit()">
+              <option value="">— Select Subject —</option>
+              {% for s in subjects %}<option value="{{ s.id }}" {% if selected_subject==s.id|string %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+            </select>
+            {% else %}
+            <select class="form-select form-select-sm" disabled>
+              <option>— Select a classroom first —</option>
+            </select>
+            {% endif %}
+          </div>
+        </form>
+
+        {% if students_grades %}
+        <form method="POST" action="/grades/save">
+          <input type="hidden" name="class_id" value="{{ selected_class }}">
+          <input type="hidden" name="subject_id" value="{{ selected_subject }}">
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small">Exam Type</label>
+              <select name="exam_type" class="form-select form-select-sm">
+                <option>Test</option><option>Quiz</option><option>Midterm</option><option>Final</option><option>Assignment</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">Max Score</label>
+              <input type="number" name="max_score" class="form-control form-control-sm" value="100">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">Term</label>
+              <select name="term" class="form-select form-select-sm">
+                <option>Term 1</option><option>Term 2</option><option>Term 3</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small">Academic Year</label>
+              <input name="academic_year" class="form-control form-control-sm" placeholder="2024/25">
+            </div>
+          </div>
+          {% for sg in students_grades %}
+          <div class="border-bottom pb-2 mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <span class="small fw-semibold flex-grow-1">{{ sg.student.first_name }} {{ sg.student.last_name }}</span>
+              <input type="number" name="score_{{ sg.student.id }}" class="form-control form-control-sm"
+                     style="width:80px;" step="0.5" min="0" max="100"
+                     value="{{ sg.grade.score if sg.grade else '' }}" placeholder="Score">
+            </div>
+            {% if sg.grade %}
+            <div class="text-muted" style="font-size:.7rem;">Last: {{ sg.grade.score }}/{{ sg.grade.max_score }} ({{ sg.grade.grade_letter }}) — {{ sg.grade.date }}</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+          <button type="submit" class="btn btn-primary btn-sm w-100 mt-2">Save Grades</button>
+        </form>
+        {% elif selected_class and selected_subject %}
+        <p class="text-muted small">No active students in this class.</p>
+        {% else %}
+        <p class="text-muted small">Select a class and subject to enter grades.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- All Grades -->
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header fw-semibold">Recent Grades</div>
+      <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="table-light">
+            <tr><th>Student</th><th>Subject</th><th>Type</th><th>Score</th><th>Grade</th><th>Term</th><th>Date</th></tr>
+          </thead>
+          <tbody>
+            {% for g in all_grades %}
+            <tr>
+              <td><a href="/students/{{ g.student_id }}" class="text-decoration-none">{{ g.student_name }}</a></td>
+              <td>{{ g.subject_name }}</td>
+              <td class="text-muted">{{ g.exam_type or '—' }}</td>
+              <td class="fw-semibold">{{ g.score }}/{{ g.max_score }}</td>
+              <td><span class="badge bg-{{ 'success' if g.grade_letter in ['A+','A','A-'] else ('primary' if g.grade_letter in ['B+','B','B-'] else ('warning' if g.grade_letter in ['C+','C','C-'] else ('danger' if g.grade_letter == 'F' else 'secondary'))) }}">{{ g.grade_letter or '—' }}</span></td>
+              <td class="text-muted">{{ g.term or '—' }}</td>
+              <td class="text-muted">{{ g.date }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center text-muted py-3">No grades recorded yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

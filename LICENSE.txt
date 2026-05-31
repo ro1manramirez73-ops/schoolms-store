@@ -1,0 +1,36 @@
+SCHOOL MANAGEMENT SYSTEM — END-USER LICENSE AGREEMENT
+
+Copyright (c) SchoolMS. All rights reserved.
+
+This software is licensed, not sold. By installing or using this software you agree to
+the following terms:
+
+1. GRANT OF LICENSE
+   You are granted a non-exclusive, non-transferable license to install and use this
+   software on a single server or computer at one physical school location.
+
+2. RESTRICTIONS
+   You may not: redistribute, resell, sublicense, modify, reverse-engineer, or share
+   this software or your license key with any third party.
+
+3. USER LIMIT
+   Your license tier defines the maximum number of staff (non-student, non-parent)
+   accounts that may be active simultaneously. Exceeding this limit is a breach of
+   this agreement.
+
+4. DATA OWNERSHIP
+   All data you enter into the system remains your property. We do not collect,
+   access, or store your school's data.
+
+5. WARRANTY DISCLAIMER
+   This software is provided "as is" without warranty of any kind. In no event shall
+   the licensor be liable for any damages arising from the use of this software.
+
+6. REFUND POLICY
+   A full refund is available within 30 days of purchase, no questions asked.
+
+7. TERMINATION
+   This license terminates automatically if you violate any term. Upon termination
+   you must destroy all copies of the software.
+
+For support: support@yourschoolms.com

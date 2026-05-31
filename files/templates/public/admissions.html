@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admissions — {{ school_name }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .navbar { background: #1e1b4b !important; }
+    body { background: #f0f2f5; }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-dark">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="/home">{{ school_name }}</a>
+    <div class="ms-auto d-flex gap-2">
+      <a href="/home" class="btn btn-outline-light btn-sm">Home</a>
+      <a href="/login" class="btn btn-light btn-sm">Staff Login</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+      <div class="card shadow-sm">
+        <div class="card-body p-4">
+          <h3 class="fw-bold mb-1">Admission Application</h3>
+          <p class="text-muted small mb-4">Complete the form below and our team will be in touch within 3–5 business days.</p>
+
+          {% if success %}
+          <div class="alert alert-success">
+            <strong>Application submitted!</strong> Thank you. Our admissions team will contact you soon.
+          </div>
+          {% else %}
+          <form method="POST">
+            <h6 class="fw-semibold mb-2 text-muted text-uppercase" style="font-size:.7rem;letter-spacing:1px;">Student Information</h6>
+            <div class="row g-2 mb-3">
+              <div class="col-md-6"><label class="form-label small">First Name *</label><input name="first_name" class="form-control form-control-sm" required></div>
+              <div class="col-md-6"><label class="form-label small">Last Name *</label><input name="last_name" class="form-control form-control-sm" required></div>
+              <div class="col-md-4"><label class="form-label small">Date of Birth</label><input type="date" name="dob" class="form-control form-control-sm"></div>
+              <div class="col-md-4"><label class="form-label small">Gender</label>
+                <select name="gender" class="form-select form-select-sm"><option value="">—</option><option>Male</option><option>Female</option><option>Other</option></select>
+              </div>
+              <div class="col-md-4"><label class="form-label small">Grade Applying For</label>
+                <select name="grade_applying" class="form-select form-select-sm">
+                  <option value="">—</option>
+                  {% for g in range(1,13) %}<option>Grade {{ g }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="col-12"><label class="form-label small">Previous School</label><input name="previous_school" class="form-control form-control-sm"></div>
+            </div>
+
+            <h6 class="fw-semibold mb-2 text-muted text-uppercase" style="font-size:.7rem;letter-spacing:1px;">Parent / Guardian</h6>
+            <div class="row g-2 mb-3">
+              <div class="col-12"><label class="form-label small">Full Name *</label><input name="parent_name" class="form-control form-control-sm" required></div>
+              <div class="col-md-6"><label class="form-label small">Email *</label><input type="email" name="parent_email" class="form-control form-control-sm" required></div>
+              <div class="col-md-6"><label class="form-label small">Phone</label><input name="parent_phone" class="form-control form-control-sm"></div>
+              <div class="col-12"><label class="form-label small">Address</label><textarea name="address" class="form-control form-control-sm" rows="2"></textarea></div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small">Reason for Choosing {{ school_name }}</label>
+              <textarea name="reason" class="form-control form-control-sm" rows="3"></textarea>
+            </div>
+
+            <button type="submit" class="btn w-100 fw-semibold text-white" style="background:#4f46e5;">Submit Application</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

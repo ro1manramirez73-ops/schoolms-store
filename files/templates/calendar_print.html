@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ month_name }} Calendar — {{ school_name }}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; color: #0f172a; font-size: 11px; }
+
+    /* Screen controls */
+    .print-controls {
+      position: fixed; top: 1rem; right: 1rem; z-index: 100;
+      display: flex; gap: .5rem;
+    }
+    .print-controls button, .print-controls a {
+      padding: .45rem 1rem; border-radius: 7px; font-size: .8rem;
+      font-weight: 600; cursor: pointer; text-decoration: none;
+      display: inline-flex; align-items: center; gap: .35rem; border: none;
+    }
+    .btn-print { background: #4f46e5; color: #fff; }
+    .btn-close-p { background: #f1f5f9; color: #374151; }
+
+    /* Header */
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .75rem 1rem .6rem; border-bottom: 2px solid #0f172a; margin-bottom: .6rem;
+    }
+    .school-brand { display: flex; align-items: center; gap: .5rem; }
+    .school-brand img { height: 36px; border-radius: 5px; }
+    .school-name { font-size: 1rem; font-weight: 700; color: #0f172a; }
+    .school-sub  { font-size: .72rem; color: #64748b; }
+    .month-title { font-size: 1.4rem; font-weight: 800; color: #1e1b4b; text-align: right; }
+
+    /* Calendar grid */
+    .cal-table { width: 100%; border-collapse: collapse; margin-bottom: .5rem; }
+    .cal-table th {
+      background: #1e1b4b; color: #fff; text-align: center;
+      padding: .35rem; font-size: .72rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .4px;
+    }
+    .cal-table td {
+      border: 1px solid #cbd5e1; vertical-align: top;
+      width: calc(100% / 7); padding: .3rem .35rem;
+      min-height: 90px; height: 90px;
+    }
+    .cal-table td.empty { background: #f8fafc; }
+    .cal-table td.today { background: #ede9fe; }
+    .day-num {
+      font-weight: 700; font-size: .78rem; color: #374151;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; margin-bottom: 2px;
+    }
+    td.today .day-num {
+      background: #4f46e5; color: #fff; border-radius: 50%;
+    }
+    .ev-pill {
+      font-size: .62rem; font-weight: 500; padding: 1px 4px;
+      border-radius: 3px; margin-bottom: 2px; display: block;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      line-height: 1.5;
+    }
+    .ev-time { font-size: .58rem; color: #64748b; }
+
+    /* Event list below grid */
+    .event-list-section { margin-top: .75rem; }
+    .event-list-section h3 {
+      font-size: .8rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .5px; color: #64748b; border-bottom: 1px solid #e2e8f0;
+      padding-bottom: .3rem; margin-bottom: .5rem;
+    }
+    .ev-list-item {
+      display: flex; gap: .6rem; align-items: flex-start;
+      padding: .3rem .5rem; border-left: 3px solid #4f46e5;
+      background: #f8faff; margin-bottom: .35rem; border-radius: 0 5px 5px 0;
+      page-break-inside: avoid;
+    }
+    .ev-list-date { font-weight: 700; font-size: .72rem; white-space: nowrap; min-width: 70px; color: #374151; }
+    .ev-list-title { font-weight: 600; font-size: .78rem; }
+    .ev-list-meta  { font-size: .68rem; color: #64748b; }
+
+    /* Footer */
+    .page-footer {
+      border-top: 1px solid #cbd5e1; padding: .4rem 1rem;
+      display: flex; justify-content: space-between;
+      font-size: .65rem; color: #94a3b8; margin-top: .5rem;
+    }
+
+    /* Legend */
+    .legend { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; margin-bottom: .5rem; }
+    .legend-item { display: flex; align-items: center; gap: .3rem; font-size: .68rem; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+    @media print {
+      .print-controls { display: none !important; }
+      body { font-size: 10px; }
+      .cal-table td { height: 80px; min-height: 80px; }
+      @page { margin: 1cm; size: A4 landscape; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="print-controls">
+  <button class="btn-print" onclick="window.print()">&#128438; Print</button>
+  <a class="btn-close-p" href="/calendar">&#8592; Back</a>
+</div>
+
+<div style="padding:.75rem 1rem 1rem;">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="school-brand">
+      <div>
+        <div class="school-name">{{ school_name }}</div>
+        <div class="school-sub">{% if school_address %}{{ school_address }}{% endif %}{% if school_phone %} &bull; {{ school_phone }}{% endif %}</div>
+      </div>
+    </div>
+    <div>
+      <div class="month-title">{{ month_name }}</div>
+      <div style="font-size:.68rem;color:#64748b;text-align:right;">School Calendar</div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    {% set types = [('General','#4f46e5'),('Holiday','#10b981'),('Exam','#ef4444'),('Meeting','#f59e0b'),('Sports','#06b6d4'),('Deadline','#ec4899'),('Other','#8b5cf6')] %}
+    {% for label, color in types %}
+    <div class="legend-item">
+      <div class="legend-dot" style="background:{{ color }};"></div>
+      {{ label }}
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Calendar Grid -->
+  <table class="cal-table">
+    <thead>
+      <tr>
+        {% for d in ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] %}
+        <th>{{ d }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for week in weeks %}
+      <tr>
+        {% for day in week %}
+        {% if day == 0 %}
+        <td class="empty"></td>
+        {% else %}
+          {% set date_str = '%s-%02d-%02d'|format(year, month, day) %}
+          {% set is_today = date_str == today %}
+          <td class="{{ 'today' if is_today else '' }}">
+            <div class="day-num">{{ day }}</div>
+            {% for ev in grouped.get(date_str, []) %}
+            <div class="ev-pill" style="background:{{ ev.color }}22;color:{{ ev.color }};">
+              {% if ev.start_time %}<span class="ev-time">{{ ev.start_time[:5] }} </span>{% endif %}{{ ev.title }}
+            </div>
+            {% endfor %}
+          </td>
+        {% endif %}
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Event Details List -->
+  {% set all_events = [] %}
+  {% for week in weeks %}
+    {% for day in week %}
+      {% if day != 0 %}
+        {% set date_str = '%s-%02d-%02d'|format(year, month, day) %}
+        {% for ev in grouped.get(date_str, []) %}
+          {% set _ = all_events.append((date_str, ev)) %}
+        {% endfor %}
+      {% endif %}
+    {% endfor %}
+  {% endfor %}
+
+  {% if all_events %}
+  <div class="event-list-section">
+    <h3>Event Details</h3>
+    {% for date_str, ev in all_events %}
+    {% set dt_parts = date_str.split('-') %}
+    <div class="ev-list-item" style="border-left-color:{{ ev.color }};">
+      <div class="ev-list-date">
+        {{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][month-1] }} {{ dt_parts[2]|int }}, {{ year }}
+      </div>
+      <div>
+        <div class="ev-list-title">{{ ev.title }}</div>
+        <div class="ev-list-meta">
+          <span style="background:{{ ev.color }}22;color:{{ ev.color }};padding:1px 5px;border-radius:3px;">{{ ev.event_type }}</span>
+          {% if ev.start_time %} &bull; {{ ev.start_time[:5] }}{% if ev.end_time %} – {{ ev.end_time[:5] }}{% endif %}{% endif %}
+          {% if ev.description %} &bull; {{ ev.description }}{% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center;color:#94a3b8;padding:1.5rem;font-size:.82rem;">No events this month.</div>
+  {% endif %}
+
+  <!-- Footer -->
+  <div class="page-footer">
+    <span>{{ school_name }} &bull; {{ month_name }} School Calendar</span>
+    <span>Printed {{ today }}</span>
+  </div>
+
+</div>
+</body>
+</html>

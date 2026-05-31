@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Payroll — {{ school_name }}{% endblock %}
+{% block page_title %}Payroll System{% endblock %}
+
+{% block head %}
+<style>
+  .pr-tab-bar {
+    display: flex;
+    gap: .25rem;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+  }
+  .pr-tab-bar a {
+    padding: .45rem .85rem;
+    font-size: .8rem;
+    font-weight: 500;
+    color: var(--muted);
+    text-decoration: none;
+    border-radius: 8px 8px 0 0;
+    transition: .15s;
+    white-space: nowrap;
+  }
+  .pr-tab-bar a:hover { color: var(--primary); background: rgba(79,70,229,.06); }
+  .pr-tab-bar a.active {
+    color: var(--primary);
+    font-weight: 600;
+    border-bottom: 2px solid var(--primary);
+    background: transparent;
+    margin-bottom: -2px;
+  }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(145px,1fr)); gap: .75rem; margin-bottom: 1rem; }
+  .kpi { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.1rem; }
+  .kpi .k-label { font-size: .7rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+  .kpi .k-value { font-size: 1.35rem; font-weight: 700; line-height: 1.2; margin-top: .2rem; }
+  .kpi .k-sub   { font-size: .7rem; color: var(--muted); margin-top: .15rem; }
+  .emp-select-bar { display: flex; gap: .5rem; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .emp-select-bar select, .emp-select-bar input[type=number] {
+    font-size: .82rem; padding: .35rem .65rem; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--card-bg);
+    min-width: 160px;
+  }
+  .pr-section { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem; margin-bottom: 1rem; }
+  .pr-section h6 { font-size: .78rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: .6px; margin-bottom: .75rem; border-bottom: 1px solid var(--border); padding-bottom: .4rem; }
+  .pr-table { width: 100%; font-size: .8rem; border-collapse: collapse; }
+  .pr-table th { background: #1E3C72; color: #fff; font-size: .7rem; font-weight: 600; text-transform: uppercase; padding: .45rem .7rem; text-align: left; }
+  .pr-table th.num { text-align: right; }
+  .pr-table td { padding: .4rem .7rem; border-bottom: 1px solid #f1f5f9; }
+  .pr-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pr-table tbody tr:nth-child(even) td { background: #f0f4ff; }
+  .pr-table tbody tr:hover td { background: #d6e4ff; }
+  .pr-table tfoot td { font-weight: 700; background: #1E3C72; color: #fff; padding: .45rem .7rem; }
+  .pr-table tfoot td.num { text-align: right; }
+  .progress-bar-wrap { background: #e2e8f0; border-radius: 99px; height: 7px; overflow: hidden; margin-top: .35rem; }
+  .progress-bar-fill { background: linear-gradient(90deg,var(--primary),#6366f1); height: 100%; border-radius: 99px; transition: width .5s ease; }
+  .badge-pay-type { font-size: .65rem; padding: .2em .5em; border-radius: 5px; font-weight: 600; }
+  .badge-m { background: #fff3e0; color: #e65100; }
+  .badge-w { background: #e3f2fd; color: #0d47a1; }
+  .badge-bw { background: #e8f5e9; color: #1b5e20; }
+</style>
+{% endblock %}
+
+{% macro tab_bar(active) %}
+<nav class="pr-tab-bar">
+  <a href="{{ url_for('payroll_bp.dashboard') }}" class="{{ 'active' if active=='dashboard' }}">📊 Dashboard</a>
+  <a href="{{ url_for('payroll_bp.employees') }}" class="{{ 'active' if active=='employees' }}">👥 Employees</a>
+  <a href="{{ url_for('payroll_bp.register_payment') }}" class="{{ 'active' if active=='register' }}">💳 Register Payment</a>
+  <a href="{{ url_for('payroll_bp.payment_history') }}" class="{{ 'active' if active=='history' }}">📋 History</a>
+  <a href="{{ url_for('payroll_bp.loans') }}" class="{{ 'active' if active=='loans' }}">🏦 Loans</a>
+  <a href="{{ url_for('payroll_bp.payslip') }}" class="{{ 'active' if active=='payslip' }}">🧾 Payslip</a>
+  <a href="{{ url_for('payroll_bp.export') }}" class="{{ 'active' if active=='export' }}">📄 Export PDF</a>
+  <a href="{{ url_for('payroll_bp.settings') }}" class="{{ 'active' if active=='settings' }}">⚙ Settings</a>
+</nav>
+{% endmacro %}
+
+{% macro flash_alerts() %}
+{% with msgs = get_flashed_messages(with_categories=true) %}
+{% for cat, msg in msgs %}
+<div class="alert alert-{{ 'danger' if cat=='danger' else ('warning' if cat=='warning' else ('info' if cat=='info' else 'success')) }} alert-dismissible fade show" role="alert">
+  {{ msg }}
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+{% endwith %}
+{% endmacro %}
+
+{% block content %}
+{{ tab_bar(active_tab) }}
+{{ flash_alerts() }}
+{% block payroll_content %}{% endblock %}
+{% endblock %}

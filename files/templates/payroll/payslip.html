@@ -1,0 +1,102 @@
+{% extends "payroll/_base.html" %}
+{% block payroll_content %}
+
+<div class="emp-select-bar">
+  <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
+    <label class="form-label mb-0 text-muted small">Employee</label>
+    <select name="emp" class="form-select form-select-sm" style="min-width:200px" onchange="this.form.submit()">
+      {% for n in employees %}<option value="{{ n }}" {{ 'selected' if n==selected }}>{{ n }}</option>{% endfor %}
+    </select>
+    <label class="form-label mb-0 text-muted small">Year</label>
+    <select name="year" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
+      {% for y in years %}<option value="{{ y }}" {{ 'selected' if y==year }}>{{ y }}</option>{% endfor %}
+    </select>
+  </form>
+</div>
+
+{% if not selected %}
+<div class="alert alert-info">Select an employee above.</div>
+{% elif not slip %}
+<div class="alert alert-info">No payments found for <strong>{{ selected }}</strong> in {{ year }}.</div>
+{% else %}
+
+<div class="row g-3">
+  <div class="col-md-5">
+    <div class="pr-section">
+      <h6>Select Payment</h6>
+      <select id="paySelDrop" class="form-select form-select-sm mb-3"
+              onchange="location.href='?emp={{ selected|urlencode }}&year={{ year }}&pay_id='+this.value">
+        {% for p in slip.payments %}
+        <option value="{{ p.id }}" {{ 'selected' if p.id == slip.pay.id }}>
+          {{ p.payment_date }}  |  {{ period_label(p.period) }}  |  ${{ "{:,.2f}".format(p.amount) }}
+        </option>
+        {% endfor %}
+      </select>
+
+      <table class="pr-table">
+        <tbody>
+          <tr><th>Employee</th><td>{{ emp.name }}</td></tr>
+          <tr><th>ID</th><td>{{ emp.id or '—' }}</td></tr>
+          <tr><th>Pay Type</th><td>{{ emp.pay_type or '—' }}</td></tr>
+          <tr><th>Pay Date</th><td>{{ slip.pay.payment_date }}</td></tr>
+          <tr><th>Period</th><td>{{ period_label(slip.pay.period) }}</td></tr>
+          {% if slip.pay.note %}<tr><th>Note</th><td>{{ slip.pay.note }}</td></tr>{% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <div class="pr-section">
+      <h6>Earnings</h6>
+      <table class="pr-table">
+        <thead><tr><th>Description</th><th class="num">Amount</th></tr></thead>
+        <tbody>
+          <tr><td>Gross Pay</td><td class="num">${{ "{:,.2f}".format(slip.period_gross) }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pr-section">
+      <h6>Deductions</h6>
+      <table class="pr-table">
+        <thead><tr><th>Description</th><th class="num">Amount</th></tr></thead>
+        <tbody>
+          {% for label, val in slip.ded_rows %}
+          <tr><td>{{ label }}</td><td class="num">${{ "{:,.2f}".format(val) }}</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr><td>Total Deductions</td><td class="num">${{ "{:,.2f}".format(slip.ded_rows|sum(attribute=1)) }}</td></tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="pr-section" style="background:#1E3C72;color:#fff;border-color:#1E3C72">
+      <div class="d-flex align-items-center justify-content-between">
+        <span style="font-size:.95rem;font-weight:700;">NET PAY</span>
+        <span style="font-size:1.4rem;font-weight:800;">${{ "{:,.2f}".format(slip.net_pay) }}</span>
+      </div>
+    </div>
+
+    <div class="pr-section">
+      <h6>Year-to-Date</h6>
+      <table class="pr-table">
+        <tbody>
+          <tr><td>YTD Paid</td><td class="num"><strong>${{ "{:,.2f}".format(slip.ytd) }}</strong></td></tr>
+          <tr><td>Annual Net Pay</td><td class="num">${{ "{:,.2f}".format(slip.annual_net) }}</td></tr>
+          <tr style="background:#fff8e1"><td><strong>Remaining</strong></td><td class="num"><strong>${{ "{:,.2f}".format([slip.annual_net - slip.ytd, 0]|max) }}</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mt-2">
+      <a href="{{ url_for('payroll_bp.payslip_pdf', emp=selected, year=year, pay_id=slip.pay.id) }}"
+         class="btn btn-primary w-100" target="_blank">
+        ⬇ Download Payslip PDF
+      </a>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

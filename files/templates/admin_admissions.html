@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Admissions — {{ school_name }}{% endblock %}
+{% block content %}
+<h2 class="fw-bold mb-4">Admission Applications</h2>
+
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr><th>Submitted</th><th>Applicant</th><th>Grade</th><th>Parent</th><th>Contact</th><th>Status</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for a in admissions %}
+        <tr>
+          <td class="text-muted small">{{ a.submitted_at }}</td>
+          <td class="fw-semibold">{{ a.first_name }} {{ a.last_name }}</td>
+          <td>{{ a.grade_applying or '—' }}</td>
+          <td>{{ a.parent_name }}</td>
+          <td>{{ a.parent_email }}<br><span class="text-muted small">{{ a.parent_phone or '' }}</span></td>
+          <td>
+            <span class="badge bg-{{ 'warning' if a.status == 'Pending' else ('success' if a.status == 'Approved' else 'danger') }}">
+              {{ a.status }}
+            </span>
+          </td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#reviewModal{{ a.id }}">Review</button>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">No applications yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Review Modals -->
+{% for a in admissions %}
+<div class="modal fade" id="reviewModal{{ a.id }}" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Application — {{ a.first_name }} {{ a.last_name }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3 mb-3">
+          <div class="col-md-4"><div class="text-muted small">Date of Birth</div><div>{{ a.dob|fmt_date }}</div></div>
+          <div class="col-md-4"><div class="text-muted small">Gender</div><div>{{ a.gender or '—' }}</div></div>
+          <div class="col-md-4"><div class="text-muted small">Grade Applying</div><div>{{ a.grade_applying or '—' }}</div></div>
+          <div class="col-md-6"><div class="text-muted small">Parent Name</div><div>{{ a.parent_name }}</div></div>
+          <div class="col-md-6"><div class="text-muted small">Parent Email</div><div>{{ a.parent_email }}</div></div>
+          <div class="col-md-6"><div class="text-muted small">Parent Phone</div><div>{{ a.parent_phone or '—' }}</div></div>
+          <div class="col-md-6"><div class="text-muted small">Previous School</div><div>{{ a.previous_school or '—' }}</div></div>
+          <div class="col-12"><div class="text-muted small">Address</div><div>{{ a.address or '—' }}</div></div>
+          <div class="col-12"><div class="text-muted small">Reason for Applying</div><div>{{ a.reason or '—' }}</div></div>
+        </div>
+        <form method="POST" action="/admin/admissions/review/{{ a.id }}">
+          <div class="row g-2">
+            <div class="col-md-4">
+              <label class="form-label small">Decision</label>
+              <select name="status" class="form-select form-select-sm">
+                <option {% if a.status=='Pending' %}selected{% endif %}>Pending</option>
+                <option {% if a.status=='Approved' %}selected{% endif %}>Approved</option>
+                <option {% if a.status=='Rejected' %}selected{% endif %}>Rejected</option>
+                <option {% if a.status=='Waitlisted' %}selected{% endif %}>Waitlisted</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label small">Internal Notes</label>
+              <textarea name="notes" class="form-control form-control-sm" rows="3">{{ a.notes or '' }}</textarea>
+            </div>
+          </div>
+          <div class="modal-footer px-0 pb-0">
+            <button type="submit" class="btn btn-primary btn-sm">Save Decision</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

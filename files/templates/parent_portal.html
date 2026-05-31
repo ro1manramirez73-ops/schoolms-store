@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>Parent Portal — {{ school_name }}</title>
+  <link rel="icon" type="image/x-icon" href="/static/icons/schoolms.ico">
+  <link rel="icon" type="image/svg+xml" href="/static/icons/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
+    html { font-size: 16px; }
+    body { background: #f1f5f9; margin: 0; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+    .topbar {
+      background: linear-gradient(90deg, #0f172a, #1e1b4b);
+      padding: .85rem 1.75rem;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .topbar .brand { display: flex; align-items: center; gap: .5rem; }
+    .topbar-right { display: flex; align-items: center; gap: .75rem; }
+    .topbar-right .user-name { color: #c7d2fe; font-size: .82rem; font-weight: 500; }
+    .topbar-right .btn-out {
+      background: rgba(255,255,255,.08); color: #94a3b8; border: none;
+      border-radius: 8px; padding: .35rem .75rem; font-size: .78rem; text-decoration: none; transition: .15s;
+    }
+    .topbar-right .btn-out:hover { background: rgba(255,255,255,.15); color: #fff; }
+
+    .page-wrap { max-width: 1000px; margin: 0 auto; padding: 1.75rem 1.25rem; }
+
+    /* Profile card */
+    .profile-card {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+      padding: 1.5rem; margin-bottom: 1.5rem;
+      display: flex; align-items: center; gap: 1.25rem;
+      flex-wrap: wrap;
+    }
+    .profile-avatar {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: linear-gradient(135deg, #4f46e5, #818cf8);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: 1.5rem; flex-shrink: 0;
+    }
+    .profile-info .name { font-weight: 700; font-size: 1.1rem; color: #0f172a; }
+    .profile-info .meta { color: #64748b; font-size: .8rem; margin-top: .2rem; }
+
+    /* Stat cards */
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-card {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+      padding: 1rem 1.25rem;
+    }
+    .stat-card .sc-label { font-size: .72rem; color: #64748b; font-weight: 500; margin-bottom: .2rem; }
+    .stat-card .sc-value { font-size: 1.6rem; font-weight: 700; line-height: 1; }
+
+    /* Cards */
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .card-header {
+      background: transparent; border-bottom: 1px solid #e2e8f0;
+      padding: .875rem 1.125rem; font-weight: 600; font-size: .88rem;
+      border-radius: 12px 12px 0 0;
+    }
+    .card-body { padding: 1.125rem; }
+
+    /* Tabs */
+    .tab-nav { display: flex; gap: .25rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .tab-nav a {
+      padding: .5rem .875rem; font-size: .82rem; font-weight: 500; color: #64748b;
+      text-decoration: none; border-radius: 8px 8px 0 0; transition: .15s; white-space: nowrap;
+    }
+    .tab-nav a:hover { color: #4f46e5; background: rgba(79,70,229,.06); }
+    .tab-nav a.active { color: #4f46e5; font-weight: 600; border-bottom: 2px solid #4f46e5; margin-bottom: -2px; }
+
+    /* Table */
+    .table { font-size: .825rem; }
+    .table th { font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: #64748b; border-bottom: 2px solid #e2e8f0; padding: .6rem .875rem; }
+    .table td { padding: .6rem .875rem; vertical-align: middle; border-color: #f1f5f9; }
+    .table tbody tr:last-child td { border-bottom: none; }
+    .table-hover tbody tr:hover { background: #f8faff; }
+
+    /* Badges */
+    .badge { font-weight: 500; font-size: .7rem; padding: .3em .6em; border-radius: 6px; }
+
+    /* Progress */
+    .progress { height: 6px; border-radius: 3px; }
+
+    /* Bell */
+    .bell-btn {
+      position: relative; background: rgba(255,255,255,.08); border: none;
+      border-radius: 8px; width: 34px; height: 34px; color: #94a3b8;
+      display: flex; align-items: center; justify-content: center; cursor: pointer; transition: .15s;
+      text-decoration: none;
+    }
+    .bell-btn:hover { background: rgba(255,255,255,.15); color: #fff; }
+    .bell-badge {
+      position: absolute; top: -4px; right: -4px;
+      background: #ef4444; color: #fff; font-size: .55rem; font-weight: 700;
+      width: 16px; height: 16px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* Mini calendar */
+    .mini-cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
+    .mini-cal-hdr  { text-align: center; font-size: .62rem; font-weight: 600; color: #94a3b8; padding: .2rem 0; }
+    .mini-cal-day  { min-height: 48px; border-radius: 6px; padding: 2px 3px; cursor: pointer; transition: .1s; }
+    .mini-cal-day:hover { background: #f1f5f9; }
+    .mini-cal-day.today { background: #ede9fe; }
+    .mini-cal-day.today .mini-day-num { background: #4f46e5; color: #fff; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
+    .mini-cal-day.empty { cursor: default; }
+    .mini-day-num  { font-size: .75rem; font-weight: 600; color: #374151; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
+    .mini-pill     { font-size: .58rem; padding: 1px 4px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px; }
+    .cal-nav-mini  { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; }
+    .cal-nav-mini span { font-weight: 600; font-size: .85rem; }
+    .cal-nav-mini button { background: transparent; border: 1px solid #e2e8f0; border-radius: 6px; width: 28px; height: 28px; cursor: pointer; color: #64748b; }
+    .upcoming-item { display: flex; gap: .6rem; align-items: flex-start; padding: .5rem 0; border-bottom: 1px solid #f1f5f9; }
+    .upcoming-item:last-child { border-bottom: none; }
+
+    /* Payment plan */
+    .plan-card {
+      border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 1rem; overflow: hidden;
+    }
+    .plan-header {
+      background: #f8faff; padding: .75rem 1rem;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid #e2e8f0;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .plan-header .plan-title { font-weight: 600; font-size: .85rem; color: #0f172a; }
+    .plan-header .plan-meta  { font-size: .72rem; color: #64748b; margin-top: .1rem; }
+    .inst-row { display: flex; align-items: center; justify-content: space-between; padding: .55rem 1rem; border-bottom: 1px solid #f1f5f9; font-size: .8rem; flex-wrap: wrap; gap: 0.5rem; }
+    .inst-row:last-child { border-bottom: none; }
+    .inst-row.paid { opacity: .65; }
+
+    /* ── Tablet: 768px and below ── */
+    @media (max-width: 768px) {
+      html { font-size: 15px; }
+
+      .topbar {
+        padding: 0.65rem 1rem;
+        gap: 0.5rem;
+      }
+
+      .topbar .brand {
+        flex: 1;
+        gap: 0.35rem;
+      }
+
+      .topbar .brand img {
+        height: 32px !important;
+      }
+
+      .brand-sub {
+        font-size: 0.65rem !important;
+      }
+
+      .topbar-right {
+        gap: 0.5rem;
+        width: 100%;
+        justify-content: flex-end;
+      }
+
+      .topbar-right .user-name {
+        font-size: 0.75rem;
+      }
+
+      .topbar-right .btn-out {
+        font-size: 0.7rem;
+        padding: 0.3rem 0.65rem;
+      }
+
+      .page-wrap {
+        padding: 1rem 0.875rem;
+      }
+
+      .profile-card {
+        padding: 1.25rem;
+        gap: 1rem;
+      }
+
+      .profile-avatar {
+        width: 56px;
+        height: 56px;
+        font-size: 1.25rem;
+      }
+
+      .profile-info .name {
+        font-size: 1rem;
+      }
+
+      .profile-info .meta {
+        font-size: 0.75rem;
+      }
+
+      .stat-row {
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+
+      .stat-card {
+        padding: 0.9rem 1rem;
+      }
+
+      .stat-card .sc-value {
+        font-size: 1.35rem;
+      }
+
+      .tab-nav {
+        gap: 0.15rem;
+        margin-bottom: 1rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .tab-nav a {
+        padding: 0.45rem 0.7rem;
+        font-size: 0.75rem;
+      }
+
+      .tab-nav a i {
+        font-size: 0.8rem;
+      }
+
+      .table {
+        font-size: 0.75rem;
+      }
+
+      .table th,
+      .table td {
+        padding: 0.4rem 0.5rem;
+      }
+
+      .card {
+        margin-bottom: 0.875rem;
+      }
+
+      .card-body {
+        padding: 0.875rem;
+      }
+
+      .plan-header {
+        padding: 0.65rem 0.9rem;
+      }
+
+      .inst-row {
+        padding: 0.45rem 0.9rem;
+        font-size: 0.75rem;
+      }
+
+      .badge {
+        font-size: 0.6rem;
+      }
+
+      .btn {
+        font-size: 0.75rem;
+      }
+    }
+
+    /* ── Mobile: 480px to 767px ── */
+    @media (max-width: 767px) {
+      html { font-size: 14px; }
+
+      .page-wrap {
+        padding: 0.875rem;
+      }
+
+      .topbar {
+        padding: 0.6rem 0.75rem;
+      }
+
+      .profile-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 1rem;
+      }
+
+      .profile-card .profile-avatar {
+        width: 48px;
+        height: 48px;
+        font-size: 1.1rem;
+      }
+
+      .profile-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .profile-info .name {
+        font-size: 0.95rem;
+      }
+
+      .profile-info .meta {
+        font-size: 0.7rem;
+        text-align: center;
+      }
+
+      .stat-row {
+        gap: 0.6rem;
+      }
+
+      .stat-card {
+        padding: 0.8rem 0.9rem;
+        min-width: 100%;
+      }
+
+      .stat-card .sc-label {
+        font-size: 0.65rem;
+      }
+
+      .stat-card .sc-value {
+        font-size: 1.25rem;
+      }
+
+      .tab-nav {
+        gap: 0.1rem;
+        margin-bottom: 0.875rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .tab-nav a {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.7rem;
+      }
+
+      .table {
+        font-size: 0.7rem;
+      }
+
+      .table th {
+        font-size: 0.62rem;
+      }
+
+      .table th,
+      .table td {
+        padding: 0.35rem 0.4rem;
+      }
+
+      .plan-header {
+        padding: 0.55rem 0.8rem;
+      }
+
+      .plan-header .plan-meta {
+        font-size: 0.65rem;
+        width: 100%;
+      }
+
+      .inst-row {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.7rem;
+      }
+
+      .card {
+        margin-bottom: 0.75rem;
+      }
+
+      .card-body {
+        padding: 0.75rem;
+      }
+
+      .badge {
+        font-size: 0.55rem;
+      }
+
+      .bell-btn {
+        width: 32px;
+        height: 32px;
+      }
+    }
+
+    /* ── Mobile: Small screens (< 480px) ── */
+    @media (max-width: 479px) {
+      html { font-size: 13px; }
+
+      .topbar {
+        padding: 0.5rem 0.6rem;
+        gap: 0.3rem;
+      }
+
+      .topbar .brand {
+        gap: 0.25rem;
+      }
+
+      .topbar .brand img {
+        height: 28px !important;
+      }
+
+      .brand-sub {
+        font-size: 0.6rem !important;
+      }
+
+      .topbar-right {
+        width: 100%;
+        gap: 0.4rem;
+      }
+
+      .topbar-right .user-name {
+        display: none;
+      }
+
+      .topbar-right .btn-out {
+        font-size: 0.65rem;
+        padding: 0.25rem 0.55rem;
+        flex: 1;
+      }
+
+      .page-wrap {
+        padding: 0.75rem 0.65rem;
+        max-width: 100%;
+      }
+
+      .profile-card {
+        padding: 0.85rem;
+        margin-bottom: 1rem;
+      }
+
+      .profile-avatar {
+        width: 44px;
+        height: 44px;
+        font-size: 1rem;
+      }
+
+      .profile-info .name {
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .profile-info .meta {
+        font-size: 0.62rem;
+      }
+
+      .stat-row {
+        gap: 0.5rem;
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stat-card {
+        padding: 0.7rem 0.8rem;
+      }
+
+      .stat-card .sc-label {
+        font-size: 0.6rem;
+      }
+
+      .stat-card .sc-value {
+        font-size: 1.1rem;
+      }
+
+      .tab-nav {
+        gap: 0;
+        margin-bottom: 0.75rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .tab-nav a {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.62rem;
+        flex-shrink: 0;
+      }
+
+      .tab-nav a i {
+        display: none;
+      }
+
+      .table {
+        font-size: 0.65rem;
+      }
+
+      .table th {
+        font-size: 0.55rem;
+        padding: 0.25rem 0.3rem;
+      }
+
+      .table td {
+        padding: 0.3rem 0.3rem;
+      }
+
+      .card {
+        border-radius: 8px;
+        margin-bottom: 0.65rem;
+      }
+
+      .card-body {
+        padding: 0.65rem;
+      }
+
+      .plan-card {
+        margin-bottom: 0.75rem;
+      }
+
+      .plan-header {
+        padding: 0.5rem 0.7rem;
+        gap: 0.3rem;
+      }
+
+      .plan-header .plan-title {
+        font-size: 0.75rem;
+      }
+
+      .plan-header .plan-meta {
+        font-size: 0.6rem;
+        width: 100%;
+      }
+
+      .inst-row {
+        padding: 0.35rem 0.7rem;
+        font-size: 0.65rem;
+      }
+
+      .badge {
+        font-size: 0.5rem;
+        padding: 0.15em 0.4em;
+      }
+
+      .bell-btn {
+        width: 30px;
+        height: 30px;
+      }
+
+      .bell-badge {
+        width: 14px;
+        height: 14px;
+        font-size: 0.5rem;
+      }
+
+      .btn {
+        padding: 0.25rem 0.5rem !important;
+        font-size: 0.65rem;
+      }
+
+      .alert {
+        padding: 0.65rem 0.75rem;
+        font-size: 0.68rem;
+      }
+    }
+
+    /* ── Landscape orientation (height < 500px) ── */
+    @media (max-height: 500px) and (orientation: landscape) {
+      .topbar {
+        padding: 0.4rem 0.6rem;
+      }
+
+      .page-wrap {
+        padding: 0.6rem 0.5rem;
+      }
+
+      .profile-card {
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .tab-nav {
+        margin-bottom: 0.6rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-sub" style="color:#64748b;font-size:.72rem;">Parent Portal</div>
+  </div>
+  <div class="topbar-right">
+    <span class="user-name"><i class="bi bi-person-circle me-1"></i>{{ session.full_name }}</span>
+    <a href="#" class="bell-btn" data-bs-toggle="modal" data-bs-target="#pMsgsModal" onclick="markRead()">
+      <i class="bi bi-bell"></i>
+      {% set uc = unread_count() %}{% if uc > 0 %}<span class="bell-badge">{{ uc }}</span>{% endif %}
+    </a>
+    <a href="/logout" class="btn-out"><i class="bi bi-box-arrow-right me-1"></i>Sign Out</a>
+  </div>
+</div>
+
+<div class="page-wrap">
+
+{% if not student %}
+<div class="alert alert-warning" style="border-radius:12px;">
+  <i class="bi bi-exclamation-triangle-fill me-2"></i>
+  No student is linked to this account. Please contact the school administration.
+</div>
+{% else %}
+
+<!-- Profile -->
+<div class="profile-card">
+  {% if student.photo %}
+  <img src="{{ student.photo }}" alt="{{ student.first_name }} {{ student.last_name }}"
+       style="width:64px;height:64px;border-radius:50%;object-fit:cover;
+              flex-shrink:0;border:3px solid #e0e7ff;">
+  {% else %}
+  <div class="profile-avatar">{{ student.first_name[0] }}{{ student.last_name[0] }}</div>
+  {% endif %}
+  <div class="profile-info flex-grow-1">
+    <div class="name">{{ student.first_name }} {{ student.last_name }}</div>
+    <div class="meta">
+      ID: {{ student.student_id }}
+      {% if student.class_name %}&nbsp;&bull;&nbsp; Class: {{ student.class_name }}{% endif %}
+      {% if student.gender %}&nbsp;&bull;&nbsp; {{ student.gender }}{% endif %}
+    </div>
+    <div class="mt-2">
+      <span class="badge bg-{{ 'success' if student.status == 'Active' else 'secondary' }}">
+        {{ student.status }}
+      </span>
+    </div>
+  </div>
+  <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#rcModal">
+    <i class="bi bi-file-earmark-pdf me-1"></i>Report Card
+  </button>
+</div>
+
+<!-- Summary stats -->
+{% set total_owed = fees|sum(attribute='amount') %}
+{% set total_paid = fees|sum(attribute='paid_amount') %}
+{% set outstanding = total_owed - total_paid %}
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="sc-label">Attendance Rate</div>
+    <div class="sc-value" style="color:#10b981;">
+      {% if (present + absent) > 0 %}{{ ((present / (present + absent)) * 100)|round|int }}%{% else %}—{% endif %}
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-label">Days Present</div>
+    <div class="sc-value" style="color:#4f46e5;">{{ present }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-label">Days Absent</div>
+    <div class="sc-value" style="color:#ef4444;">{{ absent }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-label">Outstanding Fees</div>
+    <div class="sc-value" style="color:{{ '#10b981' if outstanding <= 0 else '#ef4444' }};">
+      {{ outstanding|money }}
+    </div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tab-nav" id="parentTabNav">
+  <a href="#" class="active" data-tab="fees"><i class="bi bi-cash-stack me-1"></i>Fees &amp; Payments</a>
+  <a href="#" data-tab="grades"><i class="bi bi-journal-text me-1"></i>Grades</a>
+  <a href="#" data-tab="attendance"><i class="bi bi-check2-square me-1"></i>Attendance</a>
+  <a href="#" data-tab="calendar"><i class="bi bi-calendar-event me-1"></i>Calendar</a>
+  <a href="#" data-tab="announcements"><i class="bi bi-megaphone me-1"></i>Announcements</a>
+</div>
+
+<!-- Tab: Fees -->
+<div id="tab-fees">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <span class="fw-semibold" style="color:#0f172a;">Fees &amp; Payments</span>
+    <a href="/parent/fee-statement" target="_blank"
+       class="btn btn-sm"
+       style="background:linear-gradient(90deg,#4f46e5,#6366f1);color:#fff;border:none;border-radius:8px;font-size:.8rem;font-weight:600;padding:.4rem .9rem;">
+      <i class="bi bi-download me-1"></i> Download Fee Statement
+    </a>
+  </div>
+
+  <!-- Payment Plans -->
+  {% if payment_plans %}
+  <h6 class="fw-semibold mb-3" style="font-size:.8rem;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">
+    Payment Plans
+  </h6>
+  {% for entry in payment_plans %}
+  {% set plan = entry.plan %}
+  {% set installments = entry.installments %}
+  {% set paid_count = installments|selectattr('status','equalto','Paid')|list|length %}
+  {% set pct = ((paid_count / plan.installment_count) * 100)|round|int if plan.installment_count > 0 else 0 %}
+  {% set net_amount = plan.total_amount - (plan.reduce or 0) - (plan.scholarship or 0) %}
+  <div class="plan-card">
+    <div class="plan-header">
+      <div>
+        <div class="plan-title">{{ plan.description }}</div>
+        <div class="plan-meta">
+          {{ plan.plan_type }} &bull; {{ plan.installment_count }} installments of
+          {{ plan.installment_amount|money }} &bull; Total: {{ plan.total_amount|money }}
+          {% if plan.reduce and plan.reduce > 0 %}&bull; Reduction: -{{ plan.reduce|money }}{% endif %}
+          {% if plan.scholarship and plan.scholarship > 0 %}&bull; Scholarship: -{{ plan.scholarship|money }}{% endif %}
+          {% if (plan.reduce and plan.reduce > 0) or (plan.scholarship and plan.scholarship > 0) %}&bull; Net: {{ net_amount|money }}{% endif %}
+          {% if plan.academic_year %}&bull; {{ plan.academic_year }}{% endif %}
+        </div>
+      </div>
+      <span class="badge" style="background:{{ '#d1fae5' if plan.status == 'Completed' else '#ede9fe' }};color:{{ '#065f46' if plan.status == 'Completed' else '#4f46e5' }};">
+        {{ plan.status }}
+      </span>
+    </div>
+    <div style="padding:.6rem 1rem;">
+      <div class="d-flex justify-content-between mb-1" style="font-size:.72rem;color:#64748b;">
+        <span>{{ paid_count }} of {{ plan.installment_count }} paid</span>
+        <span>{{ pct }}%</span>
+      </div>
+      <div class="progress mb-2">
+        <div class="progress-bar bg-success" style="width:{{ pct }}%;"></div>
+      </div>
+    </div>
+    {% for inst in installments %}
+    <div class="inst-row {% if inst.status == 'Paid' %}paid{% endif %}">
+      <div>
+        <span class="fw-semibold">Installment {{ inst.installment_num }}</span>
+        {% if inst.due_date %}
+          <span class="text-muted ms-2" style="font-size:.72rem;">Due: {{ inst.due_date }}</span>
+          {% if inst.due_date < today and inst.status != 'Paid' %}
+            <span class="badge ms-1" style="background:#fee2e2;color:#b91c1c;font-size:.65rem;">Overdue</span>
+          {% endif %}
+        {% endif %}
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <span style="color:#64748b;">{{ inst.amount|money }}</span>
+        {% if inst.status == 'Paid' %}
+          <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Paid</span>
+        {% elif inst.status == 'Partial' %}
+          <span class="badge bg-warning text-dark">Partial ({{ inst.paid_amount|money }})</span>
+        {% else %}
+          <span class="badge bg-danger">Unpaid</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <!-- Direct fees -->
+  <h6 class="fw-semibold mb-3 {% if payment_plans %}mt-4{% endif %}" style="font-size:.8rem;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">
+    Direct Fees
+  </h6>
+  <div class="card">
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr><th>Fee Type</th><th>Amount</th><th>Paid</th><th>Balance</th><th>Due Date</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          {% for f in fees %}
+          <tr>
+            <td class="fw-semibold">{{ f.fee_type }}</td>
+            <td>{{ f.amount|money }}</td>
+            <td class="text-success">{{ f.paid_amount|money }}</td>
+            <td class="{{ 'text-danger fw-semibold' if (f.amount - f.paid_amount) > 0 else 'text-success' }}">
+              {{ (f.amount - f.paid_amount)|money }}
+            </td>
+            <td class="text-muted">{{ f.due_date|fmt_date }}</td>
+            <td>
+              <span class="badge bg-{{ 'success' if f.status == 'Paid' else ('warning' if f.status == 'Partial' else 'danger') }}">
+                {{ f.status }}
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-center text-muted py-4">No fees on record.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Tab: Grades -->
+<div id="tab-grades" style="display:none;">
+  <div class="card">
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr><th>Subject</th><th>Type</th><th>Score</th><th>Grade</th><th>Term</th><th>Date</th></tr>
+        </thead>
+        <tbody>
+          {% for g in grades %}
+          <tr>
+            <td class="fw-semibold">{{ g.subject_name or '—' }}</td>
+            <td class="text-muted">{{ g.exam_type or '—' }}</td>
+            <td>{{ g.score }}/{{ g.max_score }}</td>
+            <td>
+              <span class="badge bg-{{ 'success' if g.grade_letter in ['A+','A','A-'] else ('primary' if g.grade_letter in ['B+','B','B-'] else ('warning' if g.grade_letter in ['C+','C','C-'] else ('danger' if g.grade_letter == 'F' else 'secondary'))) }}">
+                {{ g.grade_letter or '—' }}
+              </span>
+            </td>
+            <td class="text-muted">{{ g.term or '—' }}</td>
+            <td class="text-muted">{{ g.date }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-center text-muted py-4">No grades recorded yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Tab: Attendance -->
+<div id="tab-attendance" style="display:none;">
+  {% if (present + absent) > 0 %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="row align-items-center">
+        <div class="col">
+          <div style="font-size:.75rem;color:#64748b;font-weight:600;margin-bottom:.4rem;">
+            Attendance Rate
+          </div>
+          <div class="progress" style="height:8px;">
+            <div class="progress-bar bg-success" style="width:{{ ((present/(present+absent))*100)|round }}%;"></div>
+          </div>
+          <div class="text-muted mt-1" style="font-size:.72rem;">
+            {{ ((present/(present+absent))*100)|round(1) }}% &nbsp;&bull;&nbsp;
+            {{ present }} present, {{ absent }} absent
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="card">
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr><th>Date</th><th>Subject</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          {% for a in attendance %}
+          <tr>
+            <td>{{ a.date }}</td>
+            <td class="text-muted">{{ a.subject_name or '—' }}</td>
+            <td>
+              <span class="badge bg-{{ 'success' if a.status == 'Present' else ('warning' if a.status == 'Late' else 'danger') }}">
+                {{ a.status }}
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3" class="text-center text-muted py-4">No attendance records.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Tab: Calendar -->
+<div id="tab-calendar" style="display:none;">
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <div class="cal-nav-mini">
+            <button onclick="pcPrev()"><i class="bi bi-chevron-left"></i></button>
+            <span id="pcTitle"></span>
+            <button onclick="pcNext()"><i class="bi bi-chevron-right"></i></button>
+          </div>
+          <div class="mini-cal-grid" id="pcHeaders"></div>
+        </div>
+        <div class="card-body pt-2">
+          <div class="mini-cal-grid" id="pcGrid"></div>
+          <div id="pcDetail" class="mt-3" style="display:none;">
+            <div class="fw-semibold mb-2" style="font-size:.8rem;color:#64748b;" id="pcDetailDate"></div>
+            <div id="pcDetailBody"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card h-100">
+        <div class="card-header"><span><i class="bi bi-clock-history me-2 text-warning"></i>Upcoming</span></div>
+        <div class="card-body">
+          {% if upcoming_events %}
+          {% for e in upcoming_events %}
+          <div class="upcoming-item">
+            <div style="width:10px;height:10px;border-radius:50%;background:{{ e.color }};flex-shrink:0;margin-top:4px;"></div>
+            <div>
+              <div class="fw-semibold" style="font-size:.8rem;">{{ e.title }}</div>
+              <div class="text-muted" style="font-size:.7rem;">{{ e.event_date }}{% if e.start_time %} at {{ e.start_time }}{% endif %}</div>
+              <span class="badge" style="background:{{ e.color }}22;color:{{ e.color }};font-size:.62rem;">{{ e.event_type }}</span>
+            </div>
+          </div>
+          {% endfor %}
+          {% else %}
+          <p class="text-muted small mb-0">No upcoming events.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab: Announcements -->
+<div id="tab-announcements" style="display:none;">
+  <div class="card">
+    <div class="card-body">
+      {% for a in announcements %}
+      <div class="mb-3 {% if not loop.last %}pb-3 border-bottom{% endif %}">
+        <div class="d-flex align-items-start gap-2">
+          {% if a.is_pinned %}<i class="bi bi-pin-angle-fill text-danger mt-1" style="font-size:.75rem;flex-shrink:0;"></i>{% endif %}
+          <div>
+            <div class="fw-semibold" style="font-size:.85rem;color:#0f172a;">{{ a.title }}</div>
+            <div class="text-muted" style="font-size:.78rem;margin-top:.15rem;line-height:1.5;">{{ a.body }}</div>
+            <div class="text-muted" style="font-size:.68rem;margin-top:.3rem;">{{ a.created_at|fmt_datetime }}</div>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="text-center text-muted py-3" style="font-size:.82rem;">No announcements right now.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endif %}
+</div>
+
+<!-- Report Card Modal -->
+<div class="modal fade" id="rcModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:14px;border:none;box-shadow:0 20px 60px rgba(0,0,0,.15);">
+      <div class="modal-header" style="border-bottom:1px solid #e2e8f0;">
+        <h5 class="modal-title" style="font-size:.95rem;font-weight:700;">
+          <i class="bi bi-file-earmark-pdf text-danger me-2"></i>Download Report Card
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-6">
+            <label class="form-label" style="font-size:.78rem;font-weight:600;color:#64748b;">Term</label>
+            <select id="rcTerm" class="form-select" style="border-radius:8px;border-color:#e2e8f0;font-size:.82rem;">
+              <option>Term 1</option><option>Term 2</option><option>Term 3</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label" style="font-size:.78rem;font-weight:600;color:#64748b;">Year</label>
+            <input id="rcYear" class="form-control" style="border-radius:8px;border-color:#e2e8f0;font-size:.82rem;">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="border-top:1px solid #e2e8f0;">
+        <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-sm btn-primary" onclick="downloadRC()">
+          <i class="bi bi-download me-1"></i>Download PDF
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Messages Modal -->
+<div class="modal fade" id="pMsgsModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content" style="border-radius:14px;border:none;box-shadow:0 20px 60px rgba(0,0,0,.15);">
+      <div class="modal-header" style="border-bottom:1px solid #e2e8f0;">
+        <h5 class="modal-title" style="font-size:.95rem;font-weight:700;">
+          <i class="bi bi-bell me-2 text-primary"></i>Notifications
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        {% if messages %}
+        {% for m in messages %}
+        <div class="px-3 py-2 border-bottom" style="{{ 'background:#f0f4ff;' if not m.is_read else '' }}">
+          <div class="d-flex align-items-center gap-1 mb-1">
+            <span class="fw-semibold" style="font-size:.82rem;">{{ m.subject }}</span>
+            {% if not m.is_read %}<span class="badge bg-primary ms-1" style="font-size:.58rem;">New</span>{% endif %}
+          </div>
+          <div style="font-size:.77rem;color:#374151;">{{ m.body }}</div>
+          <div class="text-muted" style="font-size:.68rem;">{{ m.sent_at|fmt_datetime }}</div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center text-muted py-4" style="font-size:.82rem;">
+          <i class="bi bi-bell-slash d-block mb-2" style="font-size:1.5rem;"></i>No notifications yet.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  document.getElementById('rcYear').value = new Date().getFullYear();
+
+  function downloadRC() {
+    const term = document.getElementById('rcTerm').value;
+    const year = document.getElementById('rcYear').value;
+    {% if student %}
+    window.location.href = '/students/{{ student.id }}/report-card?term=' + encodeURIComponent(term) + '&year=' + encodeURIComponent(year);
+    {% endif %}
+  }
+
+  function markRead() {
+    fetch('/messages/mark-read', {method:'POST'});
+    document.querySelectorAll('.bell-badge').forEach(b => b.remove());
+  }
+
+  const tabs = document.querySelectorAll('#parentTabNav a');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', e => {
+      e.preventDefault();
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('[id^="tab-"]').forEach(p => p.style.display = 'none');
+      document.getElementById('tab-' + tab.dataset.tab).style.display = '';
+      if (tab.dataset.tab === 'calendar') pcRender();
+    });
+  });
+
+  // Parent mini-calendar
+  const PC_EVENTS = {{ events_by_date | tojson }};
+  const PC_TODAY  = '{{ today }}';
+  const PC_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const PC_DAYS   = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  let pcYear = new Date().getFullYear(), pcMonth = new Date().getMonth();
+  function pad(n){ return String(n).padStart(2,'0'); }
+
+  function pcRender() {
+    document.getElementById('pcTitle').textContent = PC_MONTHS[pcMonth] + ' ' + pcYear;
+    document.getElementById('pcHeaders').innerHTML = PC_DAYS.map(d=>`<div class="mini-cal-hdr">${d}</div>`).join('');
+    const grid = document.getElementById('pcGrid');
+    const first = new Date(pcYear, pcMonth, 1).getDay();
+    const days  = new Date(pcYear, pcMonth+1, 0).getDate();
+    let html = '';
+    for (let i=0;i<first;i++) html += '<div class="mini-cal-day empty"></div>';
+    for (let d=1;d<=days;d++){
+      const ds = `${pcYear}-${pad(pcMonth+1)}-${pad(d)}`;
+      const isToday = ds === PC_TODAY;
+      const evs = PC_EVENTS[ds]||[];
+      html += `<div class="mini-cal-day ${isToday?'today':''}" onclick="pcSelect('${ds}')">
+                 <div class="mini-day-num">${d}</div>
+                 ${evs.slice(0,2).map(e=>`<div class="mini-pill" style="background:${e.color}22;color:${e.color};">${e.title}</div>`).join('')}
+                 ${evs.length>2?`<div style="font-size:.58rem;color:#94a3b8;">+${evs.length-2}</div>`:''}
+               </div>`;
+    }
+    grid.innerHTML = html;
+    document.getElementById('pcDetail').style.display='none';
+  }
+
+  function pcSelect(ds) {
+    const evs = PC_EVENTS[ds]||[];
+    const dt = new Date(ds+'T12:00:00');
+    document.getElementById('pcDetailDate').textContent = dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+    if (!evs.length) {
+      document.getElementById('pcDetailBody').innerHTML = '<p class="text-muted small mb-0">No events on this day.</p>';
+    } else {
+      document.getElementById('pcDetailBody').innerHTML = evs.map(ev=>`
+        <div class="mb-2 p-2 rounded" style="border-left:3px solid ${ev.color};background:${ev.color}0d;">
+          <div class="fw-semibold" style="font-size:.82rem;">${ev.title}</div>
+          ${ev.start_time?`<div class="text-muted" style="font-size:.72rem;"><i class="bi bi-clock me-1"></i>${ev.start_time}${ev.end_time?' – '+ev.end_time:''}</div>`:''}
+          ${ev.description?`<div style="font-size:.77rem;color:#374151;margin-top:.2rem;">${ev.description}</div>`:''}
+          <span class="badge" style="background:${ev.color}22;color:${ev.color};font-size:.62rem;">${ev.event_type}</span>
+        </div>`).join('');
+    }
+    document.getElementById('pcDetail').style.display='';
+  }
+
+  function pcPrev(){ if(pcMonth===0){pcMonth=11;pcYear--;}else pcMonth--; pcRender(); }
+  function pcNext(){ if(pcMonth===11){pcMonth=0;pcYear++;}else pcMonth++; pcRender(); }
+</script>
+<div id="idleOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.75);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:2rem 2.5rem;max-width:360px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+    <div style="width:56px;height:56px;border-radius:50%;background:#fee2e2;color:#ef4444;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin:0 auto .75rem;">&#128336;</div>
+    <h5 style="font-weight:700;color:#0f172a;margin-bottom:.4rem;">Session Timeout</h5>
+    <p style="font-size:.85rem;color:#64748b;margin-bottom:1.25rem;">You will be signed out in <strong id="idleCountdown" style="color:#ef4444;">10</strong> seconds due to inactivity.</p>
+    <button onclick="resetIdleTimer()" style="background:#4f46e5;color:#fff;border:none;border-radius:9px;padding:.65rem 1.5rem;font-weight:600;width:100%;cursor:pointer;">Stay Signed In</button>
+  </div>
+</div>
+<script>
+(function(){
+  const IDLE_TIMEOUT=60,WARN_BEFORE=10;
+  let idleTimer,countdownTimer,countdown;
+  const overlay=document.getElementById('idleOverlay'),countEl=document.getElementById('idleCountdown');
+  function showWarning(){countdown=WARN_BEFORE;countEl.textContent=countdown;overlay.style.display='flex';countdownTimer=setInterval(function(){countdown--;countEl.textContent=countdown;if(countdown<=0){clearInterval(countdownTimer);window.location.href='/logout';}},1000);}
+  window.resetIdleTimer=function(){clearTimeout(idleTimer);clearInterval(countdownTimer);overlay.style.display='none';idleTimer=setTimeout(showWarning,(IDLE_TIMEOUT-WARN_BEFORE)*1000);};
+  ['mousemove','mousedown','keydown','scroll','touchstart','click'].forEach(function(e){document.addEventListener(e,resetIdleTimer,true);});
+  resetIdleTimer();
+})();
+</script>
+<script>
+(function() {
+  var token = document.querySelector('meta[name="csrf-token"]');
+  if (!token) return;
+  var csrfValue = token.getAttribute('content');
+  document.querySelectorAll('form').forEach(function(form) {
+    var method = (form.getAttribute('method') || 'get').toLowerCase();
+    if (method !== 'post') return;
+    if (form.querySelector('input[name="csrf_token"]')) return;
+    var inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'csrf_token'; inp.value = csrfValue;
+    form.appendChild(inp);
+  });
+})();
+</script>
+</body>
+</html>

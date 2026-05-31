@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}School Settings — {{ school_name }}{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="fw-bold mb-0">School Settings</h2>
+    <p class="text-muted small mb-0">Configure your school's name, contact info, and branding.</p>
+  </div>
+</div>
+
+{% if saved %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+  <i class="bi bi-check-circle-fill me-2"></i>Settings saved successfully.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-bottom fw-semibold py-3">
+        <i class="bi bi-building me-2 text-primary"></i>School Information
+      </div>
+      <div class="card-body p-4">
+        <form method="POST" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">School Name <span class="text-danger">*</span></label>
+            <input type="text" name="school_name" class="form-control"
+                   value="{{ settings.school_name }}" required
+                   placeholder="e.g. Lincoln High School">
+            <div class="form-text">Appears on all reports, invoices, and pages.</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Address</label>
+            <input type="text" name="school_address" class="form-control"
+                   value="{{ settings.school_address }}"
+                   placeholder="e.g. 123 Main St, Springfield, IL">
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Phone</label>
+              <input type="text" name="school_phone" class="form-control"
+                     value="{{ settings.school_phone }}"
+                     placeholder="e.g. +1 555-123-4567">
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Email</label>
+              <input type="email" name="school_email" class="form-control"
+                     value="{{ settings.school_email }}"
+                     placeholder="e.g. info@yourschool.edu">
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">School Logo</label>
+            <div class="d-flex align-items-center gap-3 mb-2">
+              <img src="{{ settings.school_logo }}" alt="Current logo"
+                   style="height:56px;width:56px;object-fit:contain;border-radius:8px;border:1px solid #e5e7eb;padding:4px;background:#fff;">
+              <span class="text-muted small">Current logo</span>
+            </div>
+            <input type="file" name="school_logo" class="form-control"
+                   accept=".png,.jpg,.jpeg,.gif,.svg,.webp">
+            <div class="form-text">PNG, JPG, SVG or WebP. Recommended: square, at least 192×192 px.</div>
+          </div>
+
+          <button type="submit" class="btn text-white px-4" style="background:#4f46e5;">
+            <i class="bi bi-save me-2"></i>Save Settings
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-bottom fw-semibold py-3">
+        <i class="bi bi-eye me-2 text-primary"></i>Preview
+      </div>
+      <div class="card-body p-4 text-center">
+        <img src="{{ settings.school_logo }}" alt="Logo"
+             style="height:80px;width:80px;object-fit:contain;border-radius:12px;border:1px solid #e5e7eb;padding:6px;background:#fff;margin-bottom:12px;">
+        <h5 class="fw-bold mb-1">{{ settings.school_name }}</h5>
+        {% if settings.school_address %}
+        <p class="text-muted small mb-1">{{ settings.school_address }}</p>
+        {% endif %}
+        {% if settings.school_phone %}
+        <p class="text-muted small mb-1"><i class="bi bi-telephone me-1"></i>{{ settings.school_phone }}</p>
+        {% endif %}
+        {% if settings.school_email %}
+        <p class="text-muted small mb-0"><i class="bi bi-envelope me-1"></i>{{ settings.school_email }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-header bg-white border-bottom fw-semibold py-3">
+        <i class="bi bi-info-circle me-2 text-primary"></i>Setup Checklist
+      </div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex align-items-center gap-2 py-3">
+          {% if settings.school_name and settings.school_name != 'My School' %}
+          <i class="bi bi-check-circle-fill text-success"></i>
+          {% else %}
+          <i class="bi bi-circle text-secondary"></i>
+          {% endif %}
+          <span class="small">School name configured</span>
+        </li>
+        <li class="list-group-item d-flex align-items-center gap-2 py-3">
+          {% if settings.school_address %}
+          <i class="bi bi-check-circle-fill text-success"></i>
+          {% else %}
+          <i class="bi bi-circle text-secondary"></i>
+          {% endif %}
+          <span class="small">Address set</span>
+        </li>
+        <li class="list-group-item d-flex align-items-center gap-2 py-3">
+          {% if settings.school_email %}
+          <i class="bi bi-check-circle-fill text-success"></i>
+          {% else %}
+          <i class="bi bi-circle text-secondary"></i>
+          {% endif %}
+          <span class="small">Contact email set</span>
+        </li>
+        <li class="list-group-item d-flex align-items-center gap-2 py-3">
+          <a href="/users" class="small text-decoration-none text-primary">
+            <i class="bi bi-arrow-right-circle me-1"></i>Manage users &amp; roles →
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

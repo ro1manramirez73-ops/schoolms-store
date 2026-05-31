@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Invoice {{ inv.invoice_number }} — {{ school_name }}{% endblock %}
+{% block page_title %}Invoice {{ inv.invoice_number }}{% endblock %}
+
+{% block head %}
+<style>
+@media print {
+  .sidebar, .topbar, .no-print { display: none !important; }
+  .main-content { padding: 0 !important; }
+  .invoice-paper { box-shadow: none !important; border: none !important; border-radius: 0 !important; }
+}
+.invoice-paper {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 12px rgba(0,0,0,.06);
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 2.5rem;
+}
+.inv-header { border-bottom: 2px solid var(--primary); padding-bottom: 1.5rem; margin-bottom: 1.5rem; }
+.inv-table thead th { background: #f8faff; font-size: .75rem; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
+.inv-total-row td { border-top: 2px solid var(--border); font-weight: 700; font-size: 1.05rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Action bar -->
+<div class="d-flex justify-content-between align-items-center mb-3 no-print flex-wrap gap-2">
+  <a href="/finances" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+  <div class="d-flex gap-2 flex-wrap">
+    <button onclick="window.print()" class="btn btn-sm btn-outline-secondary"><i class="bi bi-printer"></i> Print</button>
+
+    {% if inv.status == 'Draft' %}
+    <form method="POST" action="/invoices/{{ inv.id }}/send">
+      <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-send"></i> Send to Parent</button>
+    </form>
+    {% elif inv.status == 'Sent' %}
+    <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#payModal">
+      <i class="bi bi-check-circle"></i> Mark Paid
+    </button>
+    <form method="POST" action="/invoices/{{ inv.id }}/send">
+      <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-send"></i> Resend</button>
+    </form>
+    {% endif %}
+
+    {% if inv.status not in ('Paid', 'Void') and session.role in ('admin', 'accountant') %}
+    <form method="POST" action="/invoices/{{ inv.id }}/void"
+          onsubmit="return confirm('Void this invoice? This cannot be undone.')">
+      <button type="submit" class="btn btn-sm btn-outline-warning">Void</button>
+    </form>
+    {% endif %}
+
+    {% if session.role == 'admin' %}
+    <form method="POST" action="/invoices/{{ inv.id }}/delete"
+          onsubmit="return confirm('Permanently delete invoice {{ inv.invoice_number }}?')">
+      <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Email status alert -->
+{% if request.args.get('sent') == '1' %}
+<div class="alert alert-success no-print mb-3" style="max-width:780px;margin:0 auto 1rem;">
+  <i class="bi bi-check-circle-fill me-1"></i> Invoice emailed to <strong>{{ inv.parent_email }}</strong>.
+</div>
+{% elif request.args.get('sent') == 'no_email' %}
+<div class="alert alert-warning no-print mb-3" style="max-width:780px;margin:0 auto 1rem;">
+  <i class="bi bi-exclamation-triangle-fill me-1"></i> Status set to Sent, but no parent email on file — email was not sent.
+</div>
+{% elif request.args.get('sent') == 'error' %}
+<div class="alert alert-danger no-print mb-3" style="max-width:780px;margin:0 auto 1rem;">
+  <i class="bi bi-x-circle-fill me-1"></i> Status set to Sent, but the email failed to send. Check SMTP settings.
+</div>
+{% endif %}
+
+<!-- Invoice paper -->
+<div class="invoice-paper">
+  <!-- Header row -->
+  <div class="inv-header d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div>
+      <h4 class="fw-bold mb-1" style="color:var(--primary)">{{ school_name }}</h4>
+      <div class="text-muted small">{{ school_email }}</div>
+    </div>
+    <div class="text-end">
+      <div class="text-muted small fw-semibold mb-1" style="letter-spacing:.08em;">INVOICE</div>
+      <h5 class="fw-bold mb-1">{{ inv.invoice_number }}</h5>
+      <span class="badge bg-{{
+        'secondary' if inv.status == 'Draft' else
+        ('primary'  if inv.status == 'Sent'  else
+        ('success'  if inv.status == 'Paid'  else 'warning'))
+      }}">{{ inv.status }}</span>
+    </div>
+  </div>
+
+  <!-- Billing / Invoice details -->
+  <div class="row mb-4">
+    <div class="col-sm-6 mb-3 mb-sm-0">
+      <div class="small fw-semibold text-muted mb-2" style="letter-spacing:.06em;">BILLED TO</div>
+      <div class="fw-semibold">{{ inv.parent_name or inv.student_name }}</div>
+      {% if inv.parent_email %}<div class="text-muted small">{{ inv.parent_email }}</div>{% endif %}
+      {% if inv.parent_phone %}<div class="text-muted small">{{ inv.parent_phone }}</div>{% endif %}
+      {% if inv.address %}<div class="text-muted small">{{ inv.address }}</div>{% endif %}
+      <div class="text-muted small mt-1">
+        Student: <strong>{{ inv.student_name }}</strong>
+        {% if inv.student_code %}<span class="text-muted">({{ inv.student_code }})</span>{% endif %}
+      </div>
+    </div>
+    <div class="col-sm-6 text-sm-end">
+      <div class="small fw-semibold text-muted mb-2" style="letter-spacing:.06em;">DETAILS</div>
+      <div class="text-muted small">Issue Date: <strong>{{ inv.issue_date }}</strong></div>
+      {% if inv.due_date %}
+      <div class="text-muted small">Due Date: <strong>{{ inv.due_date }}</strong></div>
+      {% endif %}
+      <div class="text-muted small">Prepared by: {{ inv.created_by_name or '—' }}</div>
+      <div class="text-muted small">Date: {{ today }}</div>
+    </div>
+  </div>
+
+  <!-- Line items -->
+  <table class="table inv-table mb-2">
+    <thead>
+      <tr>
+        <th width="40">#</th>
+        <th>Description</th>
+        <th class="text-end" width="130">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td class="text-muted">{{ loop.index }}</td>
+        <td>{{ item.description }}</td>
+        <td class="text-end">${{ "%.2f"|format(item.amount) }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="3" class="text-center text-muted py-3">No items.</td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr class="inv-total-row">
+        <td colspan="2" class="text-end">Total Due</td>
+        <td class="text-end" style="color:var(--primary)">${{ "%.2f"|format(total) }}</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  {% if inv.notes %}
+  <div class="border-top pt-3 mt-1 text-muted small">
+    <strong>Notes:</strong> {{ inv.notes }}
+  </div>
+  {% endif %}
+
+  <div class="border-top pt-3 mt-3 text-center text-muted small">
+    Thank you — {{ school_name }}
+  </div>
+</div>
+
+<!-- Mark Paid modal -->
+{% if inv.status == 'Sent' %}
+<div class="modal fade" id="payModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="POST" action="/invoices/{{ inv.id }}/pay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Record Payment</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-muted mb-3">
+            {{ inv.invoice_number }} &mdash; {{ inv.student_name }}<br>
+            <strong>Total: ${{ "%.2f"|format(total) }}</strong>
+          </p>
+          <label class="form-label small">Payment Method</label>
+          <select name="payment_method" class="form-select form-select-sm">
+            <option>Cash</option>
+            <option>Bank Transfer</option>
+            <option>Cheque</option>
+            <option>Card</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success btn-sm">Confirm Payment</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

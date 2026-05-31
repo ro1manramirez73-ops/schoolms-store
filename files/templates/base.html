@@ -1,0 +1,1198 @@
+﻿<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ school_name }}{% endblock %}</title>
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='icons/schoolms.ico') }}">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/favicon.svg') }}">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="{{ school_name }}">
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary:   #4f46e5;
+      --primary-d: #3730a3;
+      --sidebar-bg:#0f172a;
+      --sidebar-w: 240px;
+      --bg:        #f1f5f9;
+      --card-bg:   #ffffff;
+      --border:    #e2e8f0;
+      --text:      #0f172a;
+      --muted:     #64748b;
+      --success:   #10b981;
+      --warning:   #f59e0b;
+      --danger:    #ef4444;
+      --radius:    12px;
+    }
+
+    * { box-sizing: border-box; }
+    html { font-size: 16px; }
+    
+    body { 
+      font-family: 'Inter', sans-serif; 
+      background: var(--bg); 
+      color: var(--text); 
+      margin: 0; 
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      min-height: 100vh;
+      background: var(--sidebar-bg);
+      position: sticky;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      border-right: 1px solid rgba(255,255,255,.05);
+    }
+    .sidebar-brand {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      display: flex;
+      align-items: center;
+    }
+
+    .sidebar-nav { flex: 1; padding: .75rem .75rem 0; overflow-y: auto; }
+    .nav-section-label {
+      color: #475569;
+      font-size: .65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 1rem .5rem .25rem;
+    }
+    .sidebar-nav .nav-link {
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      color: #94a3b8;
+      border-radius: 8px;
+      padding: .5rem .75rem;
+      font-size: .82rem;
+      font-weight: 500;
+      transition: all .15s;
+      margin-bottom: 2px;
+      text-decoration: none;
+    }
+    .sidebar-nav .nav-link i { font-size: .95rem; width: 18px; text-align: center; flex-shrink: 0; }
+    .sidebar-nav .nav-link:hover { color: #fff; background: rgba(255,255,255,.07); }
+    .sidebar-nav .nav-link.active {
+      color: #fff;
+      background: linear-gradient(90deg, var(--primary), #6366f1);
+      box-shadow: 0 2px 8px rgba(79,70,229,.35);
+    }
+
+    .sidebar-user {
+      padding: .75rem;
+      border-top: 1px solid rgba(255,255,255,.07);
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+    .sidebar-user .avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: linear-gradient(135deg,#6366f1,#a855f7);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: .8rem; flex-shrink: 0;
+    }
+    .sidebar-user .info .name  { color: #fff; font-size: .78rem; font-weight: 600; }
+    .sidebar-user .info .role  { color: #64748b; font-size: .65rem; text-transform: capitalize; }
+    .sidebar-user .actions { margin-left: auto; display: flex; gap: .25rem; }
+    .sidebar-user .actions a {
+      width: 28px; height: 28px; border-radius: 7px;
+      background: rgba(255,255,255,.06);
+      color: #94a3b8;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .8rem; text-decoration: none; transition: .15s;
+    }
+    .sidebar-user .actions a:hover { background: rgba(255,255,255,.12); color: #fff; }
+
+    /* ── Main area ── */
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+    .topbar {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: .75rem 1.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .topbar .page-title { font-size: 1.05rem; font-weight: 700; color: var(--text); margin: 0; }
+    .topbar .breadcrumb { font-size: .75rem; color: var(--muted); margin: 0; }
+    .topbar .topbar-right { display: flex; align-items: center; gap: .75rem; }
+
+    .main-content { padding: 1.75rem; flex: 1; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    }
+    .card-header {
+      background: transparent;
+      border-bottom: 1px solid var(--border);
+      padding: .875rem 1.125rem;
+      font-weight: 600;
+      font-size: .88rem;
+      border-radius: var(--radius) var(--radius) 0 0 !important;
+    }
+    .card-body { padding: 1.125rem; }
+
+    /* ── Stat cards ── */
+    .stat-card {
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card .icon-wrap {
+      width: 44px; height: 44px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; margin-bottom: .75rem;
+    }
+    .stat-card .label { font-size: .75rem; color: var(--muted); font-weight: 500; margin-bottom: .25rem; }
+    .stat-card .value { font-size: 1.75rem; font-weight: 700; line-height: 1; }
+    .stat-card .trend  { font-size: .72rem; color: var(--muted); margin-top: .35rem; }
+    .stat-card::after {
+      content: ''; position: absolute; right: -10px; top: -10px;
+      width: 70px; height: 70px; border-radius: 50%;
+      opacity: .06;
+    }
+
+    /* ── Tables ── */
+    .table { font-size: .825rem; }
+    .table th { font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); border-bottom: 2px solid var(--border); padding: .6rem .875rem; }
+    .table td { padding: .6rem .875rem; vertical-align: middle; border-color: #f1f5f9; }
+    .table tbody tr:last-child td { border-bottom: none; }
+    .table-hover tbody tr:hover { background: #f8faff; }
+
+    /* ── Badges ── */
+    .badge { font-weight: 500; font-size: .7rem; padding: .3em .6em; border-radius: 6px; }
+
+    /* ── Buttons ── */
+    .btn { font-size: .82rem; font-weight: 500; border-radius: 8px; }
+    .btn-primary { background: var(--primary); border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-d); border-color: var(--primary-d); }
+    .btn-sm { padding: .3rem .7rem; font-size: .78rem; }
+
+    /* ── Modals ── */
+    .modal-content { border-radius: 14px; border: none; box-shadow: 0 20px 60px rgba(0,0,0,.15); }
+    .modal-header { border-bottom: 1px solid var(--border); padding: 1.125rem 1.25rem; }
+    .modal-footer { border-top: 1px solid var(--border); padding: .875rem 1.25rem; }
+    .modal-title  { font-size: .95rem; font-weight: 700; }
+
+    /* ── Forms ── */
+    .form-control, .form-select {
+      border-radius: 8px; border-color: var(--border);
+      font-size: .825rem; padding: .45rem .75rem;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79,70,229,.12);
+    }
+    .form-label { font-size: .78rem; font-weight: 600; color: var(--muted); margin-bottom: .3rem; }
+
+    /* ── Nav tabs ── */
+    .nav-tabs { border-bottom: 2px solid var(--border); gap: .25rem; }
+    .nav-tabs .nav-link { border: none; color: var(--muted); font-size: .82rem; font-weight: 500; padding: .5rem .875rem; border-radius: 8px 8px 0 0; transition: .15s; }
+    .nav-tabs .nav-link:hover { color: var(--primary); background: rgba(79,70,229,.06); }
+    .nav-tabs .nav-link.active { color: var(--primary); font-weight: 600; border-bottom: 2px solid var(--primary); background: transparent; margin-bottom: -2px; }
+
+    /* ── Alerts ── */
+    .alert { border-radius: 10px; font-size: .825rem; }
+
+    /* ── Misc ── */
+    a { color: var(--primary); }
+    .text-muted { color: var(--muted) !important; }
+    .rounded-pill-sm { border-radius: 20px; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+    /* ── Sidebar collapse (desktop) ── */
+    .sidebar { transition: width .2s ease; overflow: hidden; }
+    .sidebar-brand { gap: .5rem; }
+
+    .sidebar-collapse-btn {
+      margin-left: auto; flex-shrink: 0;
+      width: 26px; height: 26px; min-height: unset; min-width: unset;
+      background: rgba(255,255,255,.08); border: none; border-radius: 6px;
+      color: #94a3b8; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .8rem; transition: background .15s, color .15s;
+      padding: 0;
+    }
+    .sidebar-collapse-btn:hover { background: rgba(255,255,255,.15); color: #fff; }
+    .sidebar-collapse-btn i { transition: transform .2s ease; }
+
+    .sidebar.collapsed { width: 62px; }
+    .sidebar.collapsed .sidebar-brand img { display: none; }
+    .sidebar.collapsed .sidebar-collapse-btn { margin-left: 0; }
+    .sidebar.collapsed .sidebar-collapse-btn i { transform: rotate(180deg); }
+    .sidebar.collapsed .nav-section-label { display: none; }
+    .sidebar.collapsed .sidebar-nav { padding: .75rem .25rem 0; }
+    .sidebar.collapsed .sidebar-nav .nav-link {
+      justify-content: center; gap: 0; padding: .5rem; font-size: 0;
+    }
+    .sidebar.collapsed .sidebar-nav .nav-link i { font-size: .95rem; width: auto; }
+    .sidebar.collapsed .sidebar-nav .nav-link .badge { display: none; }
+    .sidebar.collapsed .sidebar-user { justify-content: center; padding: .75rem .5rem; }
+    .sidebar.collapsed .sidebar-user .info,
+    .sidebar.collapsed .sidebar-user .actions { display: none; }
+
+    /* ── Mobile Responsive ── */
+    .sidebar-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 1.3rem;
+      cursor: pointer;
+      padding: 0.5rem;
+      margin-right: 0.5rem;
+      min-width: 44px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── Tablet: 769px to 1024px ── */
+    @media (max-width: 1024px) {
+      :root {
+        --sidebar-w: 220px;
+      }
+
+      .main-content {
+        padding: 1.5rem;
+      }
+
+      .stat-card {
+        padding: 1.1rem;
+      }
+
+      .table {
+        font-size: 0.8rem;
+      }
+
+      .btn {
+        font-size: 0.78rem;
+      }
+    }
+
+    /* ── Tablet: 768px and below ── */
+    @media (max-width: 768px) {
+      :root {
+        --sidebar-w: 240px;
+      }
+
+      html {
+        font-size: 15px;
+      }
+
+      .sidebar {
+        position: fixed;
+        left: -240px;
+        height: 100vh;
+        z-index: 1050;
+        transition: left 0.3s ease;
+        box-shadow: 2px 0 12px rgba(0,0,0,.2);
+        top: 0;
+        bottom: 0;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .sidebar.active {
+        left: 0;
+      }
+
+      .sidebar-toggle {
+        display: flex !important;
+      }
+
+      .sidebar-brand {
+        padding: 0.875rem 1rem;
+      }
+
+      .sidebar-brand img {
+        height: 35px !important;
+      }
+
+      .sidebar-nav {
+        padding: 0.5rem 0.5rem 0;
+      }
+
+      .sidebar-nav .nav-link {
+        padding: 0.6rem 0.75rem;
+        font-size: 0.8rem;
+        gap: 0.5rem;
+      }
+
+      .sidebar-nav .nav-link i {
+        font-size: 0.9rem;
+      }
+
+      .nav-section-label {
+        font-size: 0.62rem;
+        padding: 0.875rem 0.5rem 0.2rem;
+      }
+
+      .sidebar-user {
+        padding: 0.65rem;
+      }
+
+      .sidebar-user .avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 0.75rem;
+      }
+
+      .sidebar-user .info .name {
+        font-size: 0.73rem;
+      }
+
+      .sidebar-user .info .role {
+        font-size: 0.6rem;
+      }
+
+      .main-wrapper {
+        flex: 1;
+      }
+
+      .topbar {
+        padding: 0.65rem 1rem;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .page-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        flex: 1;
+      }
+
+      .main-content {
+        padding: 1rem;
+        overflow-x: hidden;
+      }
+
+      .table {
+        font-size: 0.75rem;
+      }
+
+      .table th,
+      .table td {
+        padding: 0.4rem 0.5rem;
+      }
+
+      .table-hover tbody tr:hover {
+        background: #f8faff;
+      }
+
+      .stat-card {
+        padding: 0.95rem;
+      }
+
+      .stat-card .icon-wrap {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+      }
+
+      .stat-card .value {
+        font-size: 1.5rem;
+      }
+
+      .card-body {
+        padding: 0.875rem;
+      }
+
+      .card-header {
+        padding: 0.75rem 0.95rem;
+        font-size: 0.82rem;
+      }
+
+      .btn {
+        padding: 0.35rem 0.65rem !important;
+        font-size: 0.73rem;
+        min-height: 36px;
+        min-width: 36px;
+      }
+
+      .btn-sm {
+        min-height: 32px;
+        min-width: 32px;
+      }
+
+      .btn-lg {
+        min-height: 44px;
+      }
+
+      .nav-link {
+        padding: 0.6rem 0.75rem;
+        font-size: 0.8rem;
+      }
+
+      .topbar-right {
+        gap: 0.5rem;
+        display: flex;
+        align-items: center;
+      }
+
+      .topbar-right .badge {
+        font-size: 0.65rem !important;
+        padding: 0.3em 0.55em !important;
+      }
+
+      .form-control, .form-select {
+        padding: 0.4rem 0.65rem;
+        font-size: 0.78rem;
+        border-radius: 6px;
+      }
+
+      .form-label {
+        font-size: 0.73rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .modal-content {
+        border-radius: 12px;
+      }
+
+      .modal-body {
+        padding: 1rem;
+      }
+
+      .alert {
+        font-size: 0.78rem;
+        padding: 0.75rem 0.95rem;
+      }
+
+      .badge {
+        font-size: 0.65rem !important;
+      }
+    }
+
+    /* ── Mobile: 480px to 767px ── */
+    @media (max-width: 767px) {
+      html {
+        font-size: 14px;
+      }
+
+      .main-content {
+        padding: 0.875rem;
+      }
+
+      .topbar {
+        padding: 0.6rem 0.75rem;
+        gap: 0.4rem;
+      }
+
+      .page-title {
+        font-size: 0.9rem;
+      }
+
+      .card {
+        margin-bottom: 0.875rem;
+      }
+
+      .stat-card {
+        padding: 0.85rem;
+      }
+
+      .stat-card .value {
+        font-size: 1.35rem;
+      }
+
+      .stat-card .label {
+        font-size: 0.7rem;
+      }
+
+      .table {
+        font-size: 0.7rem;
+      }
+
+      .table th,
+      .table td {
+        padding: 0.35rem 0.4rem;
+      }
+
+      .btn {
+        padding: 0.3rem 0.55rem !important;
+        font-size: 0.7rem;
+      }
+
+      .btn-sm {
+        min-height: 36px;
+        min-width: 36px;
+        padding: 0.25rem 0.5rem !important;
+      }
+
+      .form-control, .form-select {
+        padding: 0.35rem 0.55rem;
+        font-size: 0.73rem;
+        border-radius: 5px;
+      }
+
+      .form-label {
+        font-size: 0.68rem;
+      }
+
+      .alert {
+        font-size: 0.73rem;
+        padding: 0.65rem 0.85rem;
+      }
+
+      .badge {
+        font-size: 0.6rem !important;
+        padding: 0.25em 0.5em !important;
+      }
+
+      .modal-body {
+        padding: 0.875rem;
+      }
+    }
+
+    /* ── Mobile: Small screens (< 480px) ── */
+    @media (max-width: 479px) {
+      html {
+        font-size: 13px;
+      }
+
+      .main-content {
+        padding: 0.75rem;
+      }
+
+      .topbar {
+        padding: 0.5rem 0.65rem;
+        gap: 0.3rem;
+      }
+
+      .page-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+
+      .main-wrapper {
+        flex: 1;
+      }
+
+      .card {
+        margin-bottom: 0.75rem;
+        border-radius: 8px;
+      }
+
+      .card-body {
+        padding: 0.75rem;
+      }
+
+      .stat-card {
+        padding: 0.75rem;
+      }
+
+      .stat-card .value {
+        font-size: 1.25rem;
+      }
+
+      .stat-card .icon-wrap {
+        width: 36px;
+        height: 36px;
+        font-size: 0.9rem;
+      }
+
+      .row.g-3 {
+        gap: 0.65rem !important;
+      }
+
+      .row.g-3 > * {
+        padding-left: 0.325rem;
+        padding-right: 0.325rem;
+      }
+
+      .table {
+        font-size: 0.65rem;
+      }
+
+      .table th,
+      .table td {
+        padding: 0.3rem 0.35rem;
+      }
+
+      .table thead th {
+        font-size: 0.6rem;
+      }
+
+      .btn {
+        padding: 0.25rem 0.5rem !important;
+        font-size: 0.65rem;
+        min-height: 36px;
+        border-radius: 5px;
+      }
+
+      .btn-sm {
+        min-height: 32px;
+        min-width: 32px;
+        padding: 0.2rem 0.4rem !important;
+      }
+
+      .btn-icon-only {
+        width: 36px;
+        height: 36px;
+        padding: 0 !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .form-control, .form-select {
+        padding: 0.3rem 0.5rem;
+        font-size: 0.68rem;
+        border-radius: 5px;
+        height: auto;
+      }
+
+      .form-label {
+        font-size: 0.63rem;
+        margin-bottom: 0.2rem;
+      }
+
+      .alert {
+        font-size: 0.68rem;
+        padding: 0.6rem 0.75rem;
+        border-radius: 6px;
+      }
+
+      .badge {
+        font-size: 0.55rem !important;
+        padding: 0.2em 0.45em !important;
+        border-radius: 4px;
+      }
+
+      .modal-body {
+        padding: 0.75rem;
+      }
+
+      .modal-header {
+        padding: 0.75rem 0.875rem;
+      }
+
+      .modal-title {
+        font-size: 0.85rem;
+      }
+
+      .sidebar-toggle {
+        min-width: 40px;
+        min-height: 40px;
+        font-size: 1.1rem;
+        padding: 0.35rem;
+      }
+
+      /* Stack columns in grid */
+      .col-sm-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+      }
+
+      /* Touch-friendly targets */
+      a, button, [role="button"] {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0.4rem 0.6rem;
+      }
+
+      .nav-link {
+        padding: 0.5rem 0.65rem;
+        font-size: 0.75rem;
+      }
+    }
+
+    /* ── Landscape orientation (height less than width) ── */
+    @media (max-height: 500px) and (orientation: landscape) {
+      .sidebar-brand {
+        padding: 0.6rem 0.8rem;
+      }
+
+      .sidebar-brand img {
+        height: 28px !important;
+      }
+
+      .sidebar-user {
+        padding: 0.5rem;
+      }
+
+      .main-content {
+        padding: 0.75rem;
+      }
+
+      .topbar {
+        padding: 0.5rem 0.75rem;
+      }
+    }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+<div style="display:flex; min-height:100vh;">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span style="font-weight:700;font-size:1rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;">{{ school_name }}</span>
+      <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Collapse menu">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">
+        <i class="bi bi-grid-1x2"></i> {{ _('Dashboard') }}
+      </a>
+
+      {% if can('students') %}
+      <div class="nav-section-label">{{ _('Academics') }}</div>
+      <a href="/students" class="nav-link {% if request.path.startswith('/students') %}active{% endif %}">
+        <i class="bi bi-people"></i> {{ _('Students') }}
+      </a>
+      {% endif %}
+      {% if can('teachers') %}
+      <a href="/teachers" class="nav-link {% if request.path.startswith('/teachers') %}active{% endif %}">
+        <i class="bi bi-person-badge"></i> {{ _('Staff') }}
+      </a>
+      {% endif %}
+      {% if can('classes') %}
+      <a href="/classes" class="nav-link {% if request.path.startswith('/classes') or request.path.startswith('/subjects') %}active{% endif %}">
+        <i class="bi bi-building"></i> {{ _('Classrooms & Subjects') }}
+      </a>
+      {% endif %}
+      {% if can('attendance') %}
+      <a href="/attendance" class="nav-link {% if request.path.startswith('/attendance') %}active{% endif %}">
+        <i class="bi bi-check2-square"></i> {{ _('Attendance') }}
+      </a>
+      {% endif %}
+      {% if can('grades') %}
+      <a href="/grades" class="nav-link {% if request.path.startswith('/grades') %}active{% endif %}">
+        <i class="bi bi-journal-text"></i> {{ _('Grades') }}
+      </a>
+      <a href="/assignments" class="nav-link {% if request.path.startswith('/assignments') %}active{% endif %}">
+        <i class="bi bi-clipboard-check"></i> {{ _('Assignments') }}
+      </a>
+      {% endif %}
+      {% if can('timetable') %}
+      <a href="/timetable" class="nav-link {% if request.path.startswith('/timetable') %}active{% endif %}">
+        <i class="bi bi-calendar-week"></i> {{ _('Timetable') }}
+      </a>
+      {% endif %}
+
+      {% if can('finances') %}
+      <div class="nav-section-label">{{ _('Finance') }}</div>
+      {% if session.role != 'frontdesk' %}
+      <a href="/finances" class="nav-link {% if request.path.startswith('/finances') or request.path.startswith('/fees') %}active{% endif %}">
+        <i class="bi bi-cash-stack"></i> {{ _('Finances') }}
+      </a>
+      <a href="/reports" class="nav-link {% if request.path.startswith('/reports') %}active{% endif %}">
+        <i class="bi bi-bar-chart-line"></i> {{ _('Reports') }}
+      </a>
+      <a href="/qb-sync" class="nav-link {% if request.path.startswith('/qb-sync') %}active{% endif %}">
+        <i class="bi bi-arrow-left-right"></i> {{ _('QB Sync') }}
+      </a>
+      {% endif %}
+      {% endif %}
+      {% if can('walk_ins') %}
+      <a href="/walk-ins" class="nav-link {% if request.path.startswith('/walk-ins') %}active{% endif %}">
+        <i class="bi bi-person-walking"></i> {{ _('Walk-in Clients') }}
+      </a>
+      {% endif %}
+
+      {% if can('announcements') or can('calendar') or can('directory') %}
+      <div class="nav-section-label">{{ _('Communication') }}</div>
+      {% endif %}
+      {% if can('directory') %}
+      <a href="/directory" class="nav-link {% if request.path.startswith('/directory') %}active{% endif %}">
+        <i class="bi bi-telephone-fill"></i> {{ _('Directory') }}
+      </a>
+      {% endif %}
+      {% if can('announcements') %}
+      <a href="/announcements" class="nav-link {% if request.path.startswith('/announcements') %}active{% endif %}">
+        <i class="bi bi-megaphone"></i> {{ _('Announcements') }}
+      </a>
+      {% endif %}
+      {% if can('calendar') %}
+      <a href="/calendar" class="nav-link {% if request.path.startswith('/calendar') %}active{% endif %}">
+        <i class="bi bi-calendar-event"></i> {{ _('Calendar') }}
+      </a>
+      {% endif %}
+      <a href="/messages" class="nav-link {% if request.path.startswith('/messages') %}active{% endif %}" style="position:relative;">
+        <i class="bi bi-bell"></i> {{ _('Notifications') }}
+        {% set uc = unread_count() %}{% if uc > 0 %}
+        <span class="badge bg-danger ms-auto" style="font-size:.6rem;padding:.2em .45em;">{{ uc }}</span>
+        {% endif %}
+      </a>
+
+      {% if session.role == 'admin' %}
+      <div class="nav-section-label">{{ _('Admin') }}</div>
+      <a href="/admin/admissions" class="nav-link {% if request.path.startswith('/admin/admissions') %}active{% endif %}">
+        <i class="bi bi-file-earmark-person"></i> {{ _('Admissions') }}
+      </a>
+      <a href="/users" class="nav-link {% if request.path.startswith('/users') %}active{% endif %}">
+        <i class="bi bi-shield-lock"></i> {{ _('Users') }}
+      </a>
+      <a href="/admin/roles" class="nav-link {% if request.path.startswith('/admin/roles') %}active{% endif %}">
+        <i class="bi bi-toggles"></i> {{ _('Roles & Permissions') }}
+      </a>
+      <a href="/admin/settings" class="nav-link {% if request.path.startswith('/admin/settings') %}active{% endif %}">
+        <i class="bi bi-gear"></i> {{ _('School Settings') }}
+      </a>
+      <a href="/admin/deployment" class="nav-link {% if request.path.startswith('/admin/deployment') %}active{% endif %}">
+        <i class="bi bi-hdd-network"></i> {{ _('Deployment') }}
+      </a>
+      <a href="/admin/license" class="nav-link {% if request.path.startswith('/admin/license') %}active{% endif %}">
+        <i class="bi bi-key"></i> {{ _('License') }}
+      </a>
+      <a href="/payroll" class="nav-link {% if request.path.startswith('/payroll') %}active{% endif %}">
+        <i class="bi bi-cash-coin"></i> {{ _('Payroll') }}
+      </a>
+      <button onclick="restartServer()" class="nav-link w-100 text-start border-0 bg-transparent" style="color:#ef4444;">
+        <i class="bi bi-arrow-clockwise"></i> {{ _('Restart Server') }}
+      </button>
+      {% endif %}
+    </nav>
+
+    <div class="sidebar-user">
+      <div class="avatar">{{ session.full_name[0] if session.full_name else 'U' }}</div>
+      <div class="info">
+        <div class="name">{{ session.full_name }}</div>
+        <div class="role">{{ session.role }}</div>
+      </div>
+      <div class="actions">
+        <a href="/profile" title="{{ _('Profile') }}"><i class="bi bi-person"></i></a>
+        <a href="/manual" target="_blank" title="User Manual (PDF)"
+           style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,.06);color:#94a3b8;text-decoration:none;">
+          <i class="bi bi-book"></i>
+        </a>
+        <a href="/set-language/{{ 'es' if lang == 'en' else 'en' }}"
+           title="{{ _('Spanish') if lang == 'en' else _('English') }}"
+           style="font-size:.65rem;font-weight:700;color:#94a3b8;text-decoration:none;display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,.06);">
+          {{ 'ES' if lang == 'en' else 'EN' }}
+        </a>
+        <button id="sidebarInstallBtn" onclick="sidebarInstall()" title="{{ _('Install App on Desktop') }}"
+                style="display:none;background:none;border:none;padding:0;cursor:pointer;color:inherit;">
+          <i class="bi bi-download"></i>
+        </button>
+        <a href="/logout" title="{{ _('Sign out') }}"><i class="bi bi-box-arrow-right"></i></a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <div class="main-wrapper">
+    <header class="topbar">
+      <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Menu">
+        <i class="bi bi-list"></i>
+      </button>
+      <div>
+        <div class="page-title">{% block page_title %}{% endblock %}</div>
+      </div>
+      <div class="topbar-right">
+        <span class="badge rounded-pill" style="background:#ede9fe;color:#4f46e5;font-size:.72rem;padding:.35em .75em;">
+          {{ session.role | capitalize }}
+        </span>
+        <a href="/messages" class="btn btn-sm btn-outline-secondary" title="Notifications" style="position:relative;">
+          <i class="bi bi-bell"></i>
+          {% set uc = unread_count() %}{% if uc > 0 %}
+          <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:.6rem;">{{ uc }}</span>
+          {% endif %}
+        </a>
+      </div>
+    </header>
+    <main class="main-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  const sidebarCollapseBtn = document.getElementById('sidebarCollapseBtn');
+  const sidebar = document.querySelector('.sidebar');
+
+  // Desktop collapse toggle (only on screens wider than 768px)
+  if (sidebarCollapseBtn) {
+    if (window.innerWidth > 768 && localStorage.getItem('sidebarCollapsed') === '1') {
+      sidebar.classList.add('collapsed');
+    }
+    sidebarCollapseBtn.addEventListener('click', () => {
+      if (window.innerWidth > 768) {
+        sidebar.classList.toggle('collapsed');
+        localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed') ? '1' : '0');
+      }
+    });
+  }
+
+  // Mobile sidebar toggle
+  if (sidebarToggle) {
+    sidebarToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('active');
+    });
+  }
+
+  // Close sidebar when clicking a nav link (mobile)
+  document.querySelectorAll('.sidebar-nav .nav-link').forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 768) sidebar.classList.remove('active');
+    });
+  });
+
+  // Close sidebar when clicking outside on mobile
+  document.addEventListener('click', (e) => {
+    if (window.innerWidth <= 768) {
+      if (!sidebar.contains(e.target) && !sidebarToggle?.contains(e.target)) {
+        sidebar.classList.remove('active');
+      }
+    }
+  });
+</script>
+{% block scripts %}{% endblock %}
+<script>
+function restartServer() {
+  if (!confirm('Restart the server? It will be offline for ~5 seconds.')) return;
+  const btn = document.querySelector('[onclick="restartServer()"]');
+  if (btn) { btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Restarting…'; btn.disabled = true; }
+  fetch('/admin/restart', {method:'POST'})
+    .catch(() => {})
+    .finally(() => {
+      setTimeout(() => {
+        const reload = () => fetch('/').then(() => location.reload()).catch(() => setTimeout(reload, 1000));
+        reload();
+      }, 4000);
+    });
+}
+</script>
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(()=>{});
+}
+
+// iOS install hint
+(function(){
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isSafari = /safari/i.test(navigator.userAgent) && !/chrome|crios|fxios/i.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone === true;
+  const dismissed = localStorage.getItem('ios_install_dismissed');
+  if(isIOS && isSafari && !isStandalone && !dismissed){
+    document.getElementById('ios-install-hint').classList.remove('d-none');
+  }
+  window.iosDismiss = function(){
+    localStorage.setItem('ios_install_dismissed','1');
+    document.getElementById('ios-install-hint').classList.add('d-none');
+  };
+})();
+
+// PWA Install Banner
+(function(){
+  let deferredPrompt = null;
+  const DISMISSED_KEY = 'pwa_install_dismissed';
+
+  function showInstallUI() {
+    // Always show sidebar install button when install is available
+    const btn = document.getElementById('sidebarInstallBtn');
+    if (btn) btn.style.display = '';
+    // Show banner only if not dismissed
+    if (!localStorage.getItem(DISMISSED_KEY)) {
+      const banner = document.getElementById('pwa-install-banner');
+      if (banner) banner.classList.remove('d-none');
+    }
+  }
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    showInstallUI();
+  });
+
+  window.addEventListener('appinstalled', () => {
+    const banner = document.getElementById('pwa-install-banner');
+    if (banner) banner.classList.add('d-none');
+    const btn = document.getElementById('sidebarInstallBtn');
+    if (btn) btn.style.display = 'none';
+    deferredPrompt = null;
+  });
+
+  function doInstall() {
+    if (!deferredPrompt) return;
+    localStorage.removeItem(DISMISSED_KEY); // clear dismissed so it can show again next time
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(r => {
+      deferredPrompt = null;
+      const banner = document.getElementById('pwa-install-banner');
+      if (banner) banner.classList.add('d-none');
+    });
+  }
+
+  window.pwaInstall    = doInstall;
+  window.sidebarInstall = doInstall;
+
+  window.pwaDismiss = function(){
+    localStorage.setItem(DISMISSED_KEY, '1');
+    const banner = document.getElementById('pwa-install-banner');
+    if (banner) banner.classList.add('d-none');
+    // Keep sidebar button visible so user can still install later
+  };
+})();
+</script>
+
+<!-- iOS Install Hint -->
+<div id="ios-install-hint" class="d-none" style="position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#1e1b4b;color:#fff;padding:.75rem 1rem;box-shadow:0 -2px 12px rgba(0,0,0,.3);">
+  <div class="d-flex align-items-start justify-content-between gap-2">
+    <div class="d-flex align-items-start gap-2">
+      <img src="/static/icons/icon-72.png" width="36" height="36" style="border-radius:8px;flex-shrink:0;" alt="">
+      <div>
+        <div style="font-weight:600;font-size:.9rem;">Install {{ school_name }}</div>
+        <div style="font-size:.78rem;opacity:.85;margin-top:.15rem;">
+          Tap <span style="display:inline-flex;align-items:center;background:rgba(255,255,255,.15);padding:1px 6px;border-radius:4px;font-size:.8rem;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16" style="margin-right:3px;"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/></svg>
+            Share
+          </span>
+          then tap <strong>"Add to Home Screen"</strong>
+        </div>
+      </div>
+    </div>
+    <button onclick="iosDismiss()" style="background:none;border:none;color:#fff;opacity:.7;font-size:1.2rem;line-height:1;padding:0;flex-shrink:0;">&times;</button>
+  </div>
+  <div style="margin-top:.4rem;margin-left:44px;">
+    <span style="font-size:.7rem;opacity:.6;">Opens as a full-screen app — no browser bar</span>
+  </div>
+</div>
+
+<!-- PWA Install Banner -->
+<div id="pwa-install-banner" class="d-none" style="position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#4f46e5;color:#fff;padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;box-shadow:0 -2px 12px rgba(0,0,0,.2);">
+  <div class="d-flex align-items-center gap-2">
+    <img src="/static/icons/icon-72.png" width="36" height="36" style="border-radius:8px;" alt="">
+    <div>
+      <div style="font-weight:600;font-size:.9rem;">Install {{ school_name }}</div>
+      <div style="font-size:.75rem;opacity:.85;">Add to your home screen for quick access</div>
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <button onclick="pwaInstall()" class="btn btn-light btn-sm fw-semibold" style="font-size:.8rem;">Install</button>
+    <button onclick="pwaDismiss()" class="btn btn-sm" style="color:#fff;opacity:.7;font-size:1.1rem;line-height:1;background:none;border:none;">&times;</button>
+  </div>
+</div>
+<!-- Auto-logout overlay -->
+<div id="idleOverlay" style="display:none;position:fixed;inset:0;z-index:9999;
+     background:rgba(15,23,42,.75);backdrop-filter:blur(4px);
+     display:none;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:2rem 2.5rem;max-width:360px;width:90%;
+              text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+    <div style="width:56px;height:56px;border-radius:50%;background:#fee2e2;color:#ef4444;
+                display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin:0 auto .75rem;">
+      <i class="bi bi-clock-history"></i>
+    </div>
+    <h5 style="font-weight:700;color:#0f172a;margin-bottom:.4rem;">Session Timeout</h5>
+    <p style="font-size:.85rem;color:#64748b;margin-bottom:1.25rem;">
+      You will be signed out in <strong id="idleCountdown" style="color:#ef4444;">10</strong> seconds due to inactivity.
+    </p>
+    <button onclick="resetIdleTimer()" class="btn btn-primary w-100" style="font-weight:600;">
+      <i class="bi bi-arrow-repeat me-2"></i>Stay Signed In
+    </button>
+  </div>
+</div>
+
+{% if session.user_id %}
+<script>
+(function(){
+  var IDLE_MS    = 5 * 60 * 1000;   // 5 minutes idle → logout
+  var WARN_MS    = 30 * 1000;        // show warning 30 s before logout
+  var PING_MS    = 90 * 1000;        // ping server every 90 s while active
+
+  var idleTimer, warnTimer, countdownTimer;
+  var lastActive = Date.now();
+  var overlay    = document.getElementById('idleOverlay');
+  var countEl    = document.getElementById('idleCountdown');
+
+  /* ── ping server to keep session alive ── */
+  function pingServer(){
+    fetch('/ping', {credentials:'same-origin'}).catch(function(){});
+  }
+  setInterval(function(){
+    if(Date.now() - lastActive < PING_MS + 5000){ pingServer(); }
+  }, PING_MS);
+
+  /* ── logout / warning ── */
+  function doLogout(){ window.location.href = '/logout'; }
+
+  function showWarning(){
+    var secs = Math.round(WARN_MS / 1000);
+    countEl.textContent = secs;
+    overlay.style.display = 'flex';
+    countdownTimer = setInterval(function(){
+      secs--;
+      countEl.textContent = secs;
+      if(secs <= 0){ clearInterval(countdownTimer); doLogout(); }
+    }, 1000);
+  }
+
+  /* ── reset on any activity ── */
+  window.resetIdleTimer = function(){
+    lastActive = Date.now();
+    clearTimeout(idleTimer);
+    clearTimeout(warnTimer);
+    clearInterval(countdownTimer);
+    overlay.style.display = 'none';
+    warnTimer = setTimeout(showWarning, IDLE_MS - WARN_MS);
+    idleTimer = setTimeout(doLogout, IDLE_MS);
+  };
+
+  ['mousemove','mousedown','keydown','scroll','touchstart','click'].forEach(function(e){
+    document.addEventListener(e, window.resetIdleTimer, true);
+  });
+
+  pingServer();
+  window.resetIdleTimer();
+})();
+</script>
+{% endif %}
+<script>
+(function() {
+  var token = document.querySelector('meta[name="csrf-token"]');
+  if (!token) return;
+  var csrfValue = token.getAttribute('content');
+  document.querySelectorAll('form').forEach(function(form) {
+    var method = (form.getAttribute('method') || 'get').toLowerCase();
+    if (method !== 'post') return;
+    if (form.querySelector('input[name="csrf_token"]')) return;
+    var inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'csrf_token'; inp.value = csrfValue;
+    form.appendChild(inp);
+  });
+})();
+</script>
+</body>
+</html>

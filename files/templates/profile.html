@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}My Profile — {{ school_name }}{% endblock %}
+{% block content %}
+<h2 class="fw-bold mb-4">My Profile</h2>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header fw-semibold">Account Information</div>
+      <div class="card-body">
+        <form method="POST">
+          <div class="mb-3">
+            <label class="form-label small text-muted">Username</label>
+            <input class="form-control form-control-sm" value="{{ user.username }}" disabled>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small">Full Name</label>
+            <input name="full_name" class="form-control form-control-sm" value="{{ user.full_name }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small">Email</label>
+            <input name="email" class="form-control form-control-sm" value="{{ user.email or '' }}">
+          </div>
+          <hr>
+          <h6 class="fw-semibold">Change Password</h6>
+          <div class="mb-3">
+            <label class="form-label small">Current Password</label>
+            <input type="password" name="current_password" class="form-control form-control-sm">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small">New Password</label>
+            <input type="password" name="new_password" class="form-control form-control-sm" minlength="6">
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header fw-semibold">Account Details</div>
+      <div class="card-body">
+        <div class="mb-3">
+          <div class="text-muted small">Role</div>
+          <span class="badge bg-{{ 'danger' if user.role == 'admin' else ('primary' if user.role == 'teacher' else 'secondary') }} fs-6">{{ user.role }}</span>
+        </div>
+        <div class="mb-3">
+          <div class="text-muted small">Account Created</div>
+          <div>{{ user.created_at|fmt_datetime }}</div>
+        </div>
+        <div class="mb-3">
+          <div class="text-muted small">Last Login</div>
+          <div>{{ user.last_login or 'Never' }}</div>
+        </div>
+        <div>
+          <div class="text-muted small">Status</div>
+          <span class="badge bg-{{ 'success' if user.is_active else 'secondary' }}">{{ 'Active' if user.is_active else 'Inactive' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
