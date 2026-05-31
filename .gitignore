@@ -65,3 +65,4 @@ files\ (1)/static/uploads/
 # Compiled installer
 *.exe
 Output/
+installer_output/
