@@ -53,9 +53,9 @@ Source: "files\payroll_app\pdf_gen.py";     DestDir: "{app}\app\payroll_app";   
 Source: "files\payroll_app\migrate.py";     DestDir: "{app}\app\payroll_app";         Flags: ignoreversion skipifsourcedoesntexist
 Source: "files\payroll_app\import_loans.py";DestDir: "{app}\app\payroll_app";         Flags: ignoreversion skipifsourcedoesntexist
 
-; ── Bundled Python runtime (no system Python required) ───────────────────────
-Source: "python-embed.zip";      DestDir: "{app}";  Flags: ignoreversion
-Source: "get-pip.py";            DestDir: "{app}";  Flags: ignoreversion
+; ── Pre-built Python runtime with all packages (no internet required) ────────
+; Run build_python_env.bat once on your machine before compiling this installer.
+Source: ".python\*";             DestDir: "{app}\.python";  Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; ── WSGI entry point & helpers ────────────────────────────────────────────────
 Source: "wsgi.py";               DestDir: "{app}";  Flags: ignoreversion

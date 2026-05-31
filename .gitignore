@@ -8,6 +8,7 @@
 .venv_new/
 venv/
 env/
+.python/
 
 # Python cache
 __pycache__/
