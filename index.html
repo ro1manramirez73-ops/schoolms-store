@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SchoolMS — Complete School Management System</title>
+  <meta name="description" content="One-time purchase school management software. Students, attendance, grades, fees, payroll, timetables and more — installed on your own computer, yours forever.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --brand:  #6366f1;
+      --brand2: #8b5cf6;
+      --dark:   #0f172a;
+      --mid:    #1e293b;
+      --muted:  #94a3b8;
+      --light:  #f8fafc;
+      --border: #e2e8f0;
+      --green:  #22c55e;
+      --amber:  #f59e0b;
+      --red:    #ef4444;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; color: #334155; background: #fff; line-height: 1.65; }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,.95); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: .85rem 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .brand { font-weight: 800; font-size: 1.1rem; color: var(--dark); text-decoration: none; display: flex; align-items: center; gap: .4rem; }
+    .brand span { background: linear-gradient(135deg,var(--brand),var(--brand2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-links { display: flex; gap: 1.5rem; list-style: none; }
+    .nav-links a { text-decoration: none; color: #64748b; font-size: .875rem; font-weight: 500; }
+    .nav-links a:hover { color: var(--brand); }
+    .nav-cta { background: var(--brand); color: #fff !important; padding: .45rem 1.2rem; border-radius: 999px; font-size: .85rem; font-weight: 600; }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 55%, #312e81 100%);
+      color: #fff; padding: 6rem 1.5rem 5rem; text-align: center; position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 65% 0%, rgba(99,102,241,.4) 0%, transparent 60%),
+                  radial-gradient(ellipse at 15% 85%, rgba(139,92,246,.3) 0%, transparent 55%);
+    }
+    .hero-inner { position: relative; max-width: 780px; margin: 0 auto; }
+    .hero-badge { display: inline-block; background: rgba(99,102,241,.25); border: 1px solid rgba(99,102,241,.5); color: #a5b4fc; padding: .3rem .9rem; border-radius: 999px; font-size: .8rem; font-weight: 600; margin-bottom: 1.5rem; }
+    .hero h1 { font-size: clamp(2rem,5vw,3.2rem); font-weight: 800; line-height: 1.15; margin-bottom: 1.25rem; }
+    .hero h1 span { background: linear-gradient(135deg,#a5b4fc,#c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p { font-size: 1.1rem; color: #cbd5e1; max-width: 580px; margin: 0 auto 2.5rem; }
+    .hero-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn-hero { display: inline-block; padding: .85rem 2.2rem; border-radius: 999px; font-size: .95rem; font-weight: 700; text-decoration: none; transition: .2s; }
+    .btn-primary-hero { background: var(--brand); color: #fff; }
+    .btn-primary-hero:hover { background: #4f46e5; transform: translateY(-1px); box-shadow: 0 8px 25px rgba(99,102,241,.45); }
+    .btn-outline-hero { background: rgba(255,255,255,.08); color: #e2e8f0; border: 1px solid rgba(255,255,255,.2); }
+    .btn-outline-hero:hover { background: rgba(255,255,255,.14); }
+    .hero-stats { display: flex; gap: 3rem; justify-content: center; flex-wrap: wrap; margin-top: 3.5rem; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,.1); }
+    .hero-stat .num { font-size: 1.9rem; font-weight: 800; color: #a5b4fc; }
+    .hero-stat .lbl { font-size: .78rem; color: #94a3b8; margin-top: .15rem; }
+
+    /* ── SECTIONS ── */
+    section { padding: 5rem 1.5rem; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .section-tag { color: var(--brand); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: .5rem; }
+    .section-title { font-size: clamp(1.5rem,3.5vw,2.2rem); font-weight: 800; color: var(--dark); margin-bottom: 1rem; }
+    .section-sub { color: #64748b; font-size: 1rem; max-width: 560px; }
+
+    /* ── FEATURES GRID ── */
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 1.5rem; margin-top: 3rem; }
+    .feature-card { border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; background: #fff; transition: .2s; }
+    .feature-card:hover { border-color: var(--brand); box-shadow: 0 4px 20px rgba(99,102,241,.1); transform: translateY(-2px); }
+    .feature-icon { width: 46px; height: 46px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 1rem; }
+    .feature-card h3 { font-size: .95rem; font-weight: 700; color: var(--dark); margin-bottom: .4rem; }
+    .feature-card p { font-size: .83rem; color: #64748b; line-height: 1.55; }
+
+    /* ── PRICING ── */
+    #pricing { background: var(--light); }
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 1.5rem; margin-top: 3rem; }
+    .pricing-card { background: #fff; border: 2px solid var(--border); border-radius: 16px; padding: 2rem; position: relative; }
+    .pricing-card.popular { border-color: var(--brand); }
+    .popular-badge { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: var(--brand); color: #fff; font-size: .72rem; font-weight: 700; padding: .25rem .9rem; border-radius: 999px; white-space: nowrap; }
+    .pricing-tier { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--brand); margin-bottom: .5rem; }
+    .pricing-price { font-size: 3rem; font-weight: 800; color: var(--dark); line-height: 1; }
+    .pricing-price sup { font-size: 1.4rem; font-weight: 700; vertical-align: super; }
+    .pricing-once { font-size: .78rem; color: #64748b; margin-top: .35rem; font-weight: 500; }
+    .pricing-desc { color: #64748b; font-size: .85rem; margin: 1rem 0 1.5rem; }
+    .pricing-features { list-style: none; display: flex; flex-direction: column; gap: .55rem; margin-bottom: 2rem; }
+    .pricing-features li { display: flex; align-items: flex-start; gap: .5rem; font-size: .85rem; color: #334155; }
+    .pricing-features li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+    .pricing-features li.no::before { content: '✕'; color: #cbd5e1; }
+    .pricing-features li.no { color: #94a3b8; }
+    .btn-pricing { display: block; text-align: center; padding: .75rem; border-radius: 10px; font-weight: 700; font-size: .9rem; text-decoration: none; transition: .2s; }
+    .btn-pricing-primary { background: var(--brand); color: #fff; }
+    .btn-pricing-primary:hover { background: #4f46e5; }
+    .btn-pricing-outline { border: 2px solid var(--border); color: var(--dark); }
+    .btn-pricing-outline:hover { border-color: var(--brand); color: var(--brand); }
+    .pricing-note { text-align: center; color: #64748b; font-size: .82rem; margin-top: 1.5rem; }
+
+    /* ── HOW IT WORKS ── */
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 2rem; margin-top: 3rem; }
+    .step { text-align: center; }
+    .step-num { width: 52px; height: 52px; background: linear-gradient(135deg,var(--brand),var(--brand2)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; color: #fff; margin: 0 auto 1rem; }
+    .step h3 { font-size: .95rem; font-weight: 700; color: var(--dark); margin-bottom: .4rem; }
+    .step p { font-size: .83rem; color: #64748b; }
+
+    /* ── FAQ ── */
+    #faq { background: var(--light); }
+    .faq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px,1fr)); gap: 1.5rem; margin-top: 2.5rem; }
+    .faq-item { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1.5rem; }
+    .faq-item h4 { font-size: .9rem; font-weight: 700; color: var(--dark); margin-bottom: .5rem; }
+    .faq-item p { font-size: .83rem; color: #64748b; line-height: 1.6; }
+
+    /* ── CTA BANNER ── */
+    .cta-banner { background: linear-gradient(135deg, #1e1b4b, #312e81); color: #fff; text-align: center; padding: 5rem 1.5rem; }
+    .cta-banner h2 { font-size: clamp(1.5rem,3vw,2rem); font-weight: 800; margin-bottom: 1rem; }
+    .cta-banner p { color: #a5b4fc; margin-bottom: 2rem; font-size: 1rem; }
+
+    /* ── FOOTER ── */
+    footer { background: var(--dark); color: #94a3b8; padding: 2rem 1.5rem; text-align: center; font-size: .82rem; }
+    footer a { color: #94a3b8; text-decoration: none; }
+    footer a:hover { color: #fff; }
+
+    /* ── UTILITIES ── */
+    .text-center { text-align: center; }
+    .mt-2 { margin-top: .75rem; }
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .faq-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── ORDER MODAL ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 999;
+      background: rgba(15,23,42,.65); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center; padding: 1.5rem;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: #fff; border-radius: 20px; width: 100%; max-width: 480px;
+      padding: 2.25rem 2rem; box-shadow: 0 25px 60px rgba(0,0,0,.25);
+      position: relative; animation: slideUp .22s ease;
+    }
+    @keyframes slideUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+    .modal-close {
+      position: absolute; top: 1rem; right: 1.1rem;
+      background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #94a3b8; line-height: 1;
+    }
+    .modal-close:hover { color: var(--dark); }
+    .modal-box h3 { font-size: 1.25rem; font-weight: 800; color: var(--dark); margin-bottom: .3rem; }
+    .modal-box .modal-sub { font-size: .83rem; color: #64748b; margin-bottom: 1.75rem; }
+    .modal-tier-badge {
+      display: inline-block; background: var(--brand); color: #fff;
+      font-size: .72rem; font-weight: 700; padding: .2rem .7rem; border-radius: 999px;
+      text-transform: uppercase; letter-spacing: .5px; margin-bottom: 1.25rem;
+    }
+    .form-row { margin-bottom: 1.1rem; }
+    .form-row label { display: block; font-size: .8rem; font-weight: 600; color: #475569; margin-bottom: .35rem; }
+    .form-row input, .form-row select, .form-row textarea {
+      width: 100%; padding: .65rem .85rem; border: 1.5px solid var(--border);
+      border-radius: 9px; font-size: .9rem; font-family: inherit; color: var(--dark);
+      outline: none; transition: border-color .15s;
+    }
+    .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--brand); }
+    .form-row textarea { resize: vertical; min-height: 72px; }
+    .btn-submit {
+      width: 100%; padding: .8rem; background: var(--brand); color: #fff;
+      border: none; border-radius: 10px; font-size: .95rem; font-weight: 700;
+      cursor: pointer; transition: background .15s; margin-top: .4rem;
+    }
+    .btn-submit:hover { background: #4f46e5; }
+    .btn-submit:disabled { background: #a5b4fc; cursor: not-allowed; }
+    .form-note { font-size: .75rem; color: #94a3b8; text-align: center; margin-top: .75rem; }
+    .form-success { text-align: center; padding: 2rem 0; }
+    .form-success .check { font-size: 3rem; margin-bottom: 1rem; }
+    .form-success h4 { font-size: 1.05rem; font-weight: 700; color: var(--dark); margin-bottom: .5rem; }
+    .form-success p { font-size: .85rem; color: #64748b; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="brand" href="#"><span>School</span>MS</a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#faq">FAQ</a></li>
+    <li><a href="mailto:ro1manramirez73@gmail.com">Support</a></li>
+  </ul>
+  <a href="#pricing" class="nav-links nav-cta">Buy Now</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">v2.0 · One-time purchase · No subscription · Yours forever</div>
+    <h1>Complete School Management<br><span>Without the Monthly Bill</span></h1>
+    <p>Students, attendance, grades, fees, payroll, timetables, and more — all in one app, installed on your computer, running on your network.</p>
+    <div class="hero-btns">
+      <a href="https://github.com/ro1manramirez73-ops/schoolms-store/releases/download/v2.0/SchoolMS_Setup_v2.0.exe" class="btn-hero btn-primary-hero">⬇ Download Free Trial</a>
+      <a href="#pricing" class="btn-hero btn-outline-hero">See Pricing →</a>
+    </div>
+    <p style="margin-top:.9rem;font-size:.78rem;color:#94a3b8">Windows 10/11 · v2.0 · License key required to activate</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="num">10+</div><div class="lbl">Modules included</div></div>
+      <div class="hero-stat"><div class="num">$0</div><div class="lbl">Monthly fee</div></div>
+      <div class="hero-stat"><div class="num">5 min</div><div class="lbl">To install</div></div>
+      <div class="hero-stat"><div class="num">∞</div><div class="lbl">Students & staff</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT'S NEW v2.0 -->
+<div style="background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:1rem 1.5rem;">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+    <span style="background:#6366f1;color:#fff;font-size:.72rem;font-weight:700;padding:.25rem .7rem;border-radius:999px;white-space:nowrap;">NEW in v2.0</span>
+    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;">
+      <span style="font-size:.83rem;color:#334155;display:flex;align-items:center;gap:.35rem;">🌐 <strong>English &amp; Spanish</strong> — switch language with one click</span>
+      <span style="font-size:.83rem;color:#334155;display:flex;align-items:center;gap:.35rem;">📖 <strong>Built-in User Manual</strong> — role-specific PDF on every dashboard</span>
+      <span style="font-size:.83rem;color:#334155;display:flex;align-items:center;gap:.35rem;">🔢 <strong>Auto-generated IDs</strong> — unique 10-digit numbers for students &amp; staff</span>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="container">
+    <div class="section-tag">What's included</div>
+    <div class="section-title">Everything your school needs</div>
+    <p class="section-sub">One purchase, every module. No add-ons. No per-seat fees. No cloud dependency.</p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#ede9fe">👨‍🎓</div>
+        <h3>Student Management</h3>
+        <p>Full student profiles, enrollment, parent contacts, medical notes, photo IDs, and status tracking.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#dcfce7">✅</div>
+        <h3>Attendance</h3>
+        <p>Daily attendance by class or student. Absence summaries and exportable reports for any date range.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#fef3c7">📚</div>
+        <h3>Grades & Report Cards</h3>
+        <p>Enter grades by subject, auto-calculate averages, and print professional report cards and IEPs.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#fee2e2">💰</div>
+        <h3>Fees & Finance</h3>
+        <p>Track tuition, fees, and payments per student. Print receipts. Monitor outstanding balances at a glance.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#e0f2fe">💼</div>
+        <h3>Staff Payroll</h3>
+        <p>Full payroll system — salaries, NIB contributions, deductions, loans, payslip PDFs, and monthly reports. Staff sync with the school roster automatically.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#f0fdf4">📅</div>
+        <h3>Timetable</h3>
+        <p>Build weekly class schedules, assign teachers, and let staff and students view their own timetable.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#fdf4ff">📢</div>
+        <h3>Announcements</h3>
+        <p>Post school-wide or role-specific announcements. Staff and parents see them on login.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#fff7ed">👨‍👩‍👧</div>
+        <h3>Parent & Student Portals</h3>
+        <p>Parents and students get their own secure login to view grades, attendance, fees, and announcements.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#f8fafc">🔐</div>
+        <h3>Roles & Permissions</h3>
+        <p>Admin, teacher, accountant, front-desk, parent, and student roles — each with customisable access.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#eff6ff">📊</div>
+        <h3>Reports & Export</h3>
+        <p>Financial reports, attendance summaries, payroll exports — download as PDF or CSV at any time.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#f0fdf4">🌐</div>
+        <h3>Works on Any Device</h3>
+        <p>Open from any phone, tablet, or computer on the same Wi-Fi. Installable as a PWA app on mobile.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#fef9c3">⚙</div>
+        <h3>School Settings</h3>
+        <p>Set your school name, address, logo, timezone, and contact info. Everything appears branded to your school.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#ede9fe">🌐</div>
+        <h3>English &amp; Spanish</h3>
+        <p>Switch the entire interface between English and Spanish with one click — sidebar, dashboard, labels, and buttons all change instantly. No restart needed.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#ecfdf5">📖</div>
+        <h3>Built-in User Manual</h3>
+        <p>Every user gets a role-specific PDF manual on their dashboard — tailored to Admin, Teacher, Parent, or Student. Opens directly in the browser, ready to print.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="container">
+    <div class="section-tag text-center">Simple pricing</div>
+    <div class="section-title text-center">One price. Own it forever.</div>
+    <p class="section-sub text-center" style="margin:0 auto">No monthly fees. No per-student charges. Pay once, use it as long as you want.</p>
+
+    <div class="pricing-grid">
+      <!-- Starter -->
+      <div class="pricing-card">
+        <div class="pricing-tier">Starter</div>
+        <div class="pricing-price"><sup>$</sup>149</div>
+        <div class="pricing-once">one-time payment</div>
+        <p class="pricing-desc">For very small schools or tutoring centres.</p>
+        <ul class="pricing-features">
+          <li>Up to 10 staff accounts</li>
+          <li>All core modules</li>
+          <li>Students, attendance, grades</li>
+          <li>Fees & finance</li>
+          <li>Payroll system</li>
+          <li>Parent & student portals</li>
+          <li>PDF reports & payslips</li>
+          <li class="no">Unlimited staff accounts</li>
+        </ul>
+        <button onclick="openOrder('starter','$149')" class="btn-pricing btn-pricing-outline">Order Starter</button>
+      </div>
+
+      <!-- Standard (popular) -->
+      <div class="pricing-card popular">
+        <div class="popular-badge">Most Popular</div>
+        <div class="pricing-tier">Standard</div>
+        <div class="pricing-price"><sup>$</sup>299</div>
+        <div class="pricing-once">one-time payment</div>
+        <p class="pricing-desc">For small and mid-size schools.</p>
+        <ul class="pricing-features">
+          <li>Up to 30 staff accounts</li>
+          <li>All core modules</li>
+          <li>Students, attendance, grades</li>
+          <li>Fees & finance</li>
+          <li>Payroll system</li>
+          <li>Parent & student portals</li>
+          <li>PDF reports & payslips</li>
+          <li>QuickBooks sync</li>
+          <li>Priority email support</li>
+        </ul>
+        <button onclick="openOrder('standard','$299')" class="btn-pricing btn-pricing-primary">Order Standard</button>
+      </div>
+
+      <!-- Professional -->
+      <div class="pricing-card">
+        <div class="pricing-tier">Professional</div>
+        <div class="pricing-price"><sup>$</sup>499</div>
+        <div class="pricing-once">one-time payment</div>
+        <p class="pricing-desc">For larger schools or multi-campus sites.</p>
+        <ul class="pricing-features">
+          <li>Unlimited staff accounts</li>
+          <li>All core modules</li>
+          <li>Students, attendance, grades</li>
+          <li>Fees & finance</li>
+          <li>Payroll system</li>
+          <li>Parent & student portals</li>
+          <li>PDF reports & payslips</li>
+          <li>QuickBooks sync</li>
+          <li>Priority email + phone support</li>
+          <li>Remote setup assistance</li>
+        </ul>
+        <button onclick="openOrder('professional','$499')" class="btn-pricing btn-pricing-outline">Order Professional</button>
+      </div>
+    </div>
+
+    <p class="pricing-note">
+      All purchases include lifetime access to the version you buy. You receive a license key by email, enter it on first launch, and you're set.<br>
+      Need a custom quote or volume pricing? <a href="mailto:ro1manramirez73@gmail.com" style="color:var(--brand)">Contact us</a>.
+    </p>
+    <div style="text-align:center;margin-top:2rem">
+      <a href="https://github.com/ro1manramirez73-ops/schoolms-store/releases/download/v2.0/SchoolMS_Setup_v2.0.exe" class="btn-hero btn-primary-hero" style="display:inline-block;background:var(--dark);color:#fff">⬇ Download Installer v2.0 — Free</a>
+      <p style="font-size:.78rem;color:#94a3b8;margin-top:.6rem">Windows 10/11 · v2.0 · Requires license key to activate</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="container">
+    <div class="section-tag text-center">Setup in minutes</div>
+    <div class="section-title text-center">How it works</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Download</h3>
+        <p>Download the free installer from this page. It's 2.2 MB and works on any Windows 10 or 11 computer.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Purchase a Key</h3>
+        <p>Choose a plan and place your order. You'll receive a license key by email within 24 hours of payment.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Install & Activate</h3>
+        <p>Run the installer, open the app, and enter your license key. Setup takes under 5 minutes.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <h3>Go</h3>
+        <p>Add your staff, import students, and start using it. Any device on your Wi-Fi can access it through the browser.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="container">
+    <div class="section-tag text-center">Questions</div>
+    <div class="section-title text-center">Frequently asked</div>
+    <div class="faq-grid">
+      <div class="faq-item">
+        <h4>Does it run without the internet?</h4>
+        <p>Yes. After the initial install, the app runs completely offline. Staff access it through your local network — no cloud needed.</p>
+      </div>
+      <div class="faq-item">
+        <h4>Can multiple computers use it at the same time?</h4>
+        <p>Yes. Install it on one computer (your "server") and every other device on the same Wi-Fi can open it in any browser — phones, tablets, laptops.</p>
+      </div>
+      <div class="faq-item">
+        <h4>How many students can I add?</h4>
+        <p>Unlimited students in all plans. The staff account limits only apply to login accounts, not student records.</p>
+      </div>
+      <div class="faq-item">
+        <h4>What operating system is required?</h4>
+        <p>Windows 10 or Windows 11. The server computer runs the app; every other device just needs a browser (Chrome, Safari, Firefox, Edge).</p>
+      </div>
+      <div class="faq-item">
+        <h4>Is there a subscription or renewal fee?</h4>
+        <p>No. You pay once and own that version forever. Future major updates may be offered at a discounted upgrade price.</p>
+      </div>
+      <div class="faq-item">
+        <h4>What's included in the payroll module?</h4>
+        <p>Full payroll management — salaries, NIB contributions, deductions (bank loans, credit union, etc.), loan tracking, payslip PDFs, and monthly payroll reports. Staff added in the school system automatically appear in payroll.</p>
+      </div>
+      <div class="faq-item">
+        <h4>Do you offer support?</h4>
+        <p>Yes. Email support is included with all plans. Standard and Professional plans have priority response. Professional also includes a remote setup call.</p>
+      </div>
+      <div class="faq-item">
+        <h4>Can I get a refund?</h4>
+        <p>If the software cannot be installed or run on your computer within 14 days, contact us for a full refund. We'll first try to resolve any issues remotely.</p>
+      </div>
+      <div class="faq-item">
+        <h4>Is it available in Spanish?</h4>
+        <p>Yes. v2.0 includes full English and Spanish support. Any user can switch the language from the sidebar with a single click — the entire interface updates instantly with no restart required.</p>
+      </div>
+      <div class="faq-item">
+        <h4>What's new in v2.0?</h4>
+        <p>v2.0 adds: full English/Spanish bilingual interface, a built-in role-based user manual (PDF) accessible from every user's dashboard, automatic 10-digit unique ID generation for students and staff, and a unified ID system across students, staff, and payroll.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-banner">
+  <div class="container">
+    <h2>Ready to simplify your school admin?</h2>
+    <p>Get SchoolMS today — one payment, every feature, no recurring costs.</p>
+    <a href="#pricing" class="btn-hero btn-primary-hero">See Pricing →</a>
+    <div style="margin-top:1.5rem;font-size:.82rem;color:#818cf8">
+      Questions first? <a href="mailto:ro1manramirez73@gmail.com" style="color:#a5b4fc;text-decoration:underline">Email us</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div style="margin-bottom:.5rem">
+    <a href="mailto:ro1manramirez73@gmail.com">ro1manramirez73@gmail.com</a>
+    &nbsp;·&nbsp;
+    <a href="mailto:ro1manramirez73@gmail.com">ro1manramirez73@gmail.com</a>
+  </div>
+  <div>&copy; 2026 SchoolMS. All rights reserved.</div>
+</footer>
+
+<!-- ORDER MODAL -->
+<div class="modal-overlay" id="orderModal" onclick="closeOnOverlay(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeOrder()" aria-label="Close">&times;</button>
+
+    <!-- Form view -->
+    <div id="orderForm">
+      <h3>Place Your Order</h3>
+      <p class="modal-sub">Fill in your details and we'll send your license key once payment is confirmed.</p>
+      <div class="modal-tier-badge" id="tierBadge">Starter — $149</div>
+
+      <form id="orderFormEl" action="https://formspree.io/f/xvzyvlez" method="POST">
+        <input type="hidden" name="tier" id="tierInput">
+        <input type="hidden" name="price" id="priceInput">
+
+        <div class="form-row">
+          <label for="fname">Your Name *</label>
+          <input type="text" id="fname" name="name" required placeholder="Full name">
+        </div>
+        <div class="form-row">
+          <label for="femail">Email Address *</label>
+          <input type="email" id="femail" name="email" required placeholder="you@example.com">
+        </div>
+        <div class="form-row">
+          <label for="fschool">School / Organisation Name *</label>
+          <input type="text" id="fschool" name="school" required placeholder="e.g. Sunrise Academy">
+        </div>
+        <div class="form-row">
+          <label for="fpayment">Payment Method *</label>
+          <select id="fpayment" name="payment_method" required>
+            <option value="">— select —</option>
+            <option>Bank Transfer</option>
+            <option>PayPal</option>
+            <option>Zelle</option>
+            <option>Cash App</option>
+            <option>Western Union / MoneyGram</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="fnotes">Questions or notes (optional)</label>
+          <textarea id="fnotes" name="notes" placeholder="Any questions about the software, network setup, etc."></textarea>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">Send Order Request</button>
+        <p class="form-note">We'll reply within 24 hours with payment instructions and your license key.</p>
+      </form>
+    </div>
+
+    <!-- Success view -->
+    <div id="orderSuccess" style="display:none" class="form-success">
+      <div class="check">✅</div>
+      <h4>Request received!</h4>
+      <p>We'll email you at <strong id="successEmail"></strong> with payment details and your license key within 24 hours.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openOrder(tier, price) {
+    const labels = { starter: 'Starter', standard: 'Standard', professional: 'Professional' };
+    document.getElementById('tierBadge').textContent = labels[tier] + ' — ' + price;
+    document.getElementById('tierInput').value = labels[tier];
+    document.getElementById('priceInput').value = price;
+    document.getElementById('orderModal').classList.add('open');
+    document.getElementById('orderForm').style.display = '';
+    document.getElementById('orderSuccess').style.display = 'none';
+    document.getElementById('orderFormEl').reset();
+    document.getElementById('tierInput').value = labels[tier];
+    document.getElementById('priceInput').value = price;
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeOrder() {
+    document.getElementById('orderModal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function closeOnOverlay(e) {
+    if (e.target === document.getElementById('orderModal')) closeOrder();
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeOrder();
+  });
+
+  document.getElementById('orderFormEl').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    const email = document.getElementById('femail').value;
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    try {
+      const res = await fetch(this.action, {
+        method: 'POST',
+        body: new FormData(this),
+        headers: { 'Accept': 'application/json' }
+      });
+      if (res.ok) {
+        document.getElementById('successEmail').textContent = email;
+        document.getElementById('orderForm').style.display = 'none';
+        document.getElementById('orderSuccess').style.display = '';
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Send Order Request';
+        alert('Something went wrong. Please email us directly at ro1manramirez73@gmail.com');
+      }
+    } catch (_) {
+      btn.disabled = false;
+      btn.textContent = 'Send Order Request';
+      alert('Network error. Please email us directly at ro1manramirez73@gmail.com');
+    }
+  });
+</script>
+
+</body>
+</html>
