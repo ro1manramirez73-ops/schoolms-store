@@ -3,7 +3,7 @@ from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import bcrypt
-import sqlite3, os, hashlib, secrets, json, io, glob, smtplib, uuid, html as html_module, random, sys
+import sqlite3, os, hashlib, secrets, json, io, glob, smtplib, uuid, html as html_module, random, sys, logging, time
 
 # allow importing generate_manual from the project root
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -28,16 +28,27 @@ from reportlab.lib.units import inch
 from dotenv import load_dotenv
 
 load_dotenv()
+# .env.local overrides .env — used for local dev flags (e.g. LICENSE_DEV=1)
+# without polluting the shared .env that gets copied to production machines.
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env.local'),
+            override=True)
+
+logging.basicConfig(
+    level=logging.WARNING,
+    format='%(asctime)s %(levelname)s %(name)s: %(message)s',
+)
+log = logging.getLogger('schoolms')
 
 import license as _lic
 from payroll_routes import payroll_bp
+import rls as _rls
 
 app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 csrf = CSRFProtect(app)
 limiter = Limiter(get_remote_address, app=app, default_limits=[])
-app.config['PERMANENT_SESSION_LIFETIME'] = __import__('datetime').timedelta(hours=8)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)
 app.config['SESSION_PERMANENT'] = True
 app.register_blueprint(payroll_bp)
 _APP_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -76,34 +87,45 @@ def _load_roles():
         if rows:
             return {r['role']: json.loads(r['permissions']) for r in rows}
     except Exception:
-        pass
+        log.exception("_load_roles failed — falling back to defaults")
     return dict(_DEFAULT_ROLES)
-
-ROLES = _load_roles()
 
 def reload_roles():
     global ROLES
     ROLES = _load_roles()
 
+_settings_cache: dict = {}
+_settings_cache_ts: dict = {}
+_SETTINGS_TTL = 30  # seconds
+
 def get_setting(key, default=None):
-    """Get a setting value by key"""
+    now = time.time()
+    if key in _settings_cache and now - _settings_cache_ts.get(key, 0) < _SETTINGS_TTL:
+        v = _settings_cache[key]
+        return v if v is not None else default
     try:
         conn = get_db()
         row = conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
         conn.close()
-        return row['value'] if row else default
+        val = row['value'] if row else None
+        _settings_cache[key] = val
+        _settings_cache_ts[key] = now
+        return val if val is not None else default
     except Exception:
+        log.exception("get_setting(%s) failed", key)
         return default
 
 def set_setting(key, value):
-    """Set a setting value"""
     try:
         conn = get_db()
         conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (key, value))
         conn.commit()
         conn.close()
+        _settings_cache[key] = value
+        _settings_cache_ts[key] = time.time()
         return True
     except Exception:
+        log.exception("set_setting(%s) failed", key)
         return False
 
 def get_db():
@@ -111,6 +133,9 @@ def get_db():
     conn.row_factory = sqlite3.Row
     conn.execute('PRAGMA journal_mode=WAL')
     return conn
+
+# Load roles now that get_db is defined
+ROLES = _load_roles()
 
 def hash_pw(pw):
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -164,7 +189,7 @@ def _touch_session():
 
 def _prune_stale_sessions():
     timeout_h = int(get_setting('session_timeout_h', '8') or 8)
-    cutoff = (datetime.now() - __import__('datetime').timedelta(hours=timeout_h)).isoformat()
+    cutoff = (datetime.now() - timedelta(hours=timeout_h)).isoformat()
     conn = get_db()
     conn.execute("DELETE FROM active_sessions WHERE last_seen < ?", (cutoff,))
     conn.commit(); conn.close()
@@ -487,10 +512,14 @@ def login_required(f):
     def d(*a,**kw):
         if 'user_id' not in session: return redirect('/home')
         if request.endpoint != 'set_password':
-            conn = get_db()
-            row = conn.execute("SELECT must_change_pw FROM users WHERE id=?", (session['user_id'],)).fetchone()
-            conn.close()
-            if row and row['must_change_pw']:
+            # Check DB only once; cache result in session for the lifetime of the session
+            if 'must_change_pw' not in session:
+                conn = get_db()
+                row = conn.execute("SELECT must_change_pw FROM users WHERE id=?",
+                                   (session['user_id'],)).fetchone()
+                conn.close()
+                session['must_change_pw'] = bool(row and row['must_change_pw'])
+            if session.get('must_change_pw'):
                 return redirect('/set-password')
         return f(*a,**kw)
     return d
@@ -598,6 +627,10 @@ _LICENSE_BYPASS = {
     'parent_register', 'ping', 'serve_manual',
 }
 
+# Cache license check result to avoid DB query on every request (TTL 60 s)
+_lic_cache: dict = {'ok': False, 'ts': 0.0}
+_LIC_CACHE_TTL = 60
+
 @app.before_request
 def license_gate():
     if os.environ.get('LICENSE_DEV', '').strip() == '1':
@@ -605,12 +638,29 @@ def license_gate():
     ep = request.endpoint or ''
     if ep in _LICENSE_BYPASS or ep.startswith('static'):
         return
+
+    now = time.time()
+    if _lic_cache['ok'] and now - _lic_cache['ts'] < _LIC_CACHE_TTL:
+        return  # valid result still fresh
+
     key = get_setting('license_key', '')
     if not key:
+        _lic_cache.update({'ok': False, 'ts': now})
         return redirect('/activate')
-    ok, _, err = _lic.validate_key(key)
+
+    ok, _, _ = _lic.validate_key(key)
     if not ok:
+        _lic_cache.update({'ok': False, 'ts': now})
         return redirect('/activate')
+
+    # Machine binding: key must have been activated on this machine
+    stored_mid = get_setting('license_machine_id', '')
+    if stored_mid and stored_mid != _lic.get_machine_id():
+        _lic_cache.update({'ok': False, 'ts': now})
+        log.warning("License machine mismatch — redirecting to /activate")
+        return redirect('/activate')
+
+    _lic_cache.update({'ok': True, 'ts': now})
 
 @app.template_filter('money')
 def money_fmt(value):
@@ -834,6 +884,7 @@ def set_password():
             conn.execute("UPDATE users SET password_hash=?, must_change_pw=0 WHERE id=?",
                          (hash_pw(new_pw), session['user_id']))
             conn.commit(); conn.close()
+            session['must_change_pw'] = False
             return redirect('/')
     return render_template('set_password.html')
 
@@ -1344,8 +1395,12 @@ def add_student():
 @role_required('admin','teacher')
 def edit_student(id):
     d = request.form
-    grad_date = d.get('graduation_date') or calc_graduation_date(d.get('dob'))
     conn = get_db()
+    if session.get('role') == 'teacher':
+        if not _rls.teacher_owns_student(conn, id, session.get('linked_id')):
+            conn.close()
+            return _rls.forbidden("You can only edit students in your own classes.")
+    grad_date = d.get('graduation_date') or calc_graduation_date(d.get('dob'))
     conn.execute('''UPDATE students SET student_id=?,first_name=?,last_name=?,dob=?,gender=?,
         class_id=?,email=?,phone=?,address=?,parent_name=?,parent_phone=?,parent_email=?,
         father_name=?,father_phone=?,father_email=?,
@@ -1489,10 +1544,13 @@ def student_detail(id):
         "SELECT id, card_type, academic_year, teacher_name, updated_at FROM report_cards"
         " WHERE student_id=? ORDER BY academic_year DESC, card_type", (id,)).fetchall()
     conn.close()
+    # Viewer role sees the profile but not sensitive health/emergency data
+    hide_sensitive = (role == 'viewer')
     return render_template('student_detail.html', student=student, grades=grades,
                            attendance=att, fees=fees, plans=plans,
                            credit_balance=credit_balance, credit_history=credit_history,
-                           classes=classes, saved_rcs=saved_rcs, now_date=date.today().isoformat())
+                           classes=classes, saved_rcs=saved_rcs, now_date=date.today().isoformat(),
+                           hide_sensitive=hide_sensitive)
 
 @app.route('/students/<int:id>/add-credit', methods=['POST'])
 @role_required('admin','accountant')
@@ -2275,9 +2333,10 @@ def teachers():
     if session.get('role') == 'admin':
         rows = conn.execute("SELECT * FROM teachers ORDER BY first_name").fetchall()
     else:
+        # Non-admins see contact/professional info only — no salary, DOB, or home address
         rows = conn.execute(
-            "SELECT id, teacher_id, first_name, last_name, dob, gender, email, "
-            "phone, address, subject, qualification, hire_date, status "
+            "SELECT id, teacher_id, first_name, last_name, gender, email, "
+            "phone, subject, qualification, hire_date, status "
             "FROM teachers ORDER BY first_name"
         ).fetchall()
     conn.close()
@@ -2508,12 +2567,24 @@ def attendance():
 def save_attendance():
     d = request.form; att_date = d['date']; subject_id = d.get('subject_id') or None
     conn = get_db()
+    if session.get('role') == 'teacher':
+        if not _rls.teacher_owns_class(conn, d.get('class_id'), session.get('linked_id')):
+            conn.close()
+            return _rls.forbidden("You can only record attendance for your own classes.")
+        # Restrict inserts to students actually in this class (prevents att_<arbitrary_id> injection)
+        allowed_ids = set(_rls.teacher_student_ids(conn, session.get('linked_id')))
+    else:
+        allowed_ids = None  # admin: no restriction
+
     conn.execute("DELETE FROM attendance WHERE date=? AND student_id IN (SELECT id FROM students WHERE class_id=?)",
                  (att_date, d['class_id']))
     for key, val in d.items():
         if key.startswith('att_'):
+            sid = key.replace('att_', '')
+            if allowed_ids is not None and int(sid) not in allowed_ids:
+                continue  # silently skip students not in teacher's classes
             conn.execute("INSERT INTO attendance (student_id,date,status,subject_id,recorded_by) VALUES (?,?,?,?,?)",
-                         (key.replace('att_',''), att_date, val, subject_id, session.get('user_id')))
+                         (sid, att_date, val, subject_id, session.get('user_id')))
     conn.commit(); conn.close()
     return redirect(f"/attendance?class_id={d['class_id']}&date={att_date}")
 
@@ -2564,9 +2635,19 @@ def grades():
 @role_required('admin','teacher')
 def save_grades():
     d = request.form; conn = get_db()
+    if session.get('role') == 'teacher':
+        if not _rls.teacher_owns_class(conn, d.get('class_id'), session.get('linked_id')):
+            conn.close()
+            return _rls.forbidden("You can only enter grades for your own classes.")
+        allowed_ids = set(_rls.teacher_student_ids(conn, session.get('linked_id')))
+    else:
+        allowed_ids = None  # admin: no restriction
+
     for key, val in d.items():
         if key.startswith('score_') and val:
-            sid = key.replace('score_',''); score = float(val)
+            sid = key.replace('score_', ''); score = float(val)
+            if allowed_ids is not None and int(sid) not in allowed_ids:
+                continue  # silently skip students not in teacher's classes
             conn.execute('''INSERT INTO grades (student_id,subject_id,exam_type,score,max_score,
                 grade_letter,term,academic_year,date,recorded_by,comments) VALUES (?,?,?,?,?,?,?,?,?,?,?)''',
                 (sid,d['subject_id'],d.get('exam_type','Test'),score,float(d.get('max_score',100)),
@@ -2629,6 +2710,10 @@ def add_assignment():
         (f"%{session.get('full_name','').split()[-1]}%",)
     ).fetchone()
     if hasattr(teacher_id, '__getitem__'): teacher_id = teacher_id['id']
+    if session.get('role') == 'teacher' and d.get('class_id'):
+        if not _rls.teacher_owns_class(conn, d['class_id'], session.get('linked_id')):
+            conn.close()
+            return _rls.forbidden("You can only create assignments for your own classes.")
     conn.execute('''INSERT INTO assignments (title,description,subject_id,class_id,teacher_id,due_date,max_score,created_at)
                     VALUES (?,?,?,?,?,?,?,?)''',
                  (d['title'],d.get('description'),d.get('subject_id') or None,d.get('class_id') or None,
@@ -3635,13 +3720,14 @@ def _send_invoice_email(inv, items, total):
     msg.attach(MIMEText(html, 'html'))
 
     try:
-        with smtplib.SMTP(mail_server, mail_port) as smtp:
+        with smtplib.SMTP(mail_server, mail_port, timeout=10) as smtp:
             if use_tls:
                 smtp.starttls()
             smtp.login(mail_username, mail_password)
             smtp.sendmail(mail_username, recipient, msg.as_string())
         return 'ok'
     except Exception:
+        log.exception("Email send to %s failed", recipient)
         return 'error'
 
 
@@ -4201,8 +4287,7 @@ def deployment_settings():
             set_setting('session_timeout_h', timeout_h)
             set_setting('server_mode', server_mode)
             # Apply new session timeout to Flask config
-            app.config['PERMANENT_SESSION_LIFETIME'] = \
-                __import__('datetime').timedelta(hours=int(timeout_h))
+            app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=int(timeout_h))
             audit('UPDATE_DEPLOYMENT_SETTINGS')
             saved = True
 
@@ -4264,6 +4349,8 @@ def activate():
         ok, info, err = _lic.validate_key(key)
         if ok:
             set_setting('license_key', key)
+            set_setting('license_machine_id', _lic.get_machine_id())
+            _lic_cache.update({'ok': True, 'ts': time.time()})
             return redirect('/')
         error = err or 'Invalid license key.'
 
@@ -4281,6 +4368,8 @@ def license_status():
         ok, info, err = _lic.validate_key(key)
         if ok:
             set_setting('license_key', key)
+            set_setting('license_machine_id', _lic.get_machine_id())
+            _lic_cache.update({'ok': True, 'ts': time.time()})
             audit('UPDATE_LICENSE_KEY')
             saved = True
         else:
@@ -4305,8 +4394,7 @@ if __name__ == '__main__':
     init_db()
     # Apply saved session timeout from DB
     _saved_timeout = int(get_setting('session_timeout_h', '8') or 8)
-    app.config['PERMANENT_SESSION_LIFETIME'] = \
-        __import__('datetime').timedelta(hours=_saved_timeout)
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=_saved_timeout)
     name = get_setting('school_name', 'School Management System')
     port = int(os.environ.get('PORT', 5000))
     host = os.environ.get('HOST', '0.0.0.0')

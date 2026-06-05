@@ -8,21 +8,53 @@ Usage:
     python keygen.py --tier professional --expiry lifetime
     python keygen.py --tier standard --expiry 2026-12-31
 
-KEEP THIS FILE AND YOUR LICENSE_SECRET PRIVATE.
+KEEP license_private.pem PRIVATE — never distribute it with the app.
 """
 
-import argparse
-import sys
-import os
+import argparse, sys, os, base64, json, datetime
 
+# Locate license module
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'files'))
 import license as _lic
+
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption, load_pem_private_key
 
 PRICES = {
     'starter':      '$149',
     'standard':     '$299',
     'professional': '$499',
 }
+
+_PRIVATE_KEY_FILE = os.path.join(os.path.dirname(__file__), 'license_private.pem')
+
+
+def _load_private_key() -> Ed25519PrivateKey:
+    if not os.path.exists(_PRIVATE_KEY_FILE):
+        print(f"\n  ERROR: Private key not found at {_PRIVATE_KEY_FILE}")
+        print("  Run: python generate_license_keypair.py  to create a new keypair.")
+        sys.exit(1)
+    with open(_PRIVATE_KEY_FILE, 'rb') as f:
+        key = load_pem_private_key(f.read(), password=None)
+    return key
+
+
+def generate_key(tier: str, expiry: str = 'lifetime') -> str:
+    if tier not in _lic.TIERS:
+        raise ValueError(f"Unknown tier: {tier}")
+    private_key = _load_private_key()
+    payload = {
+        't': tier,
+        'e': expiry,
+        'i': datetime.date.today().isoformat(),
+    }
+    payload_b64 = base64.urlsafe_b64encode(
+        json.dumps(payload, separators=(',', ':')).encode()
+    ).decode().rstrip('=')
+    sig_bytes = private_key.sign(payload_b64.encode())
+    sig_b64 = base64.urlsafe_b64encode(sig_bytes).decode().rstrip('=')
+    return f"{payload_b64}.{sig_b64}"
+
 
 def main():
     parser = argparse.ArgumentParser(description='Generate SchoolMS license keys')
@@ -34,7 +66,7 @@ def main():
                         help='Number of keys to generate (default: 1)')
     args = parser.parse_args()
 
-    tier = args.tier
+    tier   = args.tier
     expiry = args.expiry or 'lifetime'
 
     if not tier:
@@ -74,7 +106,7 @@ def main():
     print('  ' + '─' * 60)
 
     for i in range(args.count):
-        key = _lic.generate_key(tier, expiry)
+        key   = generate_key(tier, expiry)
         label = f'  Key {i+1:>3}' if args.count > 1 else '  Key    '
         print(f'{label} : {key}')
 
@@ -83,6 +115,7 @@ def main():
     print('  Give each key to exactly one customer.')
     print('  They paste it into the /activate screen on first run.')
     print()
+
 
 if __name__ == '__main__':
     main()

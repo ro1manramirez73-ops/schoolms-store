@@ -1,7 +1,14 @@
 # Environment & secrets — NEVER commit these
 .env
+.env.local
 *.env
 !.env.example
+
+# Private keys — NEVER commit these
+*.pem
+*.key
+*.p12
+*.pfx
 
 # Virtual environments
 .venv/

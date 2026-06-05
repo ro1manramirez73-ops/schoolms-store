@@ -64,7 +64,7 @@
             {{ student.status }}
           </span>
           {% if student.gender %}<span class="badge rounded-pill" style="background:#ede9fe;color:#4f46e5;">{{ student.gender }}</span>{% endif %}
-          {% if student.medical_notes %}
+          {% if student.medical_notes and not hide_sensitive %}
           <span class="badge rounded-pill" style="background:#fef3c7;color:#92400e;"><i class="bi bi-heart-pulse me-1"></i>Medical note on file</span>
           {% endif %}
         </div>
@@ -102,7 +102,7 @@
       </div>
     </div>
 
-    {% if student.medical_notes %}
+    {% if student.medical_notes and not hide_sensitive %}
     <div class="alert alert-warning d-flex align-items-center gap-2 mt-3 mb-0 py-2" style="font-size:.8rem;border-radius:9px;">
       <i class="bi bi-heart-pulse-fill"></i><strong>Medical:</strong> {{ student.medical_notes }}
     </div>
@@ -120,7 +120,7 @@
           <div class="col-6"><div class="text-muted mb-1">Date of Birth</div><div class="fw-semibold">{{ student.dob|fmt_date }}{% if student.dob %} <span class="text-muted" style="font-size:.78rem;">({{ student.dob|age }} yrs)</span>{% endif %}</div></div>
           <div class="col-6"><div class="text-muted mb-1">Email</div><div class="fw-semibold">{{ student.email or '—' }}</div></div>
           <div class="col-6"><div class="text-muted mb-1">Phone</div><div class="fw-semibold">{{ student.phone or '—' }}</div></div>
-          <div class="col-6"><div class="text-muted mb-1">Emergency Contact</div><div class="fw-semibold">{{ student.emergency_contact or '—' }}</div></div>
+          {% if not hide_sensitive %}<div class="col-6"><div class="text-muted mb-1">Emergency Contact</div><div class="fw-semibold">{{ student.emergency_contact or '—' }}</div></div>{% endif %}
           <div class="col-12"><div class="text-muted mb-1">Address</div><div class="fw-semibold">{{ student.address or '—' }}</div></div>
         </div>
       </div>
