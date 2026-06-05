@@ -1013,6 +1013,8 @@
   const PC_DAYS   = ['Su','Mo','Tu','We','Th','Fr','Sa'];
   let pcYear = new Date().getFullYear(), pcMonth = new Date().getMonth();
   function pad(n){ return String(n).padStart(2,'0'); }
+  function escHTML(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function safeColor(c){ return /^#[0-9a-fA-F]{3,8}$/.test(String(c)) ? c : '#808080'; }
 
   function pcRender() {
     document.getElementById('pcTitle').textContent = PC_MONTHS[pcMonth] + ' ' + pcYear;
@@ -1028,7 +1030,7 @@
       const evs = PC_EVENTS[ds]||[];
       html += `<div class="mini-cal-day ${isToday?'today':''}" onclick="pcSelect('${ds}')">
                  <div class="mini-day-num">${d}</div>
-                 ${evs.slice(0,2).map(e=>`<div class="mini-pill" style="background:${e.color}22;color:${e.color};">${e.title}</div>`).join('')}
+                 ${evs.slice(0,2).map(e=>`<div class="mini-pill" style="background:${safeColor(e.color)}22;color:${safeColor(e.color)};">${escHTML(e.title)}</div>`).join('')}
                  ${evs.length>2?`<div style="font-size:.58rem;color:#94a3b8;">+${evs.length-2}</div>`:''}
                </div>`;
     }
@@ -1043,13 +1045,15 @@
     if (!evs.length) {
       document.getElementById('pcDetailBody').innerHTML = '<p class="text-muted small mb-0">No events on this day.</p>';
     } else {
-      document.getElementById('pcDetailBody').innerHTML = evs.map(ev=>`
-        <div class="mb-2 p-2 rounded" style="border-left:3px solid ${ev.color};background:${ev.color}0d;">
-          <div class="fw-semibold" style="font-size:.82rem;">${ev.title}</div>
-          ${ev.start_time?`<div class="text-muted" style="font-size:.72rem;"><i class="bi bi-clock me-1"></i>${ev.start_time}${ev.end_time?' – '+ev.end_time:''}</div>`:''}
-          ${ev.description?`<div style="font-size:.77rem;color:#374151;margin-top:.2rem;">${ev.description}</div>`:''}
-          <span class="badge" style="background:${ev.color}22;color:${ev.color};font-size:.62rem;">${ev.event_type}</span>
-        </div>`).join('');
+      document.getElementById('pcDetailBody').innerHTML = evs.map(ev=>{
+        const c = safeColor(ev.color);
+        return `<div class="mb-2 p-2 rounded" style="border-left:3px solid ${c};background:${c}0d;">
+          <div class="fw-semibold" style="font-size:.82rem;">${escHTML(ev.title)}</div>
+          ${ev.start_time?`<div class="text-muted" style="font-size:.72rem;"><i class="bi bi-clock me-1"></i>${escHTML(ev.start_time)}${ev.end_time?' – '+escHTML(ev.end_time):''}</div>`:''}
+          ${ev.description?`<div style="font-size:.77rem;color:#374151;margin-top:.2rem;">${escHTML(ev.description)}</div>`:''}
+          <span class="badge" style="background:${c}22;color:${c};font-size:.62rem;">${escHTML(ev.event_type)}</span>
+        </div>`;
+      }).join('');
     }
     document.getElementById('pcDetail').style.display='';
   }

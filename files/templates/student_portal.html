@@ -726,6 +726,8 @@
   const SC_DAYS   = ['Su','Mo','Tu','We','Th','Fr','Sa'];
   let scYear = new Date().getFullYear(), scMonth = new Date().getMonth();
   function scPad(n){ return String(n).padStart(2,'0'); }
+  function escHTML(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function safeColor(c){ return /^#[0-9a-fA-F]{3,8}$/.test(String(c)) ? c : '#808080'; }
 
   function scRender() {
     document.getElementById('scTitle').textContent = SC_MONTHS[scMonth] + ' ' + scYear;
@@ -742,7 +744,7 @@
       const todayCss = isToday ? 'background:#ede9fe;' : '';
       html += `<div style="min-height:44px;border-radius:6px;padding:2px 3px;cursor:pointer;${todayCss}" onclick="scSelect('${ds}')">
                  <div style="font-size:.75rem;font-weight:600;color:${isToday?'#4f46e5':'#374151'};width:20px;height:20px;display:flex;align-items:center;justify-content:center;${isToday?'background:#4f46e5;color:#fff;border-radius:50%;':''}">${d}</div>
-                 ${evs.slice(0,2).map(e=>`<div style="font-size:.58rem;padding:1px 4px;border-radius:3px;background:${e.color}22;color:${e.color};margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.title}</div>`).join('')}
+                 ${evs.slice(0,2).map(e=>`<div style="font-size:.58rem;padding:1px 4px;border-radius:3px;background:${safeColor(e.color)}22;color:${safeColor(e.color)};margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHTML(e.title)}</div>`).join('')}
                </div>`;
     }
     grid.innerHTML = html;
@@ -754,7 +756,7 @@
     const dt = new Date(ds+'T12:00:00');
     document.getElementById('scDetailDate').textContent = dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
     document.getElementById('scDetailBody').innerHTML = evs.length
-      ? evs.map(ev=>`<div class="mb-2 p-2 rounded" style="border-left:3px solid ${ev.color};background:${ev.color}0d;"><div class="fw-semibold" style="font-size:.82rem;">${ev.title}</div>${ev.description?`<div style="font-size:.77rem;color:#374151;">${ev.description}</div>`:''}</div>`).join('')
+      ? evs.map(ev=>{const c=safeColor(ev.color);return `<div class="mb-2 p-2 rounded" style="border-left:3px solid ${c};background:${c}0d;"><div class="fw-semibold" style="font-size:.82rem;">${escHTML(ev.title)}</div>${ev.description?`<div style="font-size:.77rem;color:#374151;">${escHTML(ev.description)}</div>`:''}</div>`;}).join('')
       : '<p class="text-muted small mb-0">No events on this day.</p>';
     document.getElementById('scDetail').style.display='';
   }

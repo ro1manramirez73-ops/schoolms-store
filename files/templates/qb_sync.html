@@ -92,8 +92,12 @@
   </div>
 </div>
 {% endblock %}
+{% block head %}<meta name="csrf-token" content="{{ csrf_token() }}">{% endblock %}
 {% block scripts %}
 <script>
+function escHTML(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+const _csrf = document.querySelector('meta[name="csrf-token"]').content;
+
 async function syncAll() {
   const btn = document.getElementById('syncBtn');
   btn.disabled = true;
@@ -105,7 +109,7 @@ async function syncAll() {
     const ids = records.map(r => r.id);
     const res = await fetch('/finances/qb-mark-synced', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': _csrf},
       body: JSON.stringify({ids, notes: 'Manual sync via QB Sync page'})
     });
     const result = await res.json();
@@ -134,7 +138,7 @@ fetch('/finances/qb-sync-data')
     let html = '<table class="table table-sm"><thead class="table-light"><tr><th>Date</th><th>Description</th><th>Amount</th></tr></thead><tbody>';
     records.forEach(r => {
       const cls = r.amount >= 0 ? 'text-success' : 'text-danger';
-      html += `<tr><td class="text-muted">${r.date}</td><td class="small">${r.description}</td><td class="fw-semibold ${cls}">$${Math.abs(r.amount).toFixed(2)}</td></tr>`;
+      html += `<tr><td class="text-muted">${escHTML(r.date)}</td><td class="small">${escHTML(r.description)}</td><td class="fw-semibold ${cls}">$${Math.abs(r.amount).toFixed(2)}</td></tr>`;
     });
     html += '</tbody></table>';
     el.innerHTML = html;

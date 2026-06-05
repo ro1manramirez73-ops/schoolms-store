@@ -50,11 +50,16 @@ csrf = CSRFProtect(app)
 limiter = Limiter(get_remote_address, app=app, default_limits=[])
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)
 app.config['SESSION_PERMANENT'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# Set COOKIE_SECURE=1 in .env when running behind HTTPS
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('COOKIE_SECURE', '0') == '1'
 app.register_blueprint(payroll_bp)
 _APP_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_URL = os.environ.get('DATABASE_URL', f'sqlite:///{os.path.join(_APP_DIR, "school.db")}')
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5 MB upload limit
 # Strip sqlite:/// prefix to get the absolute file path used by sqlite3
 DB_PATH = DATABASE_URL.replace('sqlite:///', '', 1)
 if not os.path.isabs(DB_PATH):
@@ -217,6 +222,32 @@ def _check_pw(pw, stored):
         return bcrypt.checkpw(pw.encode(), stored.encode())
     except Exception:
         return False
+
+_failed_logins: dict = {}  # username_lower -> [count, first_ts]
+_MAX_FAILED_ATTEMPTS = 10
+_LOCKOUT_WINDOW = 900  # 15 minutes
+
+def _is_locked(username: str) -> bool:
+    key = username.lower()
+    entry = _failed_logins.get(key)
+    if not entry: return False
+    count, first_ts = entry
+    if time.time() - first_ts > _LOCKOUT_WINDOW:
+        del _failed_logins[key]
+        return False
+    return count >= _MAX_FAILED_ATTEMPTS
+
+def _record_failed(username: str):
+    key = username.lower()
+    now = time.time()
+    entry = _failed_logins.get(key)
+    if not entry or now - entry[1] > _LOCKOUT_WINDOW:
+        _failed_logins[key] = [1, now]
+    else:
+        _failed_logins[key][0] += 1
+
+def _clear_failed(username: str):
+    _failed_logins.pop(username.lower(), None)
 
 def init_db():
     conn = get_db(); c = conn.cursor()
@@ -511,6 +542,14 @@ def login_required(f):
     @wraps(f)
     def d(*a,**kw):
         if 'user_id' not in session: return redirect('/home')
+        tok = session.get('_tok')
+        if tok:
+            conn = get_db()
+            valid = conn.execute("SELECT 1 FROM active_sessions WHERE token=?", (tok,)).fetchone()
+            conn.close()
+            if not valid:
+                session.clear()
+                return redirect('/login')
         if request.endpoint != 'set_password':
             # Check DB only once; cache result in session for the lifetime of the session
             if 'must_change_pw' not in session:
@@ -766,6 +805,7 @@ def public_home():
     return render_template('public/home.html', news=news)
 
 @app.route('/admissions', methods=['GET','POST'])
+@limiter.limit("10 per hour", methods=["POST"])
 def public_admissions():
     success = False
     if request.method == 'POST':
@@ -802,37 +842,42 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username','').strip()
         password = request.form.get('password','')
-        conn = get_db()
-        user = conn.execute("SELECT * FROM users WHERE username=? AND is_active=1", (username,)).fetchone()
-        conn.close()
-        result = _check_pw(password, user['password_hash']) if user else False
-        if result:
-            # Check concurrent connection limit (admins always allowed through)
-            if user['role'] != 'admin' and _connection_limit_reached():
-                error = (f"Connection limit reached. The school has set a maximum of "
-                         f"{get_setting('max_connections','?')} simultaneous connections. "
-                         f"Please try again later or ask an administrator.")
-            else:
-                if result == 'migrate':
+        if _is_locked(username):
+            error = 'Too many failed attempts. Try again in 15 minutes.'
+        else:
+            conn = get_db()
+            user = conn.execute("SELECT * FROM users WHERE username=? AND is_active=1", (username,)).fetchone()
+            conn.close()
+            result = _check_pw(password, user['password_hash']) if user else False
+            if result:
+                _clear_failed(username)
+                # Check concurrent connection limit (admins always allowed through)
+                if user['role'] != 'admin' and _connection_limit_reached():
+                    error = (f"Connection limit reached. The school has set a maximum of "
+                             f"{get_setting('max_connections','?')} simultaneous connections. "
+                             f"Please try again later or ask an administrator.")
+                else:
+                    if result == 'migrate':
+                        conn2 = get_db()
+                        conn2.execute("UPDATE users SET password_hash=? WHERE id=?", (hash_pw(password), user['id']))
+                        conn2.commit(); conn2.close()
+                    session.permanent = True
+                    session.update({'user_id':user['id'],'username':user['username'],
+                                    'full_name':user['full_name'],'role':user['role'],
+                                    'linked_id':user['linked_id']})
+                    _register_session(user['id'])
                     conn2 = get_db()
-                    conn2.execute("UPDATE users SET password_hash=? WHERE id=?", (hash_pw(password), user['id']))
+                    conn2.execute("UPDATE users SET last_login=? WHERE id=?", (datetime.now().isoformat(),user['id']))
                     conn2.commit(); conn2.close()
-                session.permanent = True
-                session.update({'user_id':user['id'],'username':user['username'],
-                                'full_name':user['full_name'],'role':user['role'],
-                                'linked_id':user['linked_id']})
-                _register_session(user['id'])
-                conn2 = get_db()
-                conn2.execute("UPDATE users SET last_login=? WHERE id=?", (datetime.now().isoformat(),user['id']))
-                conn2.commit(); conn2.close()
-                audit('LOGIN')
-                if user['must_change_pw']: return redirect('/set-password')
-                if user['role'] == 'parent': return redirect('/parent')
-                if user['role'] == 'student': return redirect('/student-portal')
-                if user['role'] == 'teacher': return redirect('/teacher-home')
-                return redirect('/')
-        if not error:
-            error = 'Invalid username or password.'
+                    audit('LOGIN')
+                    if user['must_change_pw']: return redirect('/set-password')
+                    if user['role'] == 'parent': return redirect('/parent')
+                    if user['role'] == 'student': return redirect('/student-portal')
+                    if user['role'] == 'teacher': return redirect('/teacher-home')
+                    return redirect('/')
+            if not error:
+                _record_failed(username)
+                error = 'Invalid username or password.'
     return render_template('login.html', error=error)
 
 @app.route('/logout')
@@ -843,6 +888,7 @@ def logout():
     return redirect('/login')
 
 @app.route('/parent/register', methods=['GET','POST'])
+@limiter.limit("10 per hour", methods=["POST"])
 def parent_register():
     error = None; success = False
     if request.method == 'POST':
@@ -877,16 +923,19 @@ def parent_register():
 @app.route('/set-password', methods=['GET','POST'])
 @login_required
 def set_password():
+    pw_error = None
     if request.method == 'POST':
         new_pw = request.form.get('new_password','')
-        if len(new_pw) >= 6:
+        if len(new_pw) < 8 or not any(c.isdigit() for c in new_pw):
+            pw_error = 'Password must be at least 8 characters and contain at least one number.'
+        else:
             conn = get_db()
             conn.execute("UPDATE users SET password_hash=?, must_change_pw=0 WHERE id=?",
                          (hash_pw(new_pw), session['user_id']))
             conn.commit(); conn.close()
             session['must_change_pw'] = False
             return redirect('/')
-    return render_template('set_password.html')
+    return render_template('set_password.html', pw_error=pw_error)
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
@@ -1556,7 +1605,11 @@ def student_detail(id):
 @role_required('admin','accountant')
 def add_student_credit(id):
     d = request.form
-    amount      = float(d['amount'])
+    try:
+        amount = float(d['amount'])
+        if amount <= 0: raise ValueError
+    except (TypeError, ValueError):
+        return redirect(f'/students/{id}')
     credit_type = d['credit_type']
     description = d.get('description','').strip()
     donor_name  = d.get('donor_name','').strip()
@@ -2807,10 +2860,18 @@ def delete_announcement(id):
 def _events_for_role(conn, role):
     if role == 'admin':
         return conn.execute("SELECT * FROM events ORDER BY event_date, start_time").fetchall()
-    audience_map = {'teacher': "('all','teachers')", 'parent': "('all','parents')",
-                    'student': "('all','students')", 'accountant': "('all','teachers')"}
-    aud = audience_map.get(role, "('all')")
-    return conn.execute(f"SELECT * FROM events WHERE audience IN {aud} ORDER BY event_date, start_time").fetchall()
+    audience_map = {
+        'teacher':    ('all', 'teachers'),
+        'parent':     ('all', 'parents'),
+        'student':    ('all', 'students'),
+        'accountant': ('all', 'teachers'),
+    }
+    audiences = audience_map.get(role, ('all',))
+    placeholders = ','.join(['?'] * len(audiences))
+    return conn.execute(
+        f"SELECT * FROM events WHERE audience IN ({placeholders}) ORDER BY event_date, start_time",
+        audiences
+    ).fetchall()
 
 def _events_by_date(events):
     grouped = {}
@@ -3320,9 +3381,14 @@ def finances():
 @role_required('admin','accountant')
 def add_finance():
     d = request.form; conn = get_db()
+    try:
+        fin_amount = float(d['amount'])
+        if fin_amount <= 0: raise ValueError
+    except (TypeError, ValueError):
+        return redirect('/finances')
     conn.execute('''INSERT INTO finances (type,category,description,amount,date,student_id,
         payment_method,status,reference,created_by) VALUES (?,?,?,?,?,?,?,?,?,?)''',
-        (d['type'],d['category'],d.get('description'),float(d['amount']),
+        (d['type'],d['category'],d.get('description'),fin_amount,
          d.get('date',date.today().isoformat()),d.get('student_id') or None,
          d.get('payment_method'),d.get('status','Completed'),d.get('reference'),session.get('user_id')))
     conn.commit(); conn.close(); return redirect('/finances')
@@ -3337,9 +3403,14 @@ def delete_finance(id):
 @role_required('admin','accountant')
 def add_fee():
     d = request.form; conn = get_db()
+    try:
+        fee_amount = float(d['amount'])
+        if fee_amount <= 0: raise ValueError
+    except (TypeError, ValueError):
+        return redirect(d.get('next') or '/finances')
     conn.execute('''INSERT INTO fees (student_id,fee_type,amount,due_date,paid_amount,
         status,academic_year,term,created_by) VALUES (?,?,?,?,?,?,?,?,?)''',
-        (d['student_id'],d['fee_type'],float(d['amount']),d.get('due_date'),
+        (d['student_id'],d['fee_type'],fee_amount,d.get('due_date'),
          float(d.get('paid_amount') or 0),d.get('status','Unpaid'),
          d.get('academic_year'),d.get('term'),session.get('user_id')))
     conn.commit(); conn.close()
@@ -3733,6 +3804,7 @@ def _send_invoice_email(inv, items, total):
 
 @app.route('/invoices/<int:inv_id>/send', methods=['POST'])
 @role_required('admin','accountant','frontdesk')
+@limiter.limit("30 per hour")
 def send_invoice(inv_id):
     conn = get_db()
     inv = conn.execute(
@@ -4003,8 +4075,13 @@ def qb_sync_data():
 @app.route('/finances/qb-mark-synced', methods=['POST'])
 @role_required('admin','accountant')
 def qb_mark_synced():
-    data = request.json; ids = data.get('ids',[]); notes = data.get('notes','')
+    data = request.json; notes = data.get('notes','')
+    try:
+        ids = [int(i) for i in data.get('ids', [])]
+    except (TypeError, ValueError):
+        return jsonify({'error': 'IDs must be integers'}), 400
     if not ids: return jsonify({'error':'No IDs'}), 400
+    if any(i <= 0 for i in ids): return jsonify({'error': 'IDs must be positive'}), 400
     conn = get_db()
     conn.execute(f"UPDATE finances SET qb_synced=1,qb_sync_date=? WHERE id IN ({','.join(['?']*len(ids))})",
                  [date.today().isoformat()]+ids)
@@ -4203,7 +4280,7 @@ def profile():
 @login_required
 def subjects_by_class(class_id):
     conn = get_db()
-    subs = conn.execute("SELECT * FROM subjects WHERE class_id=?", (class_id,)).fetchall()
+    subs = conn.execute("SELECT id, name, code, credits FROM subjects WHERE class_id=?", (class_id,)).fetchall()
     conn.close(); return jsonify([dict(s) for s in subs])
 
 @app.errorhandler(403)
@@ -4213,7 +4290,7 @@ def not_found(e): return render_template('error.html', message="Page not found."
 
 # ── School Settings ───────────────────────────────────────────────────────────
 
-_ALLOWED_LOGO_EXT = {'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'}
+_ALLOWED_LOGO_EXT = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 @app.route('/admin/settings', methods=['GET', 'POST'])
 @role_required('admin')

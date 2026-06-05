@@ -207,6 +207,8 @@ const MONTHS = ['January','February','March','April','May','June','July','August
 const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 function pad(n){ return String(n).padStart(2,'0'); }
+function escHTML(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function safeColor(c){ return /^#[0-9a-fA-F]{3,8}$/.test(String(c)) ? c : '#808080'; }
 
 function renderHeaders() {
   const hdr = document.getElementById('calDayHeaders');
@@ -229,7 +231,7 @@ function renderCalendar() {
     html += `<div class="cal-cell ${isToday?'today':''}" data-date="${dateStr}" onclick="selectDay('${dateStr}', this)">
                <div class="cal-day-num">${d}</div>`;
     evs.slice(0,3).forEach(ev => {
-      html += `<div class="cal-pill" style="background:${ev.color}22;color:${ev.color};">${ev.title}</div>`;
+      html += `<div class="cal-pill" style="background:${safeColor(ev.color)}22;color:${safeColor(ev.color)};">${escHTML(ev.title)}</div>`;
     });
     if (evs.length > 3) html += `<div class="cal-more">+${evs.length-3} more</div>`;
     html += '</div>';
@@ -252,21 +254,23 @@ function selectDay(dateStr, el) {
     return;
   }
 
-  document.getElementById('detailBody').innerHTML = evs.map(ev => `
-    <div class="event-item mb-2" style="border-left-color:${ev.color};background:${ev.color}0d;">
+  document.getElementById('detailBody').innerHTML = evs.map(ev => {
+    const c = safeColor(ev.color);
+    return `<div class="event-item mb-2" style="border-left-color:${c};background:${c}0d;">
       <div class="d-flex align-items-start justify-content-between">
         <div>
-          <div class="ev-title">${ev.title}</div>
-          ${ev.start_time ? `<div class="ev-meta"><i class="bi bi-clock me-1"></i>${ev.start_time}${ev.end_time?' &ndash; '+ev.end_time:''}</div>` : ''}
-          ${ev.description ? `<div class="ev-desc">${ev.description}</div>` : ''}
+          <div class="ev-title">${escHTML(ev.title)}</div>
+          ${ev.start_time ? `<div class="ev-meta"><i class="bi bi-clock me-1"></i>${escHTML(ev.start_time)}${ev.end_time?' &ndash; '+escHTML(ev.end_time):''}</div>` : ''}
+          ${ev.description ? `<div class="ev-desc">${escHTML(ev.description)}</div>` : ''}
           <div class="mt-1">
-            <span class="badge" style="background:${ev.color}22;color:${ev.color};font-size:.65rem;">${ev.event_type}</span>
-            <span class="badge bg-light text-muted ms-1" style="font-size:.65rem;">${ev.audience}</span>
+            <span class="badge" style="background:${c}22;color:${c};font-size:.65rem;">${escHTML(ev.event_type)}</span>
+            <span class="badge bg-light text-muted ms-1" style="font-size:.65rem;">${escHTML(ev.audience)}</span>
           </div>
         </div>
         ${IS_ADMIN ? `<button class="btn btn-sm btn-outline-danger ms-2" style="padding:.1rem .4rem;font-size:.7rem;" onclick="deleteEvent(${ev.id})"><i class="bi bi-trash"></i></button>` : ''}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function deleteEvent(id) {
