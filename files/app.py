@@ -4,6 +4,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import bcrypt
 import sqlite3, os, hashlib, secrets, json, io, glob, smtplib, uuid, html as html_module, random, sys, logging, time, threading
+from logging.handlers import RotatingFileHandler
 
 # allow importing generate_manual from the project root
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -33,10 +34,24 @@ load_dotenv()
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env.local'),
             override=True)
 
-logging.basicConfig(
-    level=logging.WARNING,
-    format='%(asctime)s %(levelname)s %(name)s: %(message)s',
-)
+# ── Logging: console + rotating file ─────────────────────────────────────────
+_log_fmt = logging.Formatter('%(asctime)s %(levelname)s %(name)s: %(message)s')
+_root_log = logging.getLogger()
+_root_log.setLevel(logging.WARNING)
+
+_console_h = logging.StreamHandler()
+_console_h.setFormatter(_log_fmt)
+_root_log.addHandler(_console_h)
+
+_log_dir  = os.environ.get('LOG_DIR', os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_log_path = os.path.join(_log_dir, 'server.log')
+try:
+    _file_h = RotatingFileHandler(_log_path, maxBytes=5_000_000, backupCount=3, encoding='utf-8')
+    _file_h.setFormatter(_log_fmt)
+    _root_log.addHandler(_file_h)
+except Exception:
+    pass  # read-only filesystem — console only
+
 log = logging.getLogger('schoolms')
 
 import license as _lic
@@ -44,6 +59,28 @@ from payroll_routes import payroll_bp
 import rls as _rls
 
 _APP_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# ── Sentry error tracking (opt-in via SENTRY_DSN env var) ─────────────────────
+_SENTRY_DSN = os.environ.get('SENTRY_DSN', '')
+if _SENTRY_DSN:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.flask import FlaskIntegration
+        from sentry_sdk.integrations.logging import LoggingIntegration
+        sentry_sdk.init(
+            dsn=_SENTRY_DSN,
+            integrations=[
+                FlaskIntegration(),
+                # Captures log.error() / log.exception() as Sentry events automatically
+                LoggingIntegration(level=logging.WARNING, event_level=logging.ERROR),
+            ],
+            traces_sample_rate=float(os.environ.get('SENTRY_TRACES_RATE', '0.1')),
+            send_default_pii=False,   # never send student PII to Sentry
+            environment=os.environ.get('FLASK_ENV', 'production'),
+        )
+        log.info("Sentry initialized (DSN configured)")
+    except Exception as _e:
+        log.warning("Sentry init failed: %s", _e)
 
 app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
@@ -726,7 +763,7 @@ def serve_manual():
 _LICENSE_BYPASS = {
     'activate', 'static', 'manifest_json', 'sw_js',
     'login', 'logout', 'home', 'contact', 'admissions',
-    'parent_register', 'ping', 'serve_manual',
+    'parent_register', 'ping', 'serve_manual', 'health',
 }
 
 # Cache license check result to avoid DB query on every request (TTL 300 s)
@@ -790,6 +827,26 @@ def _auto_prune_sessions():
             _prune_stale_sessions()
         except Exception:
             pass
+
+
+@app.before_request
+def _start_timer():
+    g._req_start = time.time()
+
+
+_SLOW_REQUEST_THRESHOLD = 3.0  # seconds — log WARNING if exceeded
+
+@app.after_request
+def _log_slow_requests(response):
+    start = getattr(g, '_req_start', None)
+    if start and request.endpoint not in ('static', 'health'):
+        elapsed = time.time() - start
+        if elapsed >= _SLOW_REQUEST_THRESHOLD:
+            log.warning(
+                "Slow request: %s %s → %s  %.2fs",
+                request.method, request.path, response.status_code, elapsed,
+            )
+    return response
 
 
 @app.template_filter('money')
@@ -924,6 +981,12 @@ def ping():
     session.modified = True
     _touch_session()
     return ('', 204)
+
+
+@app.route('/health')
+def health():
+    """Public health check for UptimeRobot and load balancers. No auth, no DB."""
+    return {'status': 'ok', 'ts': datetime.utcnow().isoformat() + 'Z'}, 200
 
 
 @app.route('/login', methods=['GET','POST'])
@@ -4444,6 +4507,10 @@ def subjects_by_class(class_id):
 def forbidden(e): return render_template('error.html', message="Access denied."), 403
 @app.errorhandler(404)
 def not_found(e): return render_template('error.html', message="Page not found."), 404
+@app.errorhandler(500)
+def internal_error(e):
+    log.exception("Unhandled 500: %s %s", request.method, request.path)
+    return render_template('error.html', message="Error interno del servidor. El equipo ha sido notificado."), 500
 @app.errorhandler(429)
 def too_many_requests(e):
     retry = getattr(e, 'retry_after', None) or getattr(e, 'description', '')

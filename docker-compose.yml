@@ -23,6 +23,8 @@ services:
       - MAIL_FROM=${MAIL_FROM}
       - COOKIE_SECURE=1
       - RATELIMIT_STORAGE_URI=redis://redis:6379
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - FLASK_ENV=production
     volumes:
       - ./data:/app/data
     depends_on:
