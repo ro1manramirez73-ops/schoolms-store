@@ -43,11 +43,20 @@ import license as _lic
 from payroll_routes import payroll_bp
 import rls as _rls
 
+_APP_DIR = os.path.dirname(os.path.abspath(__file__))
+
 app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 csrf = CSRFProtect(app)
-limiter = Limiter(get_remote_address, app=app, default_limits=[])
+# memory:// is fine for single-worker Waitress (dev).
+# Set RATELIMIT_STORAGE_URI=redis://redis:6379 in production (see docker-compose.yml).
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["300 per minute"],
+    storage_uri=os.environ.get("RATELIMIT_STORAGE_URI", "memory://"),
+)
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)
 app.config['SESSION_PERMANENT'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -55,7 +64,6 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 # Set COOKIE_SECURE=1 in .env when running behind HTTPS
 app.config['SESSION_COOKIE_SECURE'] = os.environ.get('COOKIE_SECURE', '0') == '1'
 app.register_blueprint(payroll_bp)
-_APP_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_URL = os.environ.get('DATABASE_URL', f'sqlite:///{os.path.join(_APP_DIR, "school.db")}')
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -1474,6 +1482,7 @@ _ALLOWED_PHOTO_EXTS = {'jpg', 'jpeg', 'png', 'webp', 'gif'}
 
 @app.route('/students/<int:id>/upload-photo', methods=['POST'])
 @role_required('admin', 'teacher')
+@limiter.limit("20 per hour")
 def upload_student_photo(id):
     f = request.files.get('photo')
     if not f or not f.filename:
@@ -1657,6 +1666,7 @@ def student_credit_balance(id):
 
 @app.route('/students/<int:id>/report-card')
 @login_required
+@limiter.limit("30 per hour")
 def report_card(id):
     conn = get_db()
     student = conn.execute('''SELECT s.*, c.name as class_name FROM students s
@@ -2485,6 +2495,7 @@ def class_detail(id):
 
 @app.route('/classes/<int:id>/send-curriculum', methods=['POST'])
 @role_required('admin', 'teacher')
+@limiter.limit("5 per hour")
 def send_curriculum(id):
     d    = request.form
     conn = get_db()
@@ -3196,6 +3207,7 @@ def reports():
 
 @app.route('/reports/export/<report_type>')
 @role_required('admin','accountant')
+@limiter.limit("10 per hour")
 def export_report(report_type):
     import csv, io
     from_date = request.args.get('from_date', '')
@@ -3573,6 +3585,7 @@ def pay_installment(inst_id):
 
 @app.route('/payment-plans/remind/<int:inst_id>', methods=['POST'])
 @role_required('admin','accountant','frontdesk')
+@limiter.limit("20 per hour")
 def remind_installment(inst_id):
     conn = get_db()
     inst = conn.execute("SELECT * FROM plan_installments WHERE id=?", (inst_id,)).fetchone()
@@ -4074,6 +4087,7 @@ def qb_sync_data():
 
 @app.route('/finances/qb-mark-synced', methods=['POST'])
 @role_required('admin','accountant')
+@limiter.limit("20 per hour")
 def qb_mark_synced():
     data = request.json; notes = data.get('notes','')
     try:
@@ -4093,6 +4107,7 @@ def qb_mark_synced():
 
 @app.route('/finances/qb-export-iif')
 @role_required('admin','accountant')
+@limiter.limit("10 per hour")
 def qb_export_iif():
     conn = get_db()
     rows = conn.execute('''SELECT f.*, s.first_name||' '||s.last_name as student_name
@@ -4287,6 +4302,16 @@ def subjects_by_class(class_id):
 def forbidden(e): return render_template('error.html', message="Access denied."), 403
 @app.errorhandler(404)
 def not_found(e): return render_template('error.html', message="Page not found."), 404
+@app.errorhandler(429)
+def too_many_requests(e):
+    retry = getattr(e, 'retry_after', None) or getattr(e, 'description', '')
+    try:
+        secs = int(retry)
+        wait = f"{secs // 60} minuto(s)" if secs >= 60 else f"{secs} segundo(s)"
+    except (TypeError, ValueError):
+        wait = "unos minutos"
+    return render_template('error.html',
+        message=f"Demasiadas peticiones. Por favor espera {wait} e intenta de nuevo."), 429
 
 # ── School Settings ───────────────────────────────────────────────────────────
 
@@ -4294,6 +4319,7 @@ _ALLOWED_LOGO_EXT = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 @app.route('/admin/settings', methods=['GET', 'POST'])
 @role_required('admin')
+@limiter.limit("10 per hour", methods=["POST"])
 def school_settings():
     saved = False
     if request.method == 'POST':

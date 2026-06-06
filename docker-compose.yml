@@ -1,6 +1,11 @@
 version: '3.8'
 
 services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # No ports exposed — only reachable inside the Docker network
+
   web:
     build: .
     ports:
@@ -16,8 +21,12 @@ services:
       - MAIL_USERNAME=${MAIL_USERNAME}
       - MAIL_PASSWORD=${MAIL_PASSWORD}
       - MAIL_FROM=${MAIL_FROM}
+      - COOKIE_SECURE=1
+      - RATELIMIT_STORAGE_URI=redis://redis:6379
     volumes:
       - ./data:/app/data
+    depends_on:
+      - redis
     restart: unless-stopped
 
   nginx:

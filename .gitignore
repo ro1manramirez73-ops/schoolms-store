@@ -57,7 +57,7 @@ python-embed.zip
 get-pip.py
 
 # IDE
-.vscode/
+# .vscode/ is tracked — it pins the Python interpreter to .venv
 .idea/
 *.suo
 *.user
