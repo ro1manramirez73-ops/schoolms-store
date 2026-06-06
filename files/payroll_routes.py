@@ -101,12 +101,13 @@ def _months():
 def dashboard():
     year = int(request.args.get("year", datetime.now().year))
     employees = _db.get_employees()
+    ytd_map = _db.get_ytd_bulk(year)
 
     rows = []
     for e in employees:
         annual     = _annual(e)
         annual_net = _annual_net(e)
-        ytd        = _db.get_ytd(e["name"], year)
+        ytd        = ytd_map.get(e["name"], 0.0)
         fig        = _monthly_figures(e)
         rows.append({
             "id":           e["id"],
@@ -141,11 +142,12 @@ def dashboard():
 def api_chart():
     year = int(request.args.get("year", datetime.now().year))
     employees = _db.get_employees()
+    ytd_map = _db.get_ytd_bulk(year)
     names, net_annual, ytd_vals = [], [], []
     for e in employees:
         names.append(e["name"])
         net_annual.append(_annual_net(e))
-        ytd_vals.append(_db.get_ytd(e["name"], year))
+        ytd_vals.append(ytd_map.get(e["name"], 0.0))
     return jsonify({"names": names, "net_annual": net_annual, "ytd": ytd_vals})
 
 

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, session, send_file, Response, stream_with_context
+from flask import Flask, render_template, request, jsonify, redirect, session, send_file, Response, stream_with_context, g
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -109,7 +109,10 @@ def reload_roles():
 
 _settings_cache: dict = {}
 _settings_cache_ts: dict = {}
-_SETTINGS_TTL = 30  # seconds
+_SETTINGS_TTL = 600  # 10 minutes
+
+_dashboard_cache: dict = {'data': None, 'ts': 0.0}
+_DASHBOARD_TTL = 300  # 5 minutes
 
 def get_setting(key, default=None):
     now = time.time()
@@ -461,6 +464,17 @@ def init_db():
     ]:
         try: c.execute(sql)
         except: pass
+    # Performance indexes — safe to run on existing DBs (CREATE INDEX IF NOT EXISTS)
+    for sql in [
+        "CREATE INDEX IF NOT EXISTS idx_finances_type ON finances(type)",
+        "CREATE INDEX IF NOT EXISTS idx_fees_status ON fees(status)",
+        "CREATE INDEX IF NOT EXISTS idx_students_status ON students(status)",
+        "CREATE INDEX IF NOT EXISTS idx_messages_to_read ON messages(to_user, is_read)",
+        "CREATE INDEX IF NOT EXISTS idx_attendance_sid_date ON attendance(student_id, date)",
+        "CREATE INDEX IF NOT EXISTS idx_grades_sid_term ON grades(student_id, term, academic_year)",
+    ]:
+        try: c.execute(sql)
+        except: pass
     # Role permissions table
     c.execute('''CREATE TABLE IF NOT EXISTS role_permissions (
         role TEXT PRIMARY KEY,
@@ -526,7 +540,14 @@ def calc_graduation_date(dob_str):
     except Exception:
         return None
 
+_last_auto_graduate: str = ''
+
 def auto_graduate_students():
+    global _last_auto_graduate
+    today = date.today().isoformat()
+    if _last_auto_graduate == today:
+        return
+    _last_auto_graduate = today
     conn = get_db()
     # Backfill graduation_date for any student who has a DOB but none set yet
     rows = conn.execute(
@@ -537,7 +558,6 @@ def auto_graduate_students():
         if gd:
             conn.execute("UPDATE students SET graduation_date=? WHERE id=?", (gd, row['id']))
     # Promote students whose graduation date has passed
-    today = date.today().isoformat()
     conn.execute(
         "UPDATE students SET status='Graduated' "
         "WHERE graduation_date IS NOT NULL AND graduation_date <= ? AND status='Active'",
@@ -592,10 +612,14 @@ app.jinja_env.globals['can'] = can
 def unread_count():
     uid = session.get('user_id')
     if not uid: return 0
+    if hasattr(g, '_unread_count'):
+        return g._unread_count
     try:
         conn = get_db()
         n = conn.execute("SELECT COUNT(*) FROM messages WHERE to_user=? AND is_read=0", (uid,)).fetchone()[0]
-        conn.close(); return n
+        conn.close()
+        g._unread_count = n
+        return n
     except: return 0
 app.jinja_env.globals['unread_count'] = unread_count
 
@@ -674,9 +698,9 @@ _LICENSE_BYPASS = {
     'parent_register', 'ping', 'serve_manual',
 }
 
-# Cache license check result to avoid DB query on every request (TTL 60 s)
+# Cache license check result to avoid DB query on every request (TTL 300 s)
 _lic_cache: dict = {'ok': False, 'ts': 0.0}
-_LIC_CACHE_TTL = 60
+_LIC_CACHE_TTL = 300
 
 @app.before_request
 def license_gate():
@@ -954,16 +978,30 @@ def dashboard():
     if session.get('role') == 'student': return redirect('/student-portal')
     if session.get('role') == 'teacher': return redirect('/teacher-home')
     conn = get_db()
-    stats = {
-        'students': conn.execute("SELECT COUNT(*) FROM students WHERE status='Active'").fetchone()[0],
-        'teachers': conn.execute("SELECT COUNT(*) FROM teachers WHERE status='Active'").fetchone()[0],
-        'classes':  conn.execute("SELECT COUNT(*) FROM classes").fetchone()[0],
-        'pending_admissions': conn.execute("SELECT COUNT(*) FROM admissions WHERE status='Pending'").fetchone()[0],
-    }
-    total_income  = conn.execute("SELECT COALESCE(SUM(amount),0) FROM finances WHERE type='Income'").fetchone()[0]
-    total_expense = conn.execute("SELECT COALESCE(SUM(amount),0) FROM finances WHERE type='Expense'").fetchone()[0]
-    unpaid_fees   = conn.execute("SELECT COALESCE(SUM(amount-paid_amount),0) FROM fees WHERE status!='Paid'").fetchone()[0]
-    unsynced      = conn.execute("SELECT COUNT(*) FROM finances WHERE qb_synced=0").fetchone()[0]
+    now = time.time()
+    cached = _dashboard_cache.get('data')
+    if cached and now - _dashboard_cache['ts'] < _DASHBOARD_TTL:
+        stats         = cached['stats']
+        total_income  = cached['total_income']
+        total_expense = cached['total_expense']
+        unpaid_fees   = cached['unpaid_fees']
+        unsynced      = cached['unsynced']
+    else:
+        stats = {
+            'students': conn.execute("SELECT COUNT(*) FROM students WHERE status='Active'").fetchone()[0],
+            'teachers': conn.execute("SELECT COUNT(*) FROM teachers WHERE status='Active'").fetchone()[0],
+            'classes':  conn.execute("SELECT COUNT(*) FROM classes").fetchone()[0],
+            'pending_admissions': conn.execute("SELECT COUNT(*) FROM admissions WHERE status='Pending'").fetchone()[0],
+        }
+        total_income  = conn.execute("SELECT COALESCE(SUM(amount),0) FROM finances WHERE type='Income'").fetchone()[0]
+        total_expense = conn.execute("SELECT COALESCE(SUM(amount),0) FROM finances WHERE type='Expense'").fetchone()[0]
+        unpaid_fees   = conn.execute("SELECT COALESCE(SUM(amount-paid_amount),0) FROM fees WHERE status!='Paid'").fetchone()[0]
+        unsynced      = conn.execute("SELECT COUNT(*) FROM finances WHERE qb_synced=0").fetchone()[0]
+        _dashboard_cache['data'] = {
+            'stats': stats, 'total_income': total_income,
+            'total_expense': total_expense, 'unpaid_fees': unpaid_fees, 'unsynced': unsynced,
+        }
+        _dashboard_cache['ts'] = now
     recent_students = conn.execute("SELECT * FROM students ORDER BY id DESC LIMIT 5").fetchall()
     recent_finances = conn.execute('''SELECT f.*, s.first_name||' '||s.last_name as student_name
                                       FROM finances f LEFT JOIN students s ON f.student_id=s.id
@@ -3356,8 +3394,11 @@ def finances():
                                     FROM qb_sync_log q LEFT JOIN users u ON q.synced_by=u.id
                                     ORDER BY q.id DESC LIMIT 10''').fetchall()
     invoices      = conn.execute('''SELECT i.*, s.first_name||' '||s.last_name AS student_name,
-                                           (SELECT COALESCE(SUM(amount),0) FROM invoice_items WHERE invoice_id=i.id) AS total
-                                    FROM invoices i JOIN students s ON i.student_id=s.id
+                                           COALESCE(SUM(ii.amount), 0) AS total
+                                    FROM invoices i
+                                    JOIN students s ON i.student_id=s.id
+                                    LEFT JOIN invoice_items ii ON ii.invoice_id=i.id
+                                    GROUP BY i.id
                                     ORDER BY i.id DESC''').fetchall()
     # Chart data: monthly income vs expense for current calendar year
     cur_year = date.today().year

@@ -308,6 +308,16 @@ def get_ytd(name: str, year: int) -> float:
     return float(row["total"])
 
 
+def get_ytd_bulk(year: int) -> dict:
+    """Return {name: ytd_total} for all employees in one query instead of N queries."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT name, COALESCE(SUM(amount), 0) AS total FROM payments WHERE year = ? GROUP BY name",
+            (year,),
+        ).fetchall()
+    return {r["name"]: float(r["total"]) for r in rows}
+
+
 def delete_payment(payment_id: int):
     with get_conn() as conn:
         conn.execute("DELETE FROM payments WHERE id = ?", (payment_id,))
