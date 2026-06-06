@@ -3,7 +3,7 @@ from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import bcrypt
-import sqlite3, os, hashlib, secrets, json, io, glob, smtplib, uuid, html as html_module, random, sys, logging, time
+import sqlite3, os, hashlib, secrets, json, io, glob, smtplib, uuid, html as html_module, random, sys, logging, time, threading
 
 # allow importing generate_manual from the project root
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -144,11 +144,33 @@ def set_setting(key, value):
         log.exception("set_setting(%s) failed", key)
         return False
 
+class _RequestConn:
+    """Proxy that makes conn.close() a no-op inside a request.
+    The real connection lives until teardown_appcontext closes it,
+    so multiple get_db() calls within the same request share one connection.
+    """
+    __slots__ = ('_conn',)
+    def __init__(self, conn): self._conn = conn
+    def close(self): pass
+    def __getattr__(self, name): return getattr(self._conn, name)
+
+
 def get_db():
-    conn = sqlite3.connect(DB_PATH, timeout=15)
-    conn.row_factory = sqlite3.Row
-    conn.execute('PRAGMA journal_mode=WAL')
-    return conn
+    try:
+        # Within a request: reuse the per-request connection stored on g.
+        if not hasattr(g, '_db_raw'):
+            conn = sqlite3.connect(DB_PATH, timeout=15)
+            conn.row_factory = sqlite3.Row
+            conn.execute('PRAGMA journal_mode=WAL')
+            g._db_raw = conn
+            g._db = _RequestConn(conn)
+        return g._db
+    except RuntimeError:
+        # Outside request context (startup, background threads, CLI).
+        conn = sqlite3.connect(DB_PATH, timeout=15)
+        conn.row_factory = sqlite3.Row
+        conn.execute('PRAGMA journal_mode=WAL')
+        return conn
 
 # Load roles now that get_db is defined
 ROLES = _load_roles()
@@ -472,6 +494,15 @@ def init_db():
         "CREATE INDEX IF NOT EXISTS idx_messages_to_read ON messages(to_user, is_read)",
         "CREATE INDEX IF NOT EXISTS idx_attendance_sid_date ON attendance(student_id, date)",
         "CREATE INDEX IF NOT EXISTS idx_grades_sid_term ON grades(student_id, term, academic_year)",
+        # FK lookup indexes
+        "CREATE INDEX IF NOT EXISTS idx_student_credits_sid ON student_credits(student_id)",
+        "CREATE INDEX IF NOT EXISTS idx_plan_installments_pid ON plan_installments(plan_id)",
+        "CREATE INDEX IF NOT EXISTS idx_invoice_items_iid ON invoice_items(invoice_id)",
+        "CREATE INDEX IF NOT EXISTS idx_payment_plans_sid ON payment_plans(student_id)",
+        "CREATE INDEX IF NOT EXISTS idx_events_date ON events(event_date)",
+        "CREATE INDEX IF NOT EXISTS idx_active_sessions_uid ON active_sessions(user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_active_sessions_seen ON active_sessions(last_seen)",
+        "CREATE INDEX IF NOT EXISTS idx_audit_log_uid ON audit_log(user_id)",
     ]:
         try: c.execute(sql)
         except: pass
@@ -732,6 +763,34 @@ def license_gate():
         return redirect('/activate')
 
     _lic_cache.update({'ok': True, 'ts': now})
+
+
+@app.teardown_appcontext
+def _close_request_db(exc):
+    """Close the per-request SQLite connection after every request."""
+    raw = getattr(g, '_db_raw', None)
+    if raw:
+        try:
+            raw.close()
+        except Exception:
+            pass
+
+
+# ── Hourly active_sessions cleanup ───────────────────────────────────────────
+_last_session_prune: float = 0.0
+_SESSION_PRUNE_INTERVAL = 3600  # 1 hour
+
+@app.before_request
+def _auto_prune_sessions():
+    global _last_session_prune
+    now = time.time()
+    if now - _last_session_prune >= _SESSION_PRUNE_INTERVAL:
+        _last_session_prune = now
+        try:
+            _prune_stale_sessions()
+        except Exception:
+            pass
+
 
 @app.template_filter('money')
 def money_fmt(value):
@@ -1061,18 +1120,25 @@ def teacher_home():
                            LEFT JOIN users u ON m.from_user=u.id
                            WHERE m.to_user=? ORDER BY m.sent_at DESC LIMIT 20''',
                         (session['user_id'],)).fetchall()
-    # Students per class for Reports tab
+    # Students per class for Reports tab — single query for all classes
     class_students = {}
-    for c in my_classes:
-        sts = conn.execute('''
+    if my_classes:
+        class_ids = [c['id'] for c in my_classes]
+        placeholders = ','.join('?' * len(class_ids))
+        all_sts = conn.execute(f'''
             SELECT s.*,
                 (SELECT COUNT(*) FROM attendance a WHERE a.student_id=s.id AND a.status='Present') as present_count,
                 (SELECT COUNT(*) FROM attendance a WHERE a.student_id=s.id) as total_att,
-                (SELECT ROUND(AVG(g.score),1) FROM grades g WHERE g.student_id=s.id) as avg_score
-            FROM students s WHERE s.class_id=? AND s.status='Active'
-            ORDER BY s.last_name, s.first_name
-        ''', (c['id'],)).fetchall()
-        class_students[c['id']] = sts
+                (SELECT ROUND(AVG(gr.score),1) FROM grades gr WHERE gr.student_id=s.id) as avg_score
+            FROM students s
+            WHERE s.class_id IN ({placeholders}) AND s.status='Active'
+            ORDER BY s.class_id, s.last_name, s.first_name
+        ''', class_ids).fetchall()
+        for st in all_sts:
+            cid = st['class_id']
+            class_students.setdefault(cid, []).append(st)
+        for c in my_classes:
+            class_students.setdefault(c['id'], [])
     # Also fetch students for all classes if admin
     if not my_classes:
         all_students_flat = conn.execute('''
@@ -3243,6 +3309,30 @@ def reports():
         payroll_years=payroll_years, pay_year=pay_year)
 
 
+def _stream_csv_response(header, cursor, fname):
+    """Return a streaming CSV Response, pulling rows in batches to keep memory low."""
+    import csv as _csv
+    def _gen():
+        buf = io.StringIO()
+        w = _csv.writer(buf)
+        w.writerow(header)
+        yield buf.getvalue().encode('utf-8-sig')
+        while True:
+            chunk = cursor.fetchmany(200)
+            if not chunk:
+                break
+            buf = io.StringIO()
+            w = _csv.writer(buf)
+            for row in chunk:
+                w.writerow(list(row))
+            yield buf.getvalue().encode('utf-8')
+    return Response(
+        stream_with_context(_gen()),
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename="{fname}"'},
+    )
+
+
 @app.route('/reports/export/<report_type>')
 @role_required('admin','accountant')
 @limiter.limit("10 per hour")
@@ -3258,49 +3348,53 @@ def export_report(report_type):
     writer = csv.writer(output)
 
     if report_type == 'students':
-        writer.writerow(['Student ID','First Name','Last Name','Class','Status','Enrollment Date','Graduation Date','Parent','Parent Phone','Email'])
-        rows = conn.execute(
+        fname = f"Students_{date.today()}.csv"
+        cur = conn.execute(
             "SELECT s.student_id,s.first_name,s.last_name,c.name,s.status,"
             "s.enrollment_date,s.graduation_date,s.parent_name,s.parent_phone,s.email "
             "FROM students s LEFT JOIN classes c ON s.class_id=c.id "
             "WHERE s.student_type IS NULL OR s.student_type='Enrolled' "
-            "ORDER BY s.first_name").fetchall()
-        for r in rows: writer.writerow(list(r))
-        fname = f"Students_{date.today()}.csv"
+            "ORDER BY s.first_name")
+        return _stream_csv_response(
+            ['Student ID','First Name','Last Name','Class','Status','Enrollment Date','Graduation Date','Parent','Parent Phone','Email'],
+            cur, fname)
 
     elif report_type == 'outstanding':
-        writer.writerow(['Student ID','Student Name','Class','Fee Type','Amount','Paid','Balance','Due Date','Status'])
-        rows = conn.execute(
+        fname = f"OutstandingFees_{date.today()}.csv"
+        cur = conn.execute(
             "SELECT s.student_id, s.first_name||' '||s.last_name, c.name, "
             "f.fee_type, f.amount, f.paid_amount, f.amount-f.paid_amount, f.due_date, f.status "
             "FROM fees f JOIN students s ON f.student_id=s.id "
             "LEFT JOIN classes c ON s.class_id=c.id "
-            "WHERE f.status != 'Paid' ORDER BY f.amount-f.paid_amount DESC").fetchall()
-        for r in rows: writer.writerow(list(r))
-        fname = f"OutstandingFees_{date.today()}.csv"
+            "WHERE f.status != 'Paid' ORDER BY f.amount-f.paid_amount DESC")
+        return _stream_csv_response(
+            ['Student ID','Student Name','Class','Fee Type','Amount','Paid','Balance','Due Date','Status'],
+            cur, fname)
 
     elif report_type == 'income':
-        writer.writerow(['Date','Type','Category','Description','Amount','Payment Method','Student','Created By'])
-        rows = conn.execute(
+        fname = f"Income_{fd}_to_{td}.csv"
+        cur = conn.execute(
             "SELECT f.date,f.type,f.category,f.description,f.amount,f.payment_method,"
             "s.first_name||' '||s.last_name, u.full_name "
             "FROM finances f LEFT JOIN students s ON f.student_id=s.id "
             "LEFT JOIN users u ON f.created_by=u.id "
-            "WHERE f.date BETWEEN ? AND ? ORDER BY f.date DESC", (fd, td)).fetchall()
-        for r in rows: writer.writerow(list(r))
-        fname = f"Income_{fd}_to_{td}.csv"
+            "WHERE f.date BETWEEN ? AND ? ORDER BY f.date DESC", (fd, td))
+        return _stream_csv_response(
+            ['Date','Type','Category','Description','Amount','Payment Method','Student','Created By'],
+            cur, fname)
 
     elif report_type == 'attendance':
-        writer.writerow(['Date','Student ID','Student Name','Class','Subject','Status','Remarks'])
-        rows = conn.execute(
+        fname = f"Attendance_{fd}_to_{td}.csv"
+        cur = conn.execute(
             "SELECT a.date, s.student_id, s.first_name||' '||s.last_name, c.name, "
             "sub.name, a.status, a.remarks "
             "FROM attendance a JOIN students s ON a.student_id=s.id "
             "LEFT JOIN classes c ON s.class_id=c.id "
             "LEFT JOIN subjects sub ON a.subject_id=sub.id "
-            "WHERE a.date BETWEEN ? AND ? ORDER BY a.date DESC", (fd, td)).fetchall()
-        for r in rows: writer.writerow(list(r))
-        fname = f"Attendance_{fd}_to_{td}.csv"
+            "WHERE a.date BETWEEN ? AND ? ORDER BY a.date DESC", (fd, td))
+        return _stream_csv_response(
+            ['Date','Student ID','Student Name','Class','Subject','Status','Remarks'],
+            cur, fname)
 
     elif report_type == 'pl':
         # Profit & Loss summary export (QuickBooks-friendly)
@@ -3877,8 +3971,15 @@ def send_invoice(inv_id):
     conn.close()
     total = sum(item['amount'] for item in items)
 
-    result = _send_invoice_email(inv, items, total)
-    return redirect(f'/invoices/{inv_id}?sent={result}')
+    # Send email in background so the request returns immediately.
+    inv_dict   = dict(inv)
+    items_list = [dict(i) for i in items]
+    threading.Thread(
+        target=_send_invoice_email,
+        args=(inv_dict, items_list, total),
+        daemon=True,
+    ).start()
+    return redirect(f'/invoices/{inv_id}?sent=sending')
 
 
 @app.route('/invoices/<int:inv_id>/pay', methods=['POST'])
