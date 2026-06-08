@@ -35,8 +35,13 @@ files/Staff_tbl.csv
 
 # Logs
 *.log
+*.txt
 server.log
 server_err.log
+server_stdout.txt
+server_stderr.txt
+startup_out.txt
+startup_err.txt
 /var/log/
 
 # Build / distribution
