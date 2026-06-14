@@ -7,216 +7,294 @@
   <meta name="description" content="One-time purchase school management software. Students, attendance, grades, fees, payroll, timetables and more — installed on your own computer, yours forever.">
   <link rel="icon" type="image/png" href="store/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
       --brand:  #6366f1;
       --brand2: #8b5cf6;
-      --dark:   #0f172a;
-      --mid:    #1e293b;
-      --muted:  #94a3b8;
-      --light:  #f8fafc;
-      --border: #e2e8f0;
       --green:  #22c55e;
       --amber:  #f59e0b;
-      --red:    #ef4444;
+      --pink:   #ec4899;
+      --cyan:   #06b6d4;
+      --dark:   #0f172a;
+      --mid:    #1e293b;
+      --light:  #f8fafc;
+      --border: #e2e8f0;
     }
     html { scroll-behavior: smooth; }
-    body { font-family: 'Inter', sans-serif; color: #334155; background: #fff; line-height: 1.65; }
+    body { font-family: 'Inter', sans-serif; color: #334155; background: #fff; line-height: 1.65; overflow-x: hidden; }
+
+    /* ── SCROLL PROGRESS ── */
+    #progress-bar {
+      position: fixed; top: 0; left: 0; height: 3px; width: 0%;
+      background: linear-gradient(90deg, #6366f1, #ec4899, #06b6d4);
+      z-index: 9999; transition: width .1s;
+    }
 
     /* ── NAV ── */
     nav {
-      position: sticky; top: 0; z-index: 100;
-      background: rgba(255,255,255,.95); backdrop-filter: blur(12px);
+      position: sticky; top: 0; z-index: 200;
+      background: rgba(255,255,255,.92); backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border);
-      padding: .85rem 2rem;
+      padding: .8rem 2rem;
       display: flex; align-items: center; justify-content: space-between;
+      transition: box-shadow .3s;
     }
-    .brand { font-weight: 800; font-size: 1.1rem; color: var(--dark); text-decoration: none; display: flex; align-items: center; gap: .4rem; }
-    .brand span { background: linear-gradient(135deg,var(--brand),var(--brand2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .nav-links { display: flex; gap: 1.5rem; list-style: none; }
-    .nav-links a { text-decoration: none; color: #64748b; font-size: .875rem; font-weight: 500; }
+    nav.scrolled { box-shadow: 0 4px 24px rgba(99,102,241,.12); }
+    .brand { font-weight: 900; font-size: 1.15rem; color: var(--dark); text-decoration: none; display: flex; align-items: center; gap: .45rem; }
+    .brand-logo { width: 32px; height: 32px; border-radius: 7px; object-fit: contain; }
+    .brand span { background: linear-gradient(135deg, var(--brand), var(--pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-links { display: flex; gap: 1.5rem; list-style: none; align-items: center; }
+    .nav-links a { text-decoration: none; color: #64748b; font-size: .875rem; font-weight: 500; transition: color .15s; position: relative; }
+    .nav-links a::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 2px; background: var(--brand); transition: width .2s; border-radius: 2px; }
     .nav-links a:hover { color: var(--brand); }
-    .nav-cta { background: var(--brand); color: #fff !important; padding: .45rem 1.2rem; border-radius: 999px; font-size: .85rem; font-weight: 600; }
+    .nav-links a:hover::after { width: 100%; }
+    .nav-cta { background: linear-gradient(135deg, var(--brand), var(--brand2)) !important; color: #fff !important; padding: .45rem 1.3rem !important; border-radius: 999px !important; font-weight: 700 !important; box-shadow: 0 4px 14px rgba(99,102,241,.4); transition: transform .15s, box-shadow .15s !important; }
+    .nav-cta:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,.55) !important; }
+    .nav-cta::after { display: none !important; }
 
     /* ── HERO ── */
     .hero {
-      background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 55%, #312e81 100%);
-      color: #fff; padding: 6rem 1.5rem 5rem; text-align: center; position: relative; overflow: hidden;
+      background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #2d1b69 100%);
+      color: #fff; padding: 6rem 1.5rem 5rem; text-align: center;
+      position: relative; overflow: hidden; min-height: 92vh; display: flex; align-items: center;
     }
-    .hero::before {
-      content: ''; position: absolute; inset: 0;
-      background: radial-gradient(ellipse at 65% 0%, rgba(99,102,241,.4) 0%, transparent 60%),
-                  radial-gradient(ellipse at 15% 85%, rgba(139,92,246,.3) 0%, transparent 55%);
+    .hero-particles { position: absolute; inset: 0; pointer-events: none; }
+    .hero-particle {
+      position: absolute; border-radius: 50%;
+      animation: particleRise linear infinite;
+      background: rgba(165,180,252,.5);
     }
-    .hero-inner { position: relative; max-width: 780px; margin: 0 auto; }
-    .hero-badge { display: inline-block; background: rgba(99,102,241,.25); border: 1px solid rgba(99,102,241,.5); color: #a5b4fc; padding: .3rem .9rem; border-radius: 999px; font-size: .8rem; font-weight: 600; margin-bottom: 1.5rem; }
-    .hero h1 { font-size: clamp(2rem,5vw,3.2rem); font-weight: 800; line-height: 1.15; margin-bottom: 1.25rem; }
-    .hero h1 span { background: linear-gradient(135deg,#a5b4fc,#c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .hero p { font-size: 1.1rem; color: #cbd5e1; max-width: 580px; margin: 0 auto 2.5rem; }
-    .hero-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
-    .btn-hero { display: inline-block; padding: .85rem 2.2rem; border-radius: 999px; font-size: .95rem; font-weight: 700; text-decoration: none; transition: .2s; }
-    .btn-primary-hero { background: var(--brand); color: #fff; }
-    .btn-primary-hero:hover { background: #4f46e5; transform: translateY(-1px); box-shadow: 0 8px 25px rgba(99,102,241,.45); }
-    .btn-outline-hero { background: rgba(255,255,255,.08); color: #e2e8f0; border: 1px solid rgba(255,255,255,.2); }
-    .btn-outline-hero:hover { background: rgba(255,255,255,.14); }
-    .hero-stats { display: flex; gap: 3rem; justify-content: center; flex-wrap: wrap; margin-top: 3.5rem; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,.1); }
-    .hero-stat .num { font-size: 1.9rem; font-weight: 800; color: #a5b4fc; }
-    .hero-stat .lbl { font-size: .78rem; color: #94a3b8; margin-top: .15rem; }
+    @keyframes particleRise {
+      from { transform: translateY(100vh) translateX(0) scale(1); opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: .5; }
+      to   { transform: translateY(-10vh) translateX(var(--dx,0px)) scale(.5); opacity: 0; }
+    }
+    .blob {
+      position: absolute; border-radius: 50%; filter: blur(80px); opacity: .3;
+      animation: blobFloat ease-in-out infinite;
+    }
+    .blob1 { width: 500px; height: 500px; background: #6366f1; top: -150px; right: -100px; animation-duration: 8s; }
+    .blob2 { width: 350px; height: 350px; background: #ec4899; bottom: -100px; left: -80px; animation-duration: 10s; animation-delay: -3s; }
+    .blob3 { width: 250px; height: 250px; background: #06b6d4; top: 40%; left: 30%; animation-duration: 7s; animation-delay: -5s; }
+    @keyframes blobFloat {
+      0%,100% { transform: translate(0,0) scale(1); }
+      33%      { transform: translate(20px,-30px) scale(1.05); }
+      66%      { transform: translate(-15px,20px) scale(.95); }
+    }
+    .hero-inner { position: relative; max-width: 820px; margin: 0 auto; z-index: 2; width: 100%; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: .5rem;
+      background: rgba(99,102,241,.2); border: 1px solid rgba(99,102,241,.5);
+      color: #a5b4fc; padding: .35rem 1rem; border-radius: 999px;
+      font-size: .8rem; font-weight: 700; margin-bottom: 1.75rem;
+      animation: badgePop .6s ease both;
+    }
+    .badge-dot { width: 7px; height: 7px; background: #6366f1; border-radius: 50%; animation: dotPulse 2s infinite; }
+    @keyframes dotPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+    @keyframes badgePop { from{transform:scale(.6);opacity:0} to{transform:scale(1);opacity:1} }
+    .hero h1 { font-size: clamp(2.2rem, 5.5vw, 3.6rem); font-weight: 900; line-height: 1.12; margin-bottom: 1.25rem; animation: slideUp .6s .15s ease both; }
+    .hero h1 .grad {
+      background: linear-gradient(135deg, #a5b4fc, #c084fc, #f472b6, #38bdf8);
+      background-size: 300%;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      animation: shimmer 4s linear infinite;
+    }
+    @keyframes shimmer { 0%{background-position:0%} 100%{background-position:300%} }
+    .hero p { font-size: 1.1rem; color: #cbd5e1; max-width: 580px; margin: 0 auto 2.5rem; animation: slideUp .6s .3s ease both; }
+    @keyframes slideUp { from{transform:translateY(30px);opacity:0} to{transform:translateY(0);opacity:1} }
+    .hero-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; animation: slideUp .6s .45s ease both; }
+    .btn-hero { display: inline-flex; align-items: center; gap: .5rem; padding: .9rem 2.2rem; border-radius: 999px; font-size: .95rem; font-weight: 800; text-decoration: none; transition: .2s; }
+    .btn-primary-hero {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff; box-shadow: 0 8px 30px rgba(99,102,241,.5);
+      animation: glowPulse 2.5s 1.5s ease-in-out infinite;
+    }
+    @keyframes glowPulse {
+      0%,100% { box-shadow: 0 8px 30px rgba(99,102,241,.5); }
+      50%      { box-shadow: 0 12px 40px rgba(139,92,246,.8), 0 0 60px rgba(99,102,241,.3); }
+    }
+    .btn-primary-hero:hover { transform: translateY(-2px); box-shadow: 0 14px 40px rgba(99,102,241,.7); }
+    .btn-outline-hero { background: rgba(255,255,255,.08); color: #e2e8f0; border: 1.5px solid rgba(255,255,255,.25); }
+    .btn-outline-hero:hover { background: rgba(255,255,255,.16); transform: translateY(-2px); }
+    .hero-meta { margin-top: .85rem; font-size: .78rem; color: #64748b; animation: slideUp .6s .6s ease both; }
+    .hero-stats { display: flex; gap: 0; justify-content: center; flex-wrap: wrap; margin-top: 4rem; padding-top: 2.5rem; border-top: 1px solid rgba(255,255,255,.1); animation: slideUp .6s .75s ease both; }
+    .hero-stat { padding: 0 2.5rem; text-align: center; position: relative; }
+    .hero-stat:not(:last-child)::after { content:''; position:absolute; right:0; top:15%; height:70%; width:1px; background: rgba(255,255,255,.12); }
+    .hero-stat .num { font-size: 2.1rem; font-weight: 900; background: linear-gradient(135deg, #a5b4fc, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero-stat .lbl { font-size: .75rem; color: #64748b; margin-top: .2rem; font-weight: 500; }
+
+    /* ── TICKER ── */
+    .ticker-section { background: linear-gradient(90deg, #1e1b4b, #312e81, #1e1b4b); overflow: hidden; padding: .7rem 0; }
+    .ticker-track { display: flex; gap: 3rem; white-space: nowrap; animation: tickScroll 22s linear infinite; }
+    .ticker-track:hover { animation-play-state: paused; }
+    .ticker-track span { font-size: .8rem; font-weight: 700; color: #a5b4fc; display: inline-flex; align-items: center; gap: .4rem; flex-shrink: 0; }
+    .ticker-track .sep { color: rgba(165,180,252,.3); }
+    @keyframes tickScroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
 
     /* ── SECTIONS ── */
-    section { padding: 5rem 1.5rem; }
+    section { padding: 5.5rem 1.5rem; }
     .container { max-width: 1100px; margin: 0 auto; }
-    .section-tag { color: var(--brand); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: .5rem; }
-    .section-title { font-size: clamp(1.5rem,3.5vw,2.2rem); font-weight: 800; color: var(--dark); margin-bottom: 1rem; }
-    .section-sub { color: #64748b; font-size: 1rem; max-width: 560px; }
+    .section-tag { display: inline-flex; align-items: center; gap: .4rem; color: var(--brand); font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: .6rem; }
+    .section-tag::before { content:''; width:18px; height:2px; background: var(--brand); border-radius:2px; }
+    .section-title { font-size: clamp(1.6rem, 3.5vw, 2.4rem); font-weight: 900; color: var(--dark); margin-bottom: 1rem; }
+    .section-sub { color: #64748b; font-size: 1rem; max-width: 560px; line-height: 1.7; }
+    .text-center { text-align: center; }
 
-    /* ── FEATURES GRID ── */
-    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 1.5rem; margin-top: 3rem; }
-    .feature-card { border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; background: #fff; transition: .2s; }
-    .feature-card:hover { border-color: var(--brand); box-shadow: 0 4px 20px rgba(99,102,241,.1); transform: translateY(-2px); }
-    .feature-icon { width: 46px; height: 46px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 1rem; }
-    .feature-card h3 { font-size: .95rem; font-weight: 700; color: var(--dark); margin-bottom: .4rem; }
-    .feature-card p { font-size: .83rem; color: #64748b; line-height: 1.55; }
+    /* ── REVEAL ANIMATIONS ── */
+    .reveal { opacity: 0; transform: translateY(32px); transition: opacity .65s ease, transform .65s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-delay-1 { transition-delay: .1s; }
+    .reveal-delay-2 { transition-delay: .2s; }
+    .reveal-delay-3 { transition-delay: .3s; }
+    .reveal-delay-4 { transition-delay: .4s; }
+
+    /* ── FEATURES ── */
+    #features { background: #fff; }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(265px,1fr)); gap: 1.25rem; margin-top: 3rem; }
+    .feature-card {
+      border: 1.5px solid var(--border); border-radius: 16px; padding: 1.6rem;
+      background: #fff; transition: .25s; position: relative; overflow: hidden;
+    }
+    .feature-card::before {
+      content: ''; position: absolute; inset: 0; opacity: 0;
+      background: linear-gradient(135deg, rgba(99,102,241,.06), rgba(139,92,246,.04));
+      transition: opacity .25s;
+    }
+    .feature-card:hover { border-color: var(--brand); box-shadow: 0 8px 32px rgba(99,102,241,.14); transform: translateY(-4px); }
+    .feature-card:hover::before { opacity: 1; }
+    .feature-icon { width: 50px; height: 50px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; margin-bottom: 1.1rem; transition: transform .25s; }
+    .feature-card:hover .feature-icon { transform: scale(1.15) rotate(-4deg); }
+    .feature-card h3 { font-size: .95rem; font-weight: 800; color: var(--dark); margin-bottom: .4rem; }
+    .feature-card p { font-size: .83rem; color: #64748b; line-height: 1.6; }
+
+    /* ── SCREENSHOTS ── */
+    #screenshots { background: linear-gradient(180deg, #f1f5f9 0%, #e8edf5 100%); }
+    .ss-tabs { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.75rem; }
+    .ss-tab { padding: .45rem 1.1rem; border-radius: 999px; font-size: .82rem; font-weight: 700; border: 2px solid var(--border); background: #fff; color: #64748b; cursor: pointer; transition: .15s; }
+    .ss-tab:hover { border-color: var(--brand); color: var(--brand); }
+    .ss-tab.active { background: linear-gradient(135deg, var(--brand), var(--brand2)); border-color: transparent; color: #fff; box-shadow: 0 4px 14px rgba(99,102,241,.35); }
+    .ss-frame { border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.18); border: 1px solid #d1d9e6; }
+    .ss-bar { background: #dde3ed; padding: .6rem 1rem; display: flex; align-items: center; gap: .5rem; }
+    .ss-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .ss-bar-url { flex: 1; background: #fff; border-radius: 6px; padding: .22rem .8rem; font-size: .75rem; color: #94a3b8; margin: 0 .5rem; }
+    .ss-img-wrap { display: none; }
+    .ss-img-wrap.active { display: block; animation: fadeIn .3s ease; }
+    .ss-img-wrap img { width: 100%; display: block; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
 
     /* ── PRICING ── */
     #pricing { background: var(--light); }
     .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 1.5rem; margin-top: 3rem; }
-    .pricing-card { background: #fff; border: 2px solid var(--border); border-radius: 16px; padding: 2rem; position: relative; }
-    .pricing-card.popular { border-color: var(--brand); }
-    .popular-badge { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: var(--brand); color: #fff; font-size: .72rem; font-weight: 700; padding: .25rem .9rem; border-radius: 999px; white-space: nowrap; }
-    .pricing-tier { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--brand); margin-bottom: .5rem; }
-    .pricing-price { font-size: 3rem; font-weight: 800; color: var(--dark); line-height: 1; }
-    .pricing-price sup { font-size: 1.4rem; font-weight: 700; vertical-align: super; }
-    .pricing-once { font-size: .78rem; color: #64748b; margin-top: .35rem; font-weight: 500; }
-    .pricing-desc { color: #64748b; font-size: .85rem; margin: 1rem 0 1.5rem; }
-    .pricing-features { list-style: none; display: flex; flex-direction: column; gap: .55rem; margin-bottom: 2rem; }
-    .pricing-features li { display: flex; align-items: flex-start; gap: .5rem; font-size: .85rem; color: #334155; }
-    .pricing-features li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
-    .pricing-features li.no::before { content: '✕'; color: #cbd5e1; }
-    .pricing-features li.no { color: #94a3b8; }
-    .btn-pricing { display: block; text-align: center; padding: .75rem; border-radius: 10px; font-weight: 700; font-size: .9rem; text-decoration: none; transition: .2s; }
-    .btn-pricing-primary { background: var(--brand); color: #fff; }
-    .btn-pricing-primary:hover { background: #4f46e5; }
-    .btn-pricing-outline { border: 2px solid var(--border); color: var(--dark); }
-    .btn-pricing-outline:hover { border-color: var(--brand); color: var(--brand); }
-    .pricing-note { text-align: center; color: #64748b; font-size: .82rem; margin-top: 1.5rem; }
+    .pricing-card { background: #fff; border: 2px solid var(--border); border-radius: 20px; padding: 2.25rem; position: relative; transition: .25s; }
+    .pricing-card:hover { transform: translateY(-4px); box-shadow: 0 16px 48px rgba(0,0,0,.1); }
+    .pricing-card.popular { border-color: var(--brand); background: linear-gradient(180deg, #fafafe 0%, #fff 100%); box-shadow: 0 12px 40px rgba(99,102,241,.18); }
+    .popular-badge { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--brand), var(--brand2)); color: #fff; font-size: .72rem; font-weight: 800; padding: .28rem 1rem; border-radius: 999px; white-space: nowrap; box-shadow: 0 4px 12px rgba(99,102,241,.4); }
+    .pricing-tier { font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: var(--brand); margin-bottom: .5rem; }
+    .pricing-price { font-size: 3.2rem; font-weight: 900; color: var(--dark); line-height: 1; }
+    .pricing-price sup { font-size: 1.5rem; font-weight: 800; vertical-align: super; color: var(--brand); }
+    .pricing-once { font-size: .78rem; color: #94a3b8; margin-top: .35rem; font-weight: 600; }
+    .pricing-desc { color: #64748b; font-size: .85rem; margin: 1rem 0 1.5rem; line-height: 1.6; }
+    .pricing-features { list-style: none; display: flex; flex-direction: column; gap: .6rem; margin-bottom: 2rem; }
+    .pricing-features li { display: flex; align-items: flex-start; gap: .55rem; font-size: .85rem; color: #334155; }
+    .pricing-features li .chk { flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .65rem; font-weight: 800; margin-top: 2px; }
+    .pricing-features li .chk.yes { background: #dcfce7; color: #16a34a; }
+    .pricing-features li .chk.no  { background: #f1f5f9; color: #94a3b8; }
+    .pricing-features li.no-feat { color: #94a3b8; }
+    .btn-pricing { display: block; text-align: center; padding: .8rem; border-radius: 12px; font-weight: 800; font-size: .9rem; text-decoration: none; transition: .2s; cursor: pointer; border: none; font-family: inherit; width: 100%; }
+    .btn-pricing-primary { background: linear-gradient(135deg, var(--brand), var(--brand2)); color: #fff; box-shadow: 0 6px 20px rgba(99,102,241,.35); }
+    .btn-pricing-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(99,102,241,.5); }
+    .btn-pricing-outline { border: 2px solid var(--border); color: var(--dark); background: transparent; }
+    .btn-pricing-outline:hover { border-color: var(--brand); color: var(--brand); background: #f5f3ff; }
+    .pricing-note { text-align: center; color: #64748b; font-size: .82rem; margin-top: 1.75rem; line-height: 1.7; }
+    .pricing-download { text-align: center; margin-top: 2.5rem; }
+    .pricing-download a { display: inline-flex; align-items: center; gap: .6rem; background: var(--dark); color: #fff; padding: .9rem 2rem; border-radius: 999px; font-weight: 800; text-decoration: none; font-size: .9rem; transition: .2s; }
+    .pricing-download a:hover { background: #1e293b; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+    .pricing-download p { font-size: .75rem; color: #94a3b8; margin-top: .6rem; }
 
     /* ── HOW IT WORKS ── */
-    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 2rem; margin-top: 3rem; }
-    .step { text-align: center; }
-    .step-num { width: 52px; height: 52px; background: linear-gradient(135deg,var(--brand),var(--brand2)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; color: #fff; margin: 0 auto 1rem; }
-    .step h3 { font-size: .95rem; font-weight: 700; color: var(--dark); margin-bottom: .4rem; }
-    .step p { font-size: .83rem; color: #64748b; }
+    #how { background: #fff; }
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 0; margin-top: 3.5rem; position: relative; }
+    .steps::before { content:''; position:absolute; top:26px; left:10%; right:10%; height:2px; background: linear-gradient(90deg, var(--brand), var(--pink)); opacity:.2; border-radius:2px; }
+    .step { text-align: center; padding: 0 1rem; }
+    .step-num { width: 52px; height: 52px; margin: 0 auto 1.25rem; background: linear-gradient(135deg, var(--brand), var(--brand2)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 900; color: #fff; box-shadow: 0 6px 20px rgba(99,102,241,.4); transition: .3s; }
+    .step:hover .step-num { transform: scale(1.15) rotate(-5deg); box-shadow: 0 10px 30px rgba(99,102,241,.6); }
+    .step h3 { font-size: .95rem; font-weight: 800; color: var(--dark); margin-bottom: .45rem; }
+    .step p { font-size: .83rem; color: #64748b; line-height: 1.6; }
 
     /* ── FAQ ── */
-    #faq { background: var(--light); }
-    .faq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px,1fr)); gap: 1.5rem; margin-top: 2.5rem; }
-    .faq-item { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1.5rem; }
-    .faq-item h4 { font-size: .9rem; font-weight: 700; color: var(--dark); margin-bottom: .5rem; }
-    .faq-item p { font-size: .83rem; color: #64748b; line-height: 1.6; }
+    #faq { background: linear-gradient(180deg, #f8fafc, #f1f5f9); }
+    .faq-list { margin-top: 2.5rem; display: flex; flex-direction: column; gap: .75rem; max-width: 780px; margin-left: auto; margin-right: auto; }
+    .faq-item { background: #fff; border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden; transition: border-color .2s, box-shadow .2s; }
+    .faq-item:hover { border-color: #c7d2fe; box-shadow: 0 4px 16px rgba(99,102,241,.08); }
+    .faq-q { display: flex; align-items: center; justify-content: space-between; padding: 1.1rem 1.4rem; cursor: pointer; font-weight: 700; font-size: .9rem; color: var(--dark); gap: 1rem; user-select: none; }
+    .faq-q .icon { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: .8rem; color: var(--brand); transition: .2s; font-style: normal; }
+    .faq-item.open .faq-q .icon { background: var(--brand); color: #fff; transform: rotate(45deg); }
+    .faq-a { max-height: 0; overflow: hidden; transition: max-height .35s ease, padding .35s; padding: 0 1.4rem; font-size: .85rem; color: #475569; line-height: 1.7; }
+    .faq-item.open .faq-a { max-height: 400px; padding: 0 1.4rem 1.2rem; }
 
     /* ── CTA BANNER ── */
-    .cta-banner { background: linear-gradient(135deg, #1e1b4b, #312e81); color: #fff; text-align: center; padding: 5rem 1.5rem; }
-    .cta-banner h2 { font-size: clamp(1.5rem,3vw,2rem); font-weight: 800; margin-bottom: 1rem; }
-    .cta-banner p { color: #a5b4fc; margin-bottom: 2rem; font-size: 1rem; }
+    .cta-banner { background: linear-gradient(135deg, #1e1b4b, #312e81, #1e1b4b); color: #fff; text-align: center; padding: 6rem 1.5rem; position: relative; overflow: hidden; }
+    .cta-banner::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 50%, rgba(99,102,241,.4) 0%, transparent 60%), radial-gradient(ellipse at 80% 50%, rgba(236,72,153,.3) 0%, transparent 55%); }
+    .cta-banner .inner { position: relative; }
+    .cta-banner h2 { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 900; margin-bottom: 1rem; }
+    .cta-banner p { color: #a5b4fc; margin-bottom: 2.5rem; font-size: 1.05rem; }
 
     /* ── FOOTER ── */
-    footer { background: var(--dark); color: #94a3b8; padding: 2rem 1.5rem; text-align: center; font-size: .82rem; }
-    footer a { color: #94a3b8; text-decoration: none; }
+    footer { background: var(--dark); color: #64748b; padding: 2.5rem 1.5rem; text-align: center; font-size: .82rem; }
+    footer a { color: #64748b; text-decoration: none; transition: color .15s; }
     footer a:hover { color: #fff; }
-
-    /* ── SCREENSHOTS ── */
-    #screenshots { background: #f1f5f9; }
-    .ss-intro { max-width: 600px; margin-bottom: 2.5rem; }
-    .ss-tabs { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.75rem; }
-    .ss-tab {
-      padding: .42rem 1rem; border-radius: 999px; font-size: .82rem; font-weight: 600;
-      border: 2px solid var(--border); background: #fff; color: #64748b; cursor: pointer;
-      transition: .15s;
-    }
-    .ss-tab:hover { border-color: var(--brand); color: var(--brand); }
-    .ss-tab.active { background: var(--brand); border-color: var(--brand); color: #fff; }
-    .ss-frame {
-      border-radius: 14px; overflow: hidden;
-      box-shadow: 0 8px 40px rgba(0,0,0,.14);
-      border: 1px solid var(--border);
-      background: #fff;
-    }
-    .ss-bar {
-      background: #e8edf2; padding: .55rem 1rem; display: flex; align-items: center; gap: .5rem;
-    }
-    .ss-dot { width: 12px; height: 12px; border-radius: 50%; }
-    .ss-bar-url {
-      flex: 1; background: #fff; border-radius: 6px; padding: .2rem .75rem;
-      font-size: .75rem; color: #94a3b8; margin: 0 .5rem;
-    }
-    .ss-img-wrap { display: none; }
-    .ss-img-wrap.active { display: block; }
-    .ss-img-wrap img { width: 100%; height: auto; display: block; }
-
-    /* ── UTILITIES ── */
-    .text-center { text-align: center; }
-    .mt-2 { margin-top: .75rem; }
-    @media (max-width: 640px) {
-      .nav-links { display: none; }
-      .faq-grid { grid-template-columns: 1fr; }
-    }
+    .footer-brand { display: flex; align-items: center; justify-content: center; gap: .5rem; margin-bottom: .75rem; }
 
     /* ── ORDER MODAL ── */
-    .modal-overlay {
-      display: none; position: fixed; inset: 0; z-index: 999;
-      background: rgba(15,23,42,.65); backdrop-filter: blur(4px);
-      align-items: center; justify-content: center; padding: 1.5rem;
-    }
+    .modal-overlay { display: none; position: fixed; inset: 0; z-index: 999; background: rgba(15,23,42,.7); backdrop-filter: blur(6px); align-items: center; justify-content: center; padding: 1.5rem; }
     .modal-overlay.open { display: flex; }
-    .modal-box {
-      background: #fff; border-radius: 20px; width: 100%; max-width: 480px;
-      padding: 2.25rem 2rem; box-shadow: 0 25px 60px rgba(0,0,0,.25);
-      position: relative; animation: slideUp .22s ease;
-    }
-    @keyframes slideUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
-    .modal-close {
-      position: absolute; top: 1rem; right: 1.1rem;
-      background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #94a3b8; line-height: 1;
-    }
-    .modal-close:hover { color: var(--dark); }
-    .modal-box h3 { font-size: 1.25rem; font-weight: 800; color: var(--dark); margin-bottom: .3rem; }
-    .modal-box .modal-sub { font-size: .83rem; color: #64748b; margin-bottom: 1.75rem; }
-    .modal-tier-badge {
-      display: inline-block; background: var(--brand); color: #fff;
-      font-size: .72rem; font-weight: 700; padding: .2rem .7rem; border-radius: 999px;
-      text-transform: uppercase; letter-spacing: .5px; margin-bottom: 1.25rem;
-    }
-    .form-row { margin-bottom: 1.1rem; }
-    .form-row label { display: block; font-size: .8rem; font-weight: 600; color: #475569; margin-bottom: .35rem; }
-    .form-row input, .form-row select, .form-row textarea {
-      width: 100%; padding: .65rem .85rem; border: 1.5px solid var(--border);
-      border-radius: 9px; font-size: .9rem; font-family: inherit; color: var(--dark);
-      outline: none; transition: border-color .15s;
-    }
-    .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--brand); }
-    .form-row textarea { resize: vertical; min-height: 72px; }
-    .btn-submit {
-      width: 100%; padding: .8rem; background: var(--brand); color: #fff;
-      border: none; border-radius: 10px; font-size: .95rem; font-weight: 700;
-      cursor: pointer; transition: background .15s; margin-top: .4rem;
-    }
-    .btn-submit:hover { background: #4f46e5; }
-    .btn-submit:disabled { background: #a5b4fc; cursor: not-allowed; }
+    .modal-box { background: #fff; border-radius: 24px; width: 100%; max-width: 460px; padding: 2.25rem 2rem; box-shadow: 0 30px 80px rgba(0,0,0,.3); position: relative; animation: modalPop .25s cubic-bezier(.34,1.56,.64,1); max-height: 90vh; overflow-y: auto; }
+    @keyframes modalPop { from{opacity:0;transform:scale(.85) translateY(20px)} to{opacity:1;transform:scale(1) translateY(0)} }
+    .modal-close { position: absolute; top: 1rem; right: 1rem; background: #f1f5f9; border: none; width: 30px; height: 30px; border-radius: 50%; font-size: 1rem; cursor: pointer; color: #64748b; display: flex; align-items: center; justify-content: center; transition: .15s; }
+    .modal-close:hover { background: #e2e8f0; color: var(--dark); }
+    .modal-box h3 { font-size: 1.3rem; font-weight: 900; color: var(--dark); margin-bottom: .3rem; }
+    .modal-box .modal-sub { font-size: .83rem; color: #64748b; margin-bottom: 1.5rem; }
+    .modal-tier-badge { display: inline-block; background: linear-gradient(135deg, var(--brand), var(--brand2)); color: #fff; font-size: .72rem; font-weight: 800; padding: .22rem .8rem; border-radius: 999px; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 1.25rem; }
+    .form-row { margin-bottom: 1rem; }
+    .form-row label { display: block; font-size: .8rem; font-weight: 700; color: #475569; margin-bottom: .35rem; }
+    .form-row input, .form-row select, .form-row textarea { width: 100%; padding: .65rem .85rem; border: 1.5px solid var(--border); border-radius: 10px; font-size: .9rem; font-family: inherit; color: var(--dark); outline: none; transition: border-color .15s, box-shadow .15s; background: #fff; }
+    .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
+    .form-row textarea { resize: vertical; min-height: 70px; }
+    .btn-submit { width: 100%; padding: .85rem; background: linear-gradient(135deg, var(--brand), var(--brand2)); color: #fff; border: none; border-radius: 12px; font-size: .95rem; font-weight: 800; cursor: pointer; transition: .15s; margin-top: .4rem; font-family: inherit; }
+    .btn-submit:hover { box-shadow: 0 6px 20px rgba(99,102,241,.45); transform: translateY(-1px); }
+    .btn-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
     .form-note { font-size: .75rem; color: #94a3b8; text-align: center; margin-top: .75rem; }
-    .form-success { text-align: center; padding: 2rem 0; }
-    .form-success .check { font-size: 3rem; margin-bottom: 1rem; }
-    .form-success h4 { font-size: 1.05rem; font-weight: 700; color: var(--dark); margin-bottom: .5rem; }
-    .form-success p { font-size: .85rem; color: #64748b; }
+    .form-success { text-align: center; padding: 1.5rem 0; }
+    .form-success .check { font-size: 3.5rem; margin-bottom: 1rem; animation: checkBounce .5s cubic-bezier(.34,1.56,.64,1); }
+    @keyframes checkBounce { from{transform:scale(0)} to{transform:scale(1)} }
+    .form-success h4 { font-size: 1.1rem; font-weight: 800; color: var(--dark); margin-bottom: .5rem; }
+    .form-success p { font-size: .85rem; color: #64748b; line-height: 1.6; }
+
+    /* ── SCROLL TO TOP ── */
+    #scrollTop { position: fixed; bottom: 1.5rem; right: 1.5rem; width: 42px; height: 42px; background: linear-gradient(135deg, var(--brand), var(--brand2)); color: #fff; border: none; border-radius: 50%; cursor: pointer; box-shadow: 0 6px 20px rgba(99,102,241,.4); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; opacity: 0; transform: translateY(10px); transition: .3s; z-index: 500; }
+    #scrollTop.show { opacity: 1; transform: translateY(0); }
+    #scrollTop:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(99,102,241,.55); }
+
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .hero-stat { padding: 0 1.2rem; }
+      .steps::before { display: none; }
+    }
   </style>
 </head>
 <body>
 
+<div id="progress-bar"></div>
+
 <!-- NAV -->
-<nav>
-  <a class="brand" href="#"><img src="store/favicon.png" alt="RamPastor" style="height:36px;width:36px;object-fit:contain;border-radius:6px;"><span>School</span>MS</a>
+<nav id="navbar">
+  <a class="brand" href="#">
+    <img src="store/favicon.png" alt="SchoolMS" class="brand-logo">
+    <span>School</span>MS
+  </a>
   <ul class="nav-links">
     <li><a href="#features">Features</a></li>
     <li><a href="#screenshots">Screenshots</a></li>
@@ -224,119 +302,155 @@
     <li><a href="#how">How It Works</a></li>
     <li><a href="#faq">FAQ</a></li>
     <li><a href="mailto:ro1manramirez73@gmail.com">Support</a></li>
+    <li><a href="#pricing" class="nav-cta">Buy Now</a></li>
   </ul>
-  <a href="#pricing" class="nav-links nav-cta">Buy Now</a>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
+  <div class="blob blob1"></div>
+  <div class="blob blob2"></div>
+  <div class="blob blob3"></div>
+  <div class="hero-particles" id="heroParticles"></div>
+
   <div class="hero-inner">
-    <div class="hero-badge">v2.0 · One-time purchase · No subscription · Yours forever</div>
-    <h1>Complete School Management<br><span>Without the Monthly Bill</span></h1>
+    <div class="hero-badge">
+      <span class="badge-dot"></span>
+      v2.0 &nbsp;·&nbsp; One-time purchase &nbsp;·&nbsp; No subscription &nbsp;·&nbsp; Yours forever
+    </div>
+    <h1>Complete School Management<br><span class="grad">Without the Monthly Bill</span></h1>
     <p>Students, attendance, grades, fees, payroll, timetables, and more — all in one app, installed on your computer, running on your network.</p>
     <div class="hero-btns">
-      <a href="https://github.com/ro1manramirez73-ops/schoolms-store/releases/download/v2.0/SchoolMS_Setup_v2.0.exe" class="btn-hero btn-primary-hero">⬇ Download Free Trial</a>
-      <a href="#pricing" class="btn-hero btn-outline-hero">See Pricing →</a>
+      <a href="https://github.com/ro1manramirez73-ops/schoolms-store/releases/download/v2.0/SchoolMS_Setup_v2.0.exe"
+         class="btn-hero btn-primary-hero">&#8659; Download Free Trial</a>
+      <a href="#pricing" class="btn-hero btn-outline-hero">See Pricing &#8594;</a>
     </div>
-    <p style="margin-top:.9rem;font-size:.78rem;color:#94a3b8">Windows 10/11 · v2.0 · License key required to activate</p>
+    <p class="hero-meta">Windows 10/11 &nbsp;·&nbsp; v2.0 &nbsp;·&nbsp; License key required to activate</p>
     <div class="hero-stats">
-      <div class="hero-stat"><div class="num">10+</div><div class="lbl">Modules included</div></div>
-      <div class="hero-stat"><div class="num">$0</div><div class="lbl">Monthly fee</div></div>
-      <div class="hero-stat"><div class="num">5 min</div><div class="lbl">To install</div></div>
-      <div class="hero-stat"><div class="num">∞</div><div class="lbl">Students & staff</div></div>
+      <div class="hero-stat">
+        <div class="num" data-count="10">0</div>
+        <div class="lbl">Modules included</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num">$0</div>
+        <div class="lbl">Monthly fee</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num" data-count="5">0</div>
+        <div class="lbl">Min to install</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num">&#8734;</div>
+        <div class="lbl">Students &amp; staff</div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- WHAT'S NEW v2.0 -->
-<div style="background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:1rem 1.5rem;">
-  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
-    <span style="background:#6366f1;color:#fff;font-size:.72rem;font-weight:700;padding:.25rem .7rem;border-radius:999px;white-space:nowrap;">NEW in v2.0</span>
-    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;">
-      <span style="font-size:.83rem;color:#334155;display:flex;align-items:center;gap:.35rem;">🌐 <strong>English &amp; Spanish</strong> — switch language with one click</span>
-      <span style="font-size:.83rem;color:#334155;display:flex;align-items:center;gap:.35rem;">📖 <strong>Built-in User Manual</strong> — role-specific PDF on every dashboard</span>
-      <span style="font-size:.83rem;color:#334155;display:flex;align-items:center;gap:.35rem;">🔢 <strong>Auto-generated IDs</strong> — unique 10-digit numbers for students &amp; staff</span>
-    </div>
+<!-- TICKER -->
+<div class="ticker-section" aria-hidden="true">
+  <div class="ticker-track">
+    <span>&#127760; <strong>English &amp; Spanish</strong> &mdash; switch with one click</span>
+    <span class="sep">&#10022;</span>
+    <span>&#128218; <strong>Built-in User Manual</strong> &mdash; role-specific PDF for every user</span>
+    <span class="sep">&#10022;</span>
+    <span>&#128290; <strong>Auto-generated IDs</strong> &mdash; unique 10-digit numbers for students &amp; staff</span>
+    <span class="sep">&#10022;</span>
+    <span>&#128274; <strong>Machine-bound license</strong> &mdash; your key, your computer, no sharing</span>
+    <span class="sep">&#10022;</span>
+    <span>&#128202; <strong>10&times; faster queries</strong> &mdash; 14 database indexes for large datasets</span>
+    <span class="sep">&#10022;</span>
+    <!-- duplicate for seamless loop -->
+    <span>&#127760; <strong>English &amp; Spanish</strong> &mdash; switch with one click</span>
+    <span class="sep">&#10022;</span>
+    <span>&#128218; <strong>Built-in User Manual</strong> &mdash; role-specific PDF for every user</span>
+    <span class="sep">&#10022;</span>
+    <span>&#128290; <strong>Auto-generated IDs</strong> &mdash; unique 10-digit numbers for students &amp; staff</span>
+    <span class="sep">&#10022;</span>
+    <span>&#128274; <strong>Machine-bound license</strong> &mdash; your key, your computer, no sharing</span>
+    <span class="sep">&#10022;</span>
+    <span>&#128202; <strong>10&times; faster queries</strong> &mdash; 14 database indexes for large datasets</span>
+    <span class="sep">&#10022;</span>
   </div>
 </div>
 
 <!-- FEATURES -->
 <section id="features">
   <div class="container">
-    <div class="section-tag">What's included</div>
-    <div class="section-title">Everything your school needs</div>
-    <p class="section-sub">One purchase, every module. No add-ons. No per-seat fees. No cloud dependency.</p>
+    <div class="section-tag reveal">What&rsquo;s included</div>
+    <h2 class="section-title reveal">Everything your school needs</h2>
+    <p class="section-sub reveal">One purchase, every module. No add-ons. No per-seat fees. No cloud dependency.</p>
 
     <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#ede9fe">👨‍🎓</div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:#ede9fe">&#127891;</div>
         <h3>Student Management</h3>
         <p>Full student profiles, enrollment, parent contacts, medical notes, photo IDs, and status tracking.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#dcfce7">✅</div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon" style="background:#dcfce7">&#9989;</div>
         <h3>Attendance</h3>
         <p>Daily attendance by class or student. Absence summaries and exportable reports for any date range.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#fef3c7">📚</div>
-        <h3>Grades & Report Cards</h3>
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon" style="background:#fef3c7">&#128221;</div>
+        <h3>Grades &amp; Report Cards</h3>
         <p>Enter grades by subject, auto-calculate averages, and print professional report cards and IEPs.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#fee2e2">💰</div>
-        <h3>Fees & Finance</h3>
+      <div class="feature-card reveal reveal-delay-4">
+        <div class="feature-icon" style="background:#fee2e2">&#128176;</div>
+        <h3>Fees &amp; Finance</h3>
         <p>Track tuition, fees, and payments per student. Print receipts. Monitor outstanding balances at a glance.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#e0f2fe">💼</div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:#e0f2fe">&#128188;</div>
         <h3>Staff Payroll</h3>
-        <p>Full payroll system — salaries, NIB contributions, deductions, loans, payslip PDFs, and monthly reports. Staff sync with the school roster automatically.</p>
+        <p>Full payroll &mdash; salaries, NIB contributions, deductions, loans, payslip PDFs, and monthly reports.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#f0fdf4">📅</div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon" style="background:#f0fdf4">&#128197;</div>
         <h3>Timetable</h3>
         <p>Build weekly class schedules, assign teachers, and let staff and students view their own timetable.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#fdf4ff">📢</div>
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon" style="background:#fdf4ff">&#128226;</div>
         <h3>Announcements</h3>
         <p>Post school-wide or role-specific announcements. Staff and parents see them on login.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#fff7ed">👨‍👩‍👧</div>
-        <h3>Parent & Student Portals</h3>
+      <div class="feature-card reveal reveal-delay-4">
+        <div class="feature-icon" style="background:#fff7ed">&#128106;</div>
+        <h3>Parent &amp; Student Portals</h3>
         <p>Parents and students get their own secure login to view grades, attendance, fees, and announcements.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#f8fafc">🔐</div>
-        <h3>Roles & Permissions</h3>
-        <p>Admin, teacher, accountant, front-desk, parent, and student roles — each with customisable access.</p>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:#f8fafc">&#128274;</div>
+        <h3>Roles &amp; Permissions</h3>
+        <p>Admin, teacher, accountant, front-desk, parent, and student roles &mdash; each with customisable access.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#eff6ff">📊</div>
-        <h3>Reports & Export</h3>
-        <p>Financial reports, attendance summaries, payroll exports — download as PDF or CSV at any time.</p>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon" style="background:#eff6ff">&#128202;</div>
+        <h3>Reports &amp; Export</h3>
+        <p>Financial reports, attendance summaries, payroll exports &mdash; download as PDF or CSV any time.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#f0fdf4">🌐</div>
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon" style="background:#f0fdf4">&#128241;</div>
         <h3>Works on Any Device</h3>
-        <p>Open from any phone, tablet, or computer on the same Wi-Fi. Installable as a PWA app on mobile.</p>
+        <p>Open from any phone, tablet, or computer on the same Wi-Fi. Installable as a PWA on mobile.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#fef9c3">⚙</div>
-        <h3>School Settings</h3>
-        <p>Set your school name, address, logo, timezone, and contact info. Everything appears branded to your school.</p>
+      <div class="feature-card reveal reveal-delay-4">
+        <div class="feature-icon" style="background:#fef9c3">&#11088;</div>
+        <h3>School Branding</h3>
+        <p>Set your school name, logo, and icon from the app. Everything appears branded to your school.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#ede9fe">🌐</div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:#ede9fe">&#127758;</div>
         <h3>English &amp; Spanish</h3>
-        <p>Switch the entire interface between English and Spanish with one click — sidebar, dashboard, labels, and buttons all change instantly. No restart needed.</p>
+        <p>Switch the entire interface between English and Spanish with one click &mdash; no restart needed.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:#ecfdf5">📖</div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon" style="background:#ecfdf5">&#128218;</div>
         <h3>Built-in User Manual</h3>
-        <p>Every user gets a role-specific PDF manual on their dashboard — tailored to Admin, Teacher, Parent, or Student. Opens directly in the browser, ready to print.</p>
+        <p>Every user gets a role-specific PDF manual on their dashboard &mdash; Admin, Teacher, Parent, or Student.</p>
       </div>
     </div>
   </div>
@@ -345,11 +459,11 @@
 <!-- SCREENSHOTS -->
 <section id="screenshots">
   <div class="container">
-    <div class="section-tag">See it in action</div>
-    <h2 class="section-title ss-intro">Real screenshots from the app</h2>
-    <p class="section-sub ss-intro" style="margin-bottom:0">Every module shown here is included in all plans. No upsells, no locked features.</p>
+    <div class="section-tag reveal">See it in action</div>
+    <h2 class="section-title reveal">Real screenshots from the app</h2>
+    <p class="section-sub reveal">Every module shown here is included in all plans. No upsells, no locked features.</p>
 
-    <div class="ss-tabs">
+    <div class="ss-tabs reveal" style="margin-top:2rem">
       <button class="ss-tab active" onclick="showSS('dashboard',this)">Dashboard</button>
       <button class="ss-tab" onclick="showSS('students',this)">Students</button>
       <button class="ss-tab" onclick="showSS('finances',this)">Finances</button>
@@ -357,120 +471,112 @@
       <button class="ss-tab" onclick="showSS('payroll',this)">Payroll</button>
     </div>
 
-    <div class="ss-frame">
+    <div class="ss-frame reveal">
       <div class="ss-bar">
         <div class="ss-dot" style="background:#ef4444"></div>
         <div class="ss-dot" style="background:#f59e0b"></div>
         <div class="ss-dot" style="background:#22c55e"></div>
-        <div class="ss-bar-url" id="ss-url">localhost:5000 — Dashboard</div>
+        <div class="ss-bar-url" id="ss-url">localhost:5000 &mdash; Dashboard</div>
       </div>
       <div class="ss-img-wrap active" id="ss-dashboard">
-        <img src="store/screenshots/dashboard.png" alt="Dashboard" loading="lazy">
+        <img src="screenshots/dashboard.png" alt="Dashboard screenshot" loading="lazy">
       </div>
       <div class="ss-img-wrap" id="ss-students">
-        <img src="store/screenshots/students.png" alt="Students" loading="lazy">
+        <img src="screenshots/students.png" alt="Students screenshot" loading="lazy">
       </div>
       <div class="ss-img-wrap" id="ss-finances">
-        <img src="store/screenshots/finances.png" alt="Finances" loading="lazy">
+        <img src="screenshots/finances.png" alt="Finances screenshot" loading="lazy">
       </div>
       <div class="ss-img-wrap" id="ss-attendance">
-        <img src="store/screenshots/attendance.png" alt="Attendance" loading="lazy">
+        <img src="screenshots/attendance.png" alt="Attendance screenshot" loading="lazy">
       </div>
       <div class="ss-img-wrap" id="ss-payroll">
-        <img src="store/screenshots/payroll.png" alt="Payroll" loading="lazy">
+        <img src="screenshots/payroll.png" alt="Payroll screenshot" loading="lazy">
       </div>
     </div>
   </div>
 </section>
 
-<script>
-function showSS(name, btn) {
-  document.querySelectorAll('.ss-img-wrap').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.ss-tab').forEach(el => el.classList.remove('active'));
-  document.getElementById('ss-' + name).classList.add('active');
-  btn.classList.add('active');
-  var labels = {dashboard:'Dashboard',students:'Students',finances:'Finances',attendance:'Attendance',payroll:'Payroll'};
-  document.getElementById('ss-url').textContent = 'localhost:5000 — ' + labels[name];
-}
-</script>
-
 <!-- PRICING -->
 <section id="pricing">
   <div class="container">
-    <div class="section-tag text-center">Simple pricing</div>
-    <div class="section-title text-center">One price. Own it forever.</div>
-    <p class="section-sub text-center" style="margin:0 auto">No monthly fees. No per-student charges. Pay once, use it as long as you want.</p>
+    <div class="section-tag text-center reveal">Simple pricing</div>
+    <h2 class="section-title text-center reveal">One price. Own it forever.</h2>
+    <p class="section-sub text-center reveal" style="margin:0 auto">No monthly fees. No per-student charges. Pay once, use it as long as you want.</p>
 
     <div class="pricing-grid">
       <!-- Starter -->
-      <div class="pricing-card">
+      <div class="pricing-card reveal reveal-delay-1">
         <div class="pricing-tier">Starter</div>
         <div class="pricing-price"><sup>$</sup>300</div>
         <div class="pricing-once">one-time payment</div>
         <p class="pricing-desc">For very small schools or tutoring centres.</p>
         <ul class="pricing-features">
-          <li>Up to 10 staff accounts</li>
-          <li>All core modules</li>
-          <li>Students, attendance, grades</li>
-          <li>Fees & finance</li>
-          <li>Payroll system</li>
-          <li>Parent & student portals</li>
-          <li>PDF reports & payslips</li>
-          <li class="no">Unlimited staff accounts</li>
+          <li><span class="chk yes">&#10003;</span> Up to 10 staff accounts</li>
+          <li><span class="chk yes">&#10003;</span> All core modules</li>
+          <li><span class="chk yes">&#10003;</span> Students, attendance, grades</li>
+          <li><span class="chk yes">&#10003;</span> Fees &amp; finance</li>
+          <li><span class="chk yes">&#10003;</span> Payroll system</li>
+          <li><span class="chk yes">&#10003;</span> Parent &amp; student portals</li>
+          <li><span class="chk yes">&#10003;</span> PDF reports &amp; payslips</li>
+          <li class="no-feat"><span class="chk no">&#10005;</span> Unlimited staff accounts</li>
         </ul>
         <button onclick="openOrder('starter','$300')" class="btn-pricing btn-pricing-outline">Order Starter</button>
       </div>
 
       <!-- Standard (popular) -->
-      <div class="pricing-card popular">
-        <div class="popular-badge">Most Popular</div>
+      <div class="pricing-card popular reveal reveal-delay-2">
+        <div class="popular-badge">&#11088; Most Popular</div>
         <div class="pricing-tier">Standard</div>
         <div class="pricing-price"><sup>$</sup>450</div>
         <div class="pricing-once">one-time payment</div>
         <p class="pricing-desc">For small and mid-size schools.</p>
         <ul class="pricing-features">
-          <li>Up to 30 staff accounts</li>
-          <li>All core modules</li>
-          <li>Students, attendance, grades</li>
-          <li>Fees & finance</li>
-          <li>Payroll system</li>
-          <li>Parent & student portals</li>
-          <li>PDF reports & payslips</li>
-          <li>QuickBooks sync</li>
-          <li>Priority email support</li>
+          <li><span class="chk yes">&#10003;</span> Up to 30 staff accounts</li>
+          <li><span class="chk yes">&#10003;</span> All core modules</li>
+          <li><span class="chk yes">&#10003;</span> Students, attendance, grades</li>
+          <li><span class="chk yes">&#10003;</span> Fees &amp; finance</li>
+          <li><span class="chk yes">&#10003;</span> Payroll system</li>
+          <li><span class="chk yes">&#10003;</span> Parent &amp; student portals</li>
+          <li><span class="chk yes">&#10003;</span> PDF reports &amp; payslips</li>
+          <li><span class="chk yes">&#10003;</span> QuickBooks sync</li>
+          <li><span class="chk yes">&#10003;</span> Priority email support</li>
         </ul>
         <button onclick="openOrder('standard','$450')" class="btn-pricing btn-pricing-primary">Order Standard</button>
       </div>
 
       <!-- Professional -->
-      <div class="pricing-card">
+      <div class="pricing-card reveal reveal-delay-3">
         <div class="pricing-tier">Professional</div>
         <div class="pricing-price"><sup>$</sup>600</div>
         <div class="pricing-once">one-time payment</div>
         <p class="pricing-desc">For larger schools or multi-campus sites.</p>
         <ul class="pricing-features">
-          <li>Unlimited staff accounts</li>
-          <li>All core modules</li>
-          <li>Students, attendance, grades</li>
-          <li>Fees & finance</li>
-          <li>Payroll system</li>
-          <li>Parent & student portals</li>
-          <li>PDF reports & payslips</li>
-          <li>QuickBooks sync</li>
-          <li>Priority email + phone support</li>
-          <li>Remote setup assistance</li>
+          <li><span class="chk yes">&#10003;</span> Unlimited staff accounts</li>
+          <li><span class="chk yes">&#10003;</span> All core modules</li>
+          <li><span class="chk yes">&#10003;</span> Students, attendance, grades</li>
+          <li><span class="chk yes">&#10003;</span> Fees &amp; finance</li>
+          <li><span class="chk yes">&#10003;</span> Payroll system</li>
+          <li><span class="chk yes">&#10003;</span> Parent &amp; student portals</li>
+          <li><span class="chk yes">&#10003;</span> PDF reports &amp; payslips</li>
+          <li><span class="chk yes">&#10003;</span> QuickBooks sync</li>
+          <li><span class="chk yes">&#10003;</span> Priority email + phone support</li>
+          <li><span class="chk yes">&#10003;</span> Remote setup assistance</li>
         </ul>
         <button onclick="openOrder('professional','$600')" class="btn-pricing btn-pricing-outline">Order Professional</button>
       </div>
     </div>
 
-    <p class="pricing-note">
-      All purchases include lifetime access to the version you buy. You receive a license key by email, enter it on first launch, and you're set.<br>
-      Need a custom quote or volume pricing? <a href="mailto:ro1manramirez73@gmail.com" style="color:var(--brand)">Contact us</a>.
+    <p class="pricing-note reveal">
+      All purchases include lifetime access to the version you buy. You receive a license key by email,
+      enter it on first launch, and you&rsquo;re set.<br>
+      Need a custom quote? <a href="mailto:ro1manramirez73@gmail.com" style="color:var(--brand);font-weight:700">Contact us</a>.
     </p>
-    <div style="text-align:center;margin-top:2rem">
-      <a href="https://github.com/ro1manramirez73-ops/schoolms-store/releases/download/v2.0/SchoolMS_Setup_v2.0.exe" class="btn-hero btn-primary-hero" style="display:inline-block;background:var(--dark);color:#fff">⬇ Download Installer v2.0 — Free</a>
-      <p style="font-size:.78rem;color:#94a3b8;margin-top:.6rem">Windows 10/11 · v2.0 · Requires license key to activate</p>
+    <div class="pricing-download reveal">
+      <a href="https://github.com/ro1manramirez73-ops/schoolms-store/releases/download/v2.0/SchoolMS_Setup_v2.0.exe">
+        &#8659; Download Installer v2.0 &mdash; Free
+      </a>
+      <p>Windows 10/11 &nbsp;&middot;&nbsp; v2.0 &nbsp;&middot;&nbsp; Requires license key to activate</p>
     </div>
   </div>
 </section>
@@ -478,28 +584,28 @@ function showSS(name, btn) {
 <!-- HOW IT WORKS -->
 <section id="how">
   <div class="container">
-    <div class="section-tag text-center">Setup in minutes</div>
-    <div class="section-title text-center">How it works</div>
+    <div class="section-tag text-center reveal">Setup in minutes</div>
+    <h2 class="section-title text-center reveal">How it works</h2>
     <div class="steps">
-      <div class="step">
+      <div class="step reveal reveal-delay-1">
         <div class="step-num">1</div>
         <h3>Download</h3>
-        <p>Download the free installer from this page. It's 2.2 MB and works on any Windows 10 or 11 computer.</p>
+        <p>Download the free installer from this page. Under 3 MB, works on any Windows 10 or 11 computer.</p>
       </div>
-      <div class="step">
+      <div class="step reveal reveal-delay-2">
         <div class="step-num">2</div>
         <h3>Purchase a Key</h3>
-        <p>Choose a plan and place your order. You'll receive a license key by email within 24 hours of payment.</p>
+        <p>Choose a plan and place your order. You&rsquo;ll receive a license key by email within 24 hours.</p>
       </div>
-      <div class="step">
+      <div class="step reveal reveal-delay-3">
         <div class="step-num">3</div>
-        <h3>Install & Activate</h3>
-        <p>Run the installer, open the app, and enter your license key. Setup takes under 5 minutes.</p>
+        <h3>Install &amp; Activate</h3>
+        <p>Run the installer, open the app, and enter your license key. The activation screen guides you through it.</p>
       </div>
-      <div class="step">
+      <div class="step reveal reveal-delay-4">
         <div class="step-num">4</div>
-        <h3>Go</h3>
-        <p>Add your staff, import students, and start using it. Any device on your Wi-Fi can access it through the browser.</p>
+        <h3>Go!</h3>
+        <p>Add your staff, import students, and start using it. Any device on your Wi-Fi can access it via the browser.</p>
       </div>
     </div>
   </div>
@@ -508,95 +614,133 @@ function showSS(name, btn) {
 <!-- FAQ -->
 <section id="faq">
   <div class="container">
-    <div class="section-tag text-center">Questions</div>
-    <div class="section-title text-center">Frequently asked</div>
-    <div class="faq-grid">
-      <div class="faq-item">
-        <h4>Does it run without the internet?</h4>
-        <p>Yes. After the initial install, the app runs completely offline. Staff access it through your local network — no cloud needed.</p>
+    <div class="section-tag text-center reveal">Questions</div>
+    <h2 class="section-title text-center reveal">Frequently asked</h2>
+    <div class="faq-list">
+
+      <div class="faq-item reveal">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Does it run without the internet?
+          <span class="icon">+</span>
+        </div>
+        <div class="faq-a">Yes. After the initial install, the app runs completely offline on your local network. No cloud needed, no data sent anywhere.</div>
       </div>
-      <div class="faq-item">
-        <h4>Can multiple computers use it at the same time?</h4>
-        <p>Yes. Install it on one computer (your "server") and every other device on the same Wi-Fi can open it in any browser — phones, tablets, laptops.</p>
+
+      <div class="faq-item reveal">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Can multiple computers use it at the same time?
+          <span class="icon">+</span>
+        </div>
+        <div class="faq-a">Yes. Install it on one computer (your &ldquo;server&rdquo;) and every other device on the same Wi-Fi can open it in any browser &mdash; phones, tablets, laptops, all at once.</div>
       </div>
-      <div class="faq-item">
-        <h4>How many students can I add?</h4>
-        <p>Unlimited students in all plans. The staff account limits only apply to login accounts, not student records.</p>
+
+      <div class="faq-item reveal">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          How many students can I add?
+          <span class="icon">+</span>
+        </div>
+        <div class="faq-a">Unlimited students in all plans. The staff account limits only apply to login accounts, not to student records.</div>
       </div>
-      <div class="faq-item">
-        <h4>What operating system is required?</h4>
-        <p>Windows 10 or Windows 11. The server computer runs the app; every other device just needs a browser (Chrome, Safari, Firefox, Edge).</p>
+
+      <div class="faq-item reveal">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          What operating system is required?
+          <span class="icon">+</span>
+        </div>
+        <div class="faq-a">Windows 10 or Windows 11 on the server computer. Every other device &mdash; including Macs, phones, tablets &mdash; just needs a browser (Chrome, Safari, Firefox, Edge).</div>
       </div>
-      <div class="faq-item">
-        <h4>Is there a subscription or renewal fee?</h4>
-        <p>No. You pay once and own that version forever. Future major updates may be offered at a discounted upgrade price.</p>
+
+      <div class="faq-item reveal">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Is there a subscription or renewal fee?
+          <span class="icon">+</span>
+        </div>
+        <div class="faq-a">No. You pay once and own that version forever. Future major updates may be offered at a discounted upgrade price, but the software you buy never expires.</div>
       </div>
-      <div class="faq-item">
-        <h4>What's included in the payroll module?</h4>
-        <p>Full payroll management — salaries, NIB contributions, deductions (bank loans, credit union, etc.), loan tracking, payslip PDFs, and monthly payroll reports. Staff added in the school system automatically appear in payroll.</p>
+
+      <div class="faq-item reveal">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          What&rsquo;s included in the payroll module?
+          <span class="icon">+</span>
+        </div>
+        <div class="faq-a">Full payroll management &mdash; salaries, NIB contributions, deductions (bank loans, credit union, etc.), loan tracking, payslip PDFs, and monthly payroll reports. Staff added to the school system automatically appear in payroll.</div>
       </div>
-      <div class="faq-item">
-        <h4>Do you offer support?</h4>
-        <p>Yes. Email support is included with all plans. Standard and Professional plans have priority response. Professional also includes a remote setup call.</p>
+
+      <div class="faq-item reveal">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Do you offer support?
+          <span class="icon">+</span>
+        </div>
+        <div class="faq-a">Yes. Email support is included with all plans. Standard and Professional plans have priority response. Professional also includes a remote setup call so we can walk you through the configuration live.</div>
       </div>
-      <div class="faq-item">
-        <h4>Can I get a refund?</h4>
-        <p>If the software cannot be installed or run on your computer within 14 days, contact us for a full refund. We'll first try to resolve any issues remotely.</p>
+
+      <div class="faq-item reveal">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Can I get a refund?
+          <span class="icon">+</span>
+        </div>
+        <div class="faq-a">If the software cannot be installed or run on your computer within 14 days of purchase, contact us for a full refund. We&rsquo;ll first try to resolve any issues remotely.</div>
       </div>
-      <div class="faq-item">
-        <h4>Is it available in Spanish?</h4>
-        <p>Yes. v2.0 includes full English and Spanish support. Any user can switch the language from the sidebar with a single click — the entire interface updates instantly with no restart required.</p>
+
+      <div class="faq-item reveal">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Is it available in Spanish?
+          <span class="icon">+</span>
+        </div>
+        <div class="faq-a">Yes. v2.0 includes full English and Spanish support. Any user can switch the language from the sidebar with a single click &mdash; the entire interface updates instantly with no restart required.</div>
       </div>
-      <div class="faq-item">
-        <h4>What's new in v2.0?</h4>
-        <p>v2.0 adds: full English/Spanish bilingual interface, a built-in role-based user manual (PDF) accessible from every user's dashboard, automatic 10-digit unique ID generation for students and staff, and a unified ID system across students, staff, and payroll.</p>
-        <p style="margin-top:.65rem;color:#475569;">The current build also includes significant under-the-hood improvements: database query optimizations (up to 10× faster page loads on large datasets), 14 query indexes, per-request connection pooling, rotating server logs, a <code style="font-size:.8em;background:#f1f5f9;padding:.1rem .35rem;border-radius:4px;">/health</code> endpoint for uptime monitoring, automatic slow-request detection, and background email delivery so the UI never freezes.</p>
+
+      <div class="faq-item reveal">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          What&rsquo;s new in v2.0?
+          <span class="icon">+</span>
+        </div>
+        <div class="faq-a">v2.0 adds: full English/Spanish bilingual interface, a built-in role-based user manual (PDF) from every dashboard, automatic 10-digit unique ID generation for students and staff, database query optimizations (up to 10&times; faster on large datasets), 14 query indexes, per-request connection pooling, rotating server logs, a /health endpoint for uptime monitoring, automatic slow-request detection, and background email delivery so the UI never freezes.</div>
       </div>
+
     </div>
   </div>
 </section>
 
-<!-- CTA -->
+<!-- CTA BANNER -->
 <section class="cta-banner">
-  <div class="container">
+  <div class="inner container">
     <h2>Ready to simplify your school admin?</h2>
-    <p>Get SchoolMS today — one payment, every feature, no recurring costs.</p>
-    <a href="#pricing" class="btn-hero btn-primary-hero">See Pricing →</a>
-    <div style="margin-top:1.5rem;font-size:.82rem;color:#818cf8">
-      Questions first? <a href="mailto:ro1manramirez73@gmail.com" style="color:#a5b4fc;text-decoration:underline">Email us</a>
+    <p>Get SchoolMS today &mdash; one payment, every feature, no recurring costs.</p>
+    <a href="#pricing" class="btn-hero btn-primary-hero" style="display:inline-flex">See Pricing &#8594;</a>
+    <div style="margin-top:1.5rem;font-size:.83rem;color:#818cf8">
+      Questions first? <a href="mailto:ro1manramirez73@gmail.com" style="color:#a5b4fc;text-decoration:underline;font-weight:600">Email us</a>
     </div>
   </div>
 </section>
 
 <!-- FOOTER -->
 <footer>
-  <div style="margin-bottom:.5rem">
-    <a href="mailto:ro1manramirez73@gmail.com">ro1manramirez73@gmail.com</a>
-    &nbsp;·&nbsp;
-    <a href="mailto:ro1manramirez73@gmail.com">ro1manramirez73@gmail.com</a>
+  <div class="footer-brand">
+    <img src="store/favicon.png" alt="SchoolMS" style="height:26px;width:26px;object-fit:contain;border-radius:5px;">
+    <span style="color:#fff;font-weight:700;">RamPastor</span>
+    <span>Inversiones &amp; Pr&eacute;stamos</span>
   </div>
   <div style="margin-bottom:.5rem">
-    <img src="store/favicon.png" alt="RamPastor" style="height:32px;width:32px;object-fit:contain;vertical-align:middle;margin-right:.4rem;border-radius:5px;">
-    <span style="color:#fff;font-weight:600;">RamPastor</span> <span style="color:#64748b;">Inversiones &amp; Préstamos</span>
+    <a href="mailto:ro1manramirez73@gmail.com">ro1manramirez73@gmail.com</a>
   </div>
-  <div>&copy; 2026 SchoolMS. All rights reserved.</div>
+  <div style="color:#334155;">&copy; 2026 SchoolMS. All rights reserved.</div>
 </footer>
+
+<!-- SCROLL TO TOP -->
+<button id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top" aria-label="Back to top">&#8593;</button>
 
 <!-- ORDER MODAL -->
 <div class="modal-overlay" id="orderModal" onclick="closeOnOverlay(event)">
   <div class="modal-box">
-    <button class="modal-close" onclick="closeOrder()" aria-label="Close">&times;</button>
-
-    <!-- Form view -->
-    <div id="orderForm">
+    <button class="modal-close" onclick="closeOrder()" aria-label="Close">&#10005;</button>
+    <div id="orderFormWrap">
       <h3>Place Your Order</h3>
-      <p class="modal-sub">Fill in your details and we'll send your license key once payment is confirmed.</p>
-      <div class="modal-tier-badge" id="tierBadge">Starter — $300</div>
-
+      <p class="modal-sub">Fill in your details and we&rsquo;ll send your license key once payment is confirmed.</p>
+      <div class="modal-tier-badge" id="tierBadge">Starter &mdash; $300</div>
       <form id="orderFormEl" action="https://formspree.io/f/xvzyvlez" method="POST">
         <input type="hidden" name="tier" id="tierInput">
         <input type="hidden" name="price" id="priceInput">
-
         <div class="form-row">
           <label for="fname">Your Name *</label>
           <input type="text" id="fname" name="name" required placeholder="Full name">
@@ -625,77 +769,124 @@ function showSS(name, btn) {
           <label for="fnotes">Questions or notes (optional)</label>
           <textarea id="fnotes" name="notes" placeholder="Any questions about the software, network setup, etc."></textarea>
         </div>
-
         <button type="submit" class="btn-submit" id="submitBtn">Send Order Request</button>
-        <p class="form-note">We'll reply within 24 hours with payment instructions and your license key.</p>
+        <p class="form-note">We&rsquo;ll reply within 24 hours with payment instructions and your license key.</p>
       </form>
     </div>
-
-    <!-- Success view -->
     <div id="orderSuccess" style="display:none" class="form-success">
-      <div class="check">✅</div>
+      <div class="check">&#9989;</div>
       <h4>Request received!</h4>
-      <p>We'll email you at <strong id="successEmail"></strong> with payment details and your license key within 24 hours.</p>
+      <p>We&rsquo;ll email you at <strong id="successEmail"></strong> with payment details and your license key within 24 hours.</p>
     </div>
   </div>
 </div>
 
 <script>
-  function openOrder(tier, price) {
-    const labels = { starter: 'Starter', standard: 'Standard', professional: 'Professional' };
-    document.getElementById('tierBadge').textContent = labels[tier] + ' — ' + price;
-    document.getElementById('tierInput').value = labels[tier];
-    document.getElementById('priceInput').value = price;
-    document.getElementById('orderModal').classList.add('open');
-    document.getElementById('orderForm').style.display = '';
-    document.getElementById('orderSuccess').style.display = 'none';
-    document.getElementById('orderFormEl').reset();
-    document.getElementById('tierInput').value = labels[tier];
-    document.getElementById('priceInput').value = price;
-    document.body.style.overflow = 'hidden';
+// ── Particles
+(function(){
+  var c=document.getElementById('heroParticles');
+  for(var i=0;i<35;i++){
+    var d=document.createElement('div');
+    d.className='hero-particle';
+    var sz=2+Math.random()*5;
+    d.style.cssText='left:'+Math.random()*100+'%;bottom:'+Math.random()*20+'%;width:'+sz+'px;height:'+sz+'px;animation-duration:'+(5+Math.random()*10)+'s;animation-delay:'+(-(Math.random()*12))+'s;--dx:'+(Math.random()-.5)*80+'px;opacity:'+(0.2+Math.random()*.6)+';';
+    c.appendChild(d);
   }
+})();
 
-  function closeOrder() {
-    document.getElementById('orderModal').classList.remove('open');
-    document.body.style.overflow = '';
-  }
+// ── Scroll events
+window.addEventListener('scroll',function(){
+  var pct=window.scrollY/(document.body.scrollHeight-window.innerHeight)*100;
+  document.getElementById('progress-bar').style.width=pct+'%';
+  document.getElementById('navbar').classList.toggle('scrolled',window.scrollY>40);
+  document.getElementById('scrollTop').classList.toggle('show',window.scrollY>400);
+});
 
-  function closeOnOverlay(e) {
-    if (e.target === document.getElementById('orderModal')) closeOrder();
-  }
+// ── Reveal on scroll
+var revealObs=new IntersectionObserver(function(entries){
+  entries.forEach(function(e){ if(e.isIntersecting) e.target.classList.add('visible'); });
+},{threshold:.12});
+document.querySelectorAll('.reveal').forEach(function(el){ revealObs.observe(el); });
 
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeOrder();
+// ── Count-up
+var countEls=document.querySelectorAll('[data-count]');
+var countObs=new IntersectionObserver(function(entries){
+  entries.forEach(function(e){
+    if(!e.isIntersecting) return;
+    var el=e.target, target=+el.dataset.count;
+    var cur=0, step=Math.ceil(target/40);
+    var t=setInterval(function(){
+      cur=Math.min(cur+step,target);
+      el.textContent=cur+(target>=10?'+':'');
+      if(cur>=target) clearInterval(t);
+    },40);
+    countObs.unobserve(el);
   });
+},{threshold:.5});
+countEls.forEach(function(el){ countObs.observe(el); });
 
-  document.getElementById('orderFormEl').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const btn = document.getElementById('submitBtn');
-    const email = document.getElementById('femail').value;
-    btn.disabled = true;
-    btn.textContent = 'Sending…';
-    try {
-      const res = await fetch(this.action, {
-        method: 'POST',
-        body: new FormData(this),
-        headers: { 'Accept': 'application/json' }
-      });
-      if (res.ok) {
-        document.getElementById('successEmail').textContent = email;
-        document.getElementById('orderForm').style.display = 'none';
-        document.getElementById('orderSuccess').style.display = '';
-      } else {
-        btn.disabled = false;
-        btn.textContent = 'Send Order Request';
-        alert('Something went wrong. Please email us directly at ro1manramirez73@gmail.com');
-      }
-    } catch (_) {
-      btn.disabled = false;
-      btn.textContent = 'Send Order Request';
-      alert('Network error. Please email us directly at ro1manramirez73@gmail.com');
+// ── Screenshots
+function showSS(name,btn){
+  document.querySelectorAll('.ss-img-wrap').forEach(function(el){ el.classList.remove('active'); });
+  document.querySelectorAll('.ss-tab').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById('ss-'+name).classList.add('active');
+  btn.classList.add('active');
+  var labels={dashboard:'Dashboard',students:'Students',finances:'Finances',attendance:'Attendance',payroll:'Payroll'};
+  document.getElementById('ss-url').textContent='localhost:5000 — '+labels[name];
+}
+
+// ── FAQ accordion
+function toggleFaq(q){
+  var item=q.parentElement;
+  var wasOpen=item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(function(el){ el.classList.remove('open'); });
+  if(!wasOpen) item.classList.add('open');
+}
+
+// ── Order modal
+function openOrder(tier,price){
+  var labels={starter:'Starter',standard:'Standard',professional:'Professional'};
+  document.getElementById('tierBadge').textContent=labels[tier]+' — '+price;
+  document.getElementById('tierInput').value=labels[tier];
+  document.getElementById('priceInput').value=price;
+  document.getElementById('orderFormWrap').style.display='';
+  document.getElementById('orderSuccess').style.display='none';
+  document.getElementById('orderFormEl').reset();
+  document.getElementById('tierInput').value=labels[tier];
+  document.getElementById('priceInput').value=price;
+  document.getElementById('orderModal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeOrder(){
+  document.getElementById('orderModal').classList.remove('open');
+  document.body.style.overflow='';
+}
+function closeOnOverlay(e){
+  if(e.target===document.getElementById('orderModal')) closeOrder();
+}
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeOrder(); });
+
+// ── Form submit
+document.getElementById('orderFormEl').addEventListener('submit',async function(e){
+  e.preventDefault();
+  var btn=document.getElementById('submitBtn');
+  var email=document.getElementById('femail').value;
+  btn.disabled=true; btn.textContent='Sending…';
+  try{
+    var res=await fetch(this.action,{method:'POST',body:new FormData(this),headers:{Accept:'application/json'}});
+    if(res.ok){
+      document.getElementById('successEmail').textContent=email;
+      document.getElementById('orderFormWrap').style.display='none';
+      document.getElementById('orderSuccess').style.display='';
+    } else {
+      btn.disabled=false; btn.textContent='Send Order Request';
+      alert('Something went wrong. Please email us directly at ro1manramirez73@gmail.com');
     }
-  });
+  } catch(_){
+    btn.disabled=false; btn.textContent='Send Order Request';
+    alert('Network error. Please email us directly at ro1manramirez73@gmail.com');
+  }
+});
 </script>
-
 </body>
 </html>
