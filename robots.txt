@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ro1manramirez73-ops.github.io/schoolms-store/sitemap.xml
