@@ -40,6 +40,10 @@
     .nav-links a:hover { color: var(--brand); }
     .nav-cta { background: var(--brand); color: #fff !important; padding: .45rem 1.2rem; border-radius: 999px; font-size: .85rem; font-weight: 600; text-decoration: none; transition: background .15s, transform .15s; }
     .nav-cta:hover { background: #4f46e5; transform: translateY(-1px); }
+    .lang-toggle { display: flex; align-items: center; gap: .25rem; background: var(--light); border: 1.5px solid var(--border); border-radius: 999px; padding: .2rem .25rem; }
+    .lang-btn { background: none; border: none; cursor: pointer; font-size: .78rem; font-weight: 700; color: #94a3b8; padding: .22rem .6rem; border-radius: 999px; transition: .15s; }
+    .lang-btn.active { background: var(--brand); color: #fff; }
+    .lang-btn:hover:not(.active) { color: var(--brand); }
 
     /* ── HERO ── */
     .hero {
@@ -425,34 +429,40 @@
     <span>School</span>MS
   </a>
   <ul class="nav-links">
-    <li><a href="#features">Features</a></li>
-    <li><a href="#screenshots">Screenshots</a></li>
-    <li><a href="#pricing">Pricing</a></li>
-    <li><a href="#how">How It Works</a></li>
-    <li><a href="#online">Go Online</a></li>
-    <li><a href="#requirements">Requirements</a></li>
-    <li><a href="#faq">FAQ</a></li>
-    <li><a href="mailto:ro1manramirez73@gmail.com">Support</a></li>
+    <li><a href="#features" data-en="Features" data-es="Funciones">Features</a></li>
+    <li><a href="#screenshots" data-en="Screenshots" data-es="Capturas">Screenshots</a></li>
+    <li><a href="#pricing" data-en="Pricing" data-es="Precios">Pricing</a></li>
+    <li><a href="#how" data-en="How It Works" data-es="Cómo Funciona">How It Works</a></li>
+    <li><a href="#online" data-en="Go Online" data-es="Conectarse">Go Online</a></li>
+    <li><a href="#requirements" data-en="Requirements" data-es="Requisitos">Requirements</a></li>
+    <li><a href="#faq" data-en="FAQ" data-es="Preguntas">FAQ</a></li>
+    <li><a href="mailto:ro1manramirez73@gmail.com" data-en="Support" data-es="Soporte">Support</a></li>
   </ul>
-  <a href="#pricing" class="nav-cta">Buy Now</a>
+  <div style="display:flex;align-items:center;gap:.75rem;">
+    <div class="lang-toggle">
+      <button class="lang-btn active" id="btn-en" onclick="setLang('en')">EN</button>
+      <button class="lang-btn" id="btn-es" onclick="setLang('es')">ES</button>
+    </div>
+    <a href="#pricing" class="nav-cta" data-en="Buy Now" data-es="Comprar Ahora">Buy Now</a>
+  </div>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
   <div class="hero-inner">
-    <div class="hero-badge">v2.0 &nbsp;·&nbsp; One-time purchase &nbsp;·&nbsp; No subscription</div>
-    <h1>Your Whole School, Managed —<br><span>One Payment. Forever.</span></h1>
-    <p>Students, attendance, grades, fees, payroll, and timetables — all in one app. No subscription. No vendor lock-in. Installed on your computer, yours to keep.</p>
+    <div class="hero-badge" data-en="v2.0 &nbsp;·&nbsp; One-time purchase &nbsp;·&nbsp; No subscription" data-es="v2.0 &nbsp;·&nbsp; Pago único &nbsp;·&nbsp; Sin suscripción">v2.0 &nbsp;·&nbsp; One-time purchase &nbsp;·&nbsp; No subscription</div>
+    <h1 data-en="Your Whole School, Managed —<br><span>One Payment. Forever.</span>" data-es="Tu Escuela Completa, Administrada —<br><span>Un Solo Pago. Para Siempre.</span>">Your Whole School, Managed —<br><span>One Payment. Forever.</span></h1>
+    <p data-en="Students, attendance, grades, fees, payroll, and timetables — all in one app. No subscription. No vendor lock-in. Installed on your computer, yours to keep." data-es="Estudiantes, asistencia, calificaciones, pagos, nómina y horarios — todo en una app. Sin suscripción. Sin dependencias. Instalado en tu computadora, tuyo para siempre.">Students, attendance, grades, fees, payroll, and timetables — all in one app. No subscription. No vendor lock-in. Installed on your computer, yours to keep.</p>
     <div class="hero-btns">
-      <a href="https://github.com/ro1manramirez73-ops/schoolms-store/releases/download/v2.0/SchoolMS_Setup_v2.0.exe" class="btn-hero btn-primary-hero">⬇ Download Free Trial</a>
-      <a href="#pricing" class="btn-hero btn-outline-hero">See Pricing →</a>
+      <a href="https://github.com/ro1manramirez73-ops/schoolms-store/releases/download/v2.0/SchoolMS_Setup_v2.0.exe" class="btn-hero btn-primary-hero" data-en="⬇ Download Free Trial" data-es="⬇ Descargar Prueba Gratis">⬇ Download Free Trial</a>
+      <a href="#pricing" class="btn-hero btn-outline-hero" data-en="See Pricing →" data-es="Ver Precios →">See Pricing →</a>
     </div>
-    <p class="hero-note">Windows 10/11 &nbsp;·&nbsp; v2.0 &nbsp;·&nbsp; License key required to activate</p>
+    <p class="hero-note" data-en="Windows 10/11 &nbsp;·&nbsp; v2.0 &nbsp;·&nbsp; License key required to activate" data-es="Windows 10/11 &nbsp;·&nbsp; v2.0 &nbsp;·&nbsp; Se requiere clave de licencia para activar">Windows 10/11 &nbsp;·&nbsp; v2.0 &nbsp;·&nbsp; License key required to activate</p>
     <div class="hero-stats">
-      <div class="hero-stat"><div class="num">10+</div><div class="lbl">Modules included</div></div>
-      <div class="hero-stat"><div class="num">$0</div><div class="lbl">Monthly fee</div></div>
-      <div class="hero-stat"><div class="num">5 min</div><div class="lbl">To install</div></div>
-      <div class="hero-stat"><div class="num">∞</div><div class="lbl">Students &amp; staff</div></div>
+      <div class="hero-stat"><div class="num">10+</div><div class="lbl" data-en="Modules included" data-es="Módulos incluidos">Modules included</div></div>
+      <div class="hero-stat"><div class="num">$0</div><div class="lbl" data-en="Monthly fee" data-es="Cuota mensual">Monthly fee</div></div>
+      <div class="hero-stat"><div class="num">5 min</div><div class="lbl" data-en="To install" data-es="Para instalar">To install</div></div>
+      <div class="hero-stat"><div class="num">∞</div><div class="lbl" data-en="Students &amp; staff" data-es="Estudiantes y personal">Students &amp; staff</div></div>
     </div>
   </div>
 
@@ -474,7 +484,7 @@
 <!-- TRUST BAR -->
 <div class="trust-bar">
   <div class="trust-inner">
-    <span class="trust-label">Included in every plan</span>
+    <span class="trust-label" data-en="Included in every plan" data-es="Incluido en todos los planes">Included in every plan</span>
     <div class="trust-item">
       <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#dcfce7"/><path d="M7 12l3 3 7-7" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Unlimited students
@@ -506,8 +516,8 @@
 <section style="background:#fff;padding:4.5rem 1.5rem;">
   <div class="container">
     <div style="text-align:center;margin-bottom:3rem;">
-      <div class="section-tag text-center reveal">Sound familiar?</div>
-      <div class="section-title text-center reveal reveal-delay-1">Running a school shouldn't feel like this</div>
+      <div class="section-tag text-center reveal" data-en="Sound familiar?" data-es="¿Te suena familiar?">Sound familiar?</div>
+      <div class="section-title text-center reveal reveal-delay-1" data-en="Running a school shouldn't feel like this" data-es="Administrar una escuela no debería sentirse así">Running a school shouldn't feel like this</div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.25rem;">
       <div class="reveal reveal-delay-1" style="background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:1.4rem;">
@@ -548,11 +558,11 @@
 <!-- WHAT'S NEW -->
 <div class="whats-new">
   <div class="whats-new-inner">
-    <span class="new-badge">NEW in v2.0</span>
+    <span class="new-badge" data-en="NEW in v2.0" data-es="NUEVO en v2.0">NEW in v2.0</span>
     <div class="new-items">
-      <span class="new-item">🌐 <strong>English &amp; Spanish</strong> — switch language with one click</span>
-      <span class="new-item">📖 <strong>Built-in User Manual</strong> — role-specific PDF on every dashboard</span>
-      <span class="new-item">🔢 <strong>Auto-generated IDs</strong> — unique 10-digit numbers for students &amp; staff</span>
+      <span class="new-item" data-en="🌐 <strong>English &amp; Spanish</strong> — switch language with one click" data-es="🌐 <strong>Inglés y Español</strong> — cambia de idioma con un clic">🌐 <strong>English &amp; Spanish</strong> — switch language with one click</span>
+      <span class="new-item" data-en="📖 <strong>Built-in User Manual</strong> — role-specific PDF on every dashboard" data-es="📖 <strong>Manual de Usuario integrado</strong> — PDF por rol en cada panel">📖 <strong>Built-in User Manual</strong> — role-specific PDF on every dashboard</span>
+      <span class="new-item" data-en="🔢 <strong>Auto-generated IDs</strong> — unique 10-digit numbers for students &amp; staff" data-es="🔢 <strong>IDs automáticos</strong> — números únicos de 10 dígitos para estudiantes y personal">🔢 <strong>Auto-generated IDs</strong> — unique 10-digit numbers for students &amp; staff</span>
     </div>
   </div>
 </div>
@@ -560,9 +570,9 @@
 <!-- FEATURES -->
 <section id="features">
   <div class="container">
-    <div class="section-tag reveal">What's included</div>
-    <div class="section-title reveal reveal-delay-1">Everything your school needs</div>
-    <p class="section-sub reveal reveal-delay-2">One purchase, every module. No add-ons, no per-seat fees, no cloud dependency.</p>
+    <div class="section-tag reveal" data-en="What's included" data-es="Qué incluye">What's included</div>
+    <div class="section-title reveal reveal-delay-1" data-en="Everything your school needs" data-es="Todo lo que tu escuela necesita">Everything your school needs</div>
+    <p class="section-sub reveal reveal-delay-2" data-en="One purchase, every module. No add-ons, no per-seat fees, no cloud dependency." data-es="Una compra, cada módulo. Sin complementos, sin cargos por usuario, sin dependencia de la nube.">One purchase, every module. No add-ons, no per-seat fees, no cloud dependency.</p>
 
     <div class="features-grid">
       <div class="feature-card reveal reveal-delay-1">
@@ -659,9 +669,9 @@
 <!-- SCREENSHOTS -->
 <section id="screenshots">
   <div class="container">
-    <div class="section-tag reveal">See it in action</div>
-    <h2 class="section-title ss-intro reveal reveal-delay-1">Real screenshots from the app</h2>
-    <p class="section-sub ss-intro reveal reveal-delay-2">Every module shown here is included in all plans. No upsells, no locked features.</p>
+    <div class="section-tag reveal" data-en="See it in action" data-es="Véalo en acción">See it in action</div>
+    <h2 class="section-title ss-intro reveal reveal-delay-1" data-en="Real screenshots from the app" data-es="Capturas reales de la aplicación">Real screenshots from the app</h2>
+    <p class="section-sub ss-intro reveal reveal-delay-2" data-en="Every module shown here is included in all plans. No upsells, no locked features." data-es="Todos los módulos mostrados aquí están incluidos en todos los planes. Sin ventas adicionales, sin funciones bloqueadas.">Every module shown here is included in all plans. No upsells, no locked features.</p>
 
     <div class="ss-tabs reveal reveal-delay-3">
       <button class="ss-tab active" onclick="showSS('dashboard',this)">Dashboard</button>
@@ -690,9 +700,9 @@
 <!-- COST COMPARISON -->
 <section style="background:#f8fafc;padding:5rem 1.5rem;">
   <div class="container">
-    <div class="section-tag text-center reveal">Own vs rent</div>
-    <div class="section-title text-center reveal reveal-delay-1">Most school software costs more every single year</div>
-    <p class="section-sub text-center mx-auto reveal reveal-delay-2">Subscription software charges you monthly — forever. The longer you use it, the more you pay. SchoolMS is one payment and it's yours.</p>
+    <div class="section-tag text-center reveal" data-en="Own vs rent" data-es="Comprar vs rentar">Own vs rent</div>
+    <div class="section-title text-center reveal reveal-delay-1" data-en="Most school software costs more every single year" data-es="La mayoría del software escolar cobra más cada año">Most school software costs more every single year</div>
+    <p class="section-sub text-center mx-auto reveal reveal-delay-2" data-en="Subscription software charges you monthly — forever. The longer you use it, the more you pay. SchoolMS is one payment and it's yours." data-es="El software por suscripción cobra mensualmente — para siempre. Cuanto más lo uses, más pagas. SchoolMS es un solo pago y es tuyo.">Subscription software charges you monthly — forever. The longer you use it, the more you pay. SchoolMS is one payment and it's yours.</p>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-top:3rem;max-width:820px;margin-left:auto;margin-right:auto;">
 
@@ -769,9 +779,9 @@
 <!-- PRICING -->
 <section id="pricing">
   <div class="container">
-    <div class="section-tag text-center reveal">Simple pricing</div>
-    <div class="section-title text-center reveal reveal-delay-1">One price. Own it forever.</div>
-    <p class="section-sub text-center mx-auto reveal reveal-delay-2">No monthly fees. No per-student charges. Pay once, use it as long as you want.</p>
+    <div class="section-tag text-center reveal" data-en="Simple pricing" data-es="Precios simples">Simple pricing</div>
+    <div class="section-title text-center reveal reveal-delay-1" data-en="One price. Own it forever." data-es="Un precio. Tuyo para siempre.">One price. Own it forever.</div>
+    <p class="section-sub text-center mx-auto reveal reveal-delay-2" data-en="No monthly fees. No per-student charges. Pay once, use it as long as you want." data-es="Sin cuotas mensuales. Sin cargos por estudiante. Paga una vez, úsalo todo el tiempo que quieras.">No monthly fees. No per-student charges. Pay once, use it as long as you want.</p>
 
     <div class="pricing-grid">
       <div class="pricing-card reveal reveal-delay-1">
@@ -914,8 +924,8 @@
 <!-- TESTIMONIALS -->
 <section id="testimonials">
   <div class="container">
-    <div class="section-tag text-center reveal">What schools say</div>
-    <div class="section-title text-center reveal reveal-delay-1">Trusted by school administrators</div>
+    <div class="section-tag text-center reveal" data-en="What schools say" data-es="Lo que dicen las escuelas">What schools say</div>
+    <div class="section-title text-center reveal reveal-delay-1" data-en="Trusted by school administrators" data-es="Con la confianza de administradores escolares">Trusted by school administrators</div>
     <div class="testi-grid">
       <div class="testi-card reveal reveal-delay-1">
         <div class="testi-stars">★★★★★</div>
@@ -957,8 +967,8 @@
 <!-- HOW IT WORKS -->
 <section id="how">
   <div class="container">
-    <div class="section-tag text-center reveal">Setup in minutes</div>
-    <div class="section-title text-center reveal reveal-delay-1">How it works</div>
+    <div class="section-tag text-center reveal" data-en="Setup in minutes" data-es="Configuración en minutos">Setup in minutes</div>
+    <div class="section-title text-center reveal reveal-delay-1" data-en="How it works" data-es="Cómo funciona">How it works</div>
     <div class="steps">
       <div class="step reveal reveal-delay-1">
         <div class="step-num">1</div>
@@ -987,8 +997,8 @@
 <!-- REMOTE ACCESS / CLOUDFLARE -->
 <section id="online" style="background:#fff;padding:5rem 1.5rem;">
   <div class="container">
-    <div class="section-tag reveal">Optional — Remote Access</div>
-    <div class="section-title reveal reveal-delay-1">Access your school from anywhere</div>
+    <div class="section-tag reveal" data-en="Optional — Remote Access" data-es="Opcional — Acceso Remoto">Optional — Remote Access</div>
+    <div class="section-title reveal reveal-delay-1" data-en="Access your school from anywhere" data-es="Accede a tu escuela desde cualquier lugar">Access your school from anywhere</div>
     <p class="section-sub reveal reveal-delay-2">By default SchoolMS runs on your local Wi-Fi. If you want staff, parents, or students to connect from outside campus, you can set up your own Cloudflare Tunnel — giving your system a real HTTPS URL accessible from anywhere. You create and manage your own Cloudflare account; we are not involved in that connection.</p>
 
     <!-- two-column: local vs online -->
@@ -1071,8 +1081,8 @@
 <!-- SYSTEM REQUIREMENTS -->
 <section id="requirements" style="background:#0f172a;color:#fff;padding:4rem 1.5rem;">
   <div class="container">
-    <div class="section-tag reveal" style="color:#818cf8">Before you install</div>
-    <div class="section-title reveal reveal-delay-1" style="color:#fff">System requirements</div>
+    <div class="section-tag reveal" style="color:#818cf8" data-en="Before you install" data-es="Antes de instalar">Before you install</div>
+    <div class="section-title reveal reveal-delay-1" style="color:#fff" data-en="System requirements" data-es="Requisitos del sistema">System requirements</div>
     <p class="section-sub reveal reveal-delay-2" style="color:#94a3b8">SchoolMS runs on the computer that acts as your school's server. Client devices (phones, tablets, laptops) only need a browser.</p>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.25rem;margin-top:2.5rem;">
@@ -1142,8 +1152,8 @@
 <!-- FAQ -->
 <section id="faq">
   <div class="container">
-    <div class="section-tag text-center reveal">Questions</div>
-    <div class="section-title text-center reveal reveal-delay-1">Frequently asked</div>
+    <div class="section-tag text-center reveal" data-en="Questions" data-es="Preguntas">Questions</div>
+    <div class="section-title text-center reveal reveal-delay-1" data-en="Frequently asked" data-es="Preguntas frecuentes">Frequently asked</div>
     <div class="faq-grid">
       <div class="faq-item reveal reveal-delay-1">
         <h4>Does it run without the internet?</h4>
@@ -1371,5 +1381,166 @@
     }
   });
 </script>
+
+<script>
+/* Language System */
+const ES = {
+  'Starter':'Basico','Standard':'Estandar','Professional':'Profesional',
+  'one-time payment':'pago unico',
+  'For very small schools or tutoring centres.':'Para escuelas muy pequenas o centros de tutoria.',
+  'For small and mid-size schools.':'Para escuelas pequenas y medianas.',
+  'For larger schools with a bigger team.':'Para escuelas mas grandes con equipos numerosos.',
+  'Order Starter':'Ordenar Basico','Order Standard':'Ordenar Estandar',
+  'Order Professional':'Ordenar Profesional','Order Premium':'Ordenar Premium',
+  'Up to 10 staff accounts':'Hasta 10 cuentas de personal',
+  'Up to 30 staff accounts':'Hasta 30 cuentas de personal',
+  'Up to 50 staff accounts':'Hasta 50 cuentas de personal',
+  'Unlimited staff accounts':'Cuentas de personal ilimitadas',
+  'All core modules':'Todos los modulos principales',
+  'Students, attendance, grades':'Estudiantes, asistencia, calificaciones',
+  'Fees &amp; finance':'Cuotas y finanzas','Payroll system':'Sistema de nomina',
+  'Parent &amp; student portals':'Portales para padres y estudiantes',
+  'PDF reports &amp; payslips':'Reportes PDF y recibos de nomina',
+  'QuickBooks sync':'Sincronizacion con QuickBooks',
+  'Priority email support':'Soporte por correo prioritario',
+  'Priority email + phone support':'Soporte prioritario por correo y telefono',
+  'Remote setup assistance':'Asistencia de configuracion remota',
+  'Up to 3 license keys (individual mode)':'Hasta 3 claves de licencia (modo individual)',
+  'Remote access via Cloudflare Tunnel (your own Cloudflare account required)':'Acceso remoto via Cloudflare Tunnel (requiere tu propia cuenta de Cloudflare)',
+  'Parents &amp; students: unlimited logins, access from home or campus':'Padres y estudiantes: accesos ilimitados, desde casa o el plantel',
+  '14-Day Money-Back Guarantee':'Garantia de Devolucion de 14 Dias',
+  'Download':'Descargar','Purchase a Key':'Adquirir una Clave','Go Live':'Comenzar',
+  'Install &amp; Activate':'Instalar y Activar',
+  'Get the free installer — 2.2 MB, works on any Windows 10 or 11 computer.':'Descarga el instalador gratuito — 2.2 MB, funciona en Windows 10 u 11.',
+  'Run the installer, open the app, enter your key. Done in under 5 minutes.':'Ejecuta el instalador, abre la app e ingresa tu clave. Listo en menos de 5 minutos.',
+  'Add staff, import students, and start. Any device on your Wi-Fi connects through the browser.':'Agrega personal, importa estudiantes y comienza. Cualquier dispositivo en tu Wi-Fi se conecta por el navegador.',
+  'Student Management':'Gestion de Estudiantes',
+  'Full student profiles, enrollment, parent contacts, medical notes, photo IDs, and status tracking.':'Perfiles completos, inscripcion, contactos de padres, notas medicas, IDs con foto y seguimiento de estado.',
+  'Attendance':'Asistencia',
+  'Daily attendance by class or student. Absence summaries and exportable reports for any date range.':'Asistencia diaria por clase o estudiante. Resumenes de ausencias y reportes exportables.',
+  'Grades &amp; Report Cards':'Calificaciones y Boletas',
+  'Enter grades by subject, auto-calculate averages, and print professional report cards and IEPs.':'Ingresa calificaciones por materia, calcula promedios automaticamente e imprime boletas y PIEs.',
+  'Fees &amp; Finance':'Cuotas y Finanzas',
+  'Track tuition, fees, and payments per student. Print receipts. Monitor outstanding balances at a glance.':'Registra colegiaturas, cuotas y pagos por estudiante. Imprime recibos. Monitorea saldos pendientes.',
+  'Staff Payroll':'Nomina del Personal',
+  'Full payroll — salaries, NIB contributions, deductions, loans, payslip PDFs, and monthly reports.':'Nomina completa — salarios, NIB, deducciones, prestamos, recibos PDF e informes mensuales.',
+  'Timetable':'Horarios',
+  'Build weekly class schedules, assign teachers, and let staff and students view their own timetable.':'Crea horarios semanales, asigna maestros y permite que cada quien vea el suyo.',
+  'Announcements':'Avisos',
+  'Post school-wide or role-specific announcements. Staff and parents see them on login.':'Publica avisos para toda la escuela o por rol. Personal y padres los ven al iniciar sesion.',
+  'Parent &amp; Student Portals':'Portales para Padres y Estudiantes',
+  'Secure logins for parents and students to view grades, attendance, fees, and announcements.':'Accesos seguros para que padres y estudiantes vean calificaciones, asistencia, cuotas y avisos.',
+  'Roles &amp; Permissions':'Roles y Permisos',
+  'Admin, teacher, accountant, front-desk, parent, and student roles — each fully customisable.':'Roles de administrador, maestro, contador, recepcionista, padre y estudiante — totalmente personalizables.',
+  'Reports &amp; Export':'Reportes y Exportacion',
+  'Financial reports, attendance summaries, payroll exports — PDF or CSV at any time.':'Reportes financieros, resumenes de asistencia, exportaciones de nomina — en PDF o CSV.',
+  'Works on Any Device':'Funciona en Cualquier Dispositivo',
+  'Open from any phone, tablet, or computer on the same Wi-Fi. Installable as a PWA on mobile.':'Abre desde cualquier telefono, tableta o computadora en la misma red. Instalable como PWA.',
+  'School Settings':'Configuracion de la Escuela',
+  'Set your school name, address, logo, timezone, and contact info — branded throughout the app.':'Establece el nombre, direccion, logo, zona horaria y datos de contacto de tu escuela.',
+  'Ready to simplify your school?':'Listo para simplificar tu escuela?',
+  'One payment. Every feature. No recurring costs — ever.':'Un pago. Cada funcion. Sin costos recurrentes — nunca.',
+  'Attendance in spreadsheets':'Asistencia en hojas de calculo',
+  'Every morning someone fills in a Google Sheet or paper register. Finding who was absent last Tuesday takes 10 minutes.':'Cada manana alguien llena una hoja de calculo. Encontrar quien falto el martes pasado toma 10 minutos.',
+  'Chasing fees by hand':'Cobrando pagos a mano',
+  'Paper invoices, WhatsApp reminders, no idea who still owes money until you sit down with a notebook.':'Facturas en papel, recordatorios por WhatsApp, sin idea de quien debe hasta que te sientas con un cuaderno.',
+  'Report cards take days':'Las boletas tardan dias',
+  'Teachers type grades into Word documents. Someone collects them, reformats them, prints them. One mistake means reprinting everything.':'Los maestros escriben notas en Word. Alguien las recopila, reformatea e imprime. Un error = reimprimir todo.',
+  'Payroll is a nightmare':'La nomina es una pesadilla',
+  'Manual salary calculations, separate spreadsheets for NIB, no payslips — and month-end takes the whole office a full day.':'Calculos manuales, planillas separadas para el NIB, sin recibos — y el cierre del mes toma un dia completo.',
+  'Parents always calling':'Los padres siempre llaman',
+  'SchoolMS fixes all of this':'SchoolMS resuelve todo esto',
+  'One system. Every module. Installed on your computer. No monthly fee.':'Un sistema. Cada modulo. Instalado en tu computadora. Sin cuota mensual.',
+  'See Plans →':'Ver Planes →',
+  'Typical SaaS subscription':'Suscripcion SaaS tipica',
+  'average for small school management software':'promedio para software de gestion escolar pequeno',
+  'Year 1':'Ano 1','Year 2':'Ano 2','Year 3':'Ano 3','Year 5':'Ano 5','Year 10':'Ano 10',
+  'SchoolMS — one-time':'SchoolMS — pago unico',
+  'Starter plan — lifetime license':'Plan Basico — licencia de por vida',
+  '5-year savings with SchoolMS Starter':'Ahorro en 5 anos con SchoolMS Basico',
+  'compared to a $150/month subscription':'comparado con una suscripcion de $150/mes',
+  'Does it run without the internet?':'Funciona sin internet?',
+  'Yes. After install, the app runs completely offline. Staff access it through your local network — no cloud required.':'Si. Despues de instalar, la app funciona sin conexion. El personal accede por la red local — sin nube.',
+  'Can multiple computers use it at once?':'Pueden usarlo varias computadoras al mismo tiempo?',
+  'Yes. Install on one computer (your "server") and every device on the same Wi-Fi opens it in any browser.':'Si. Instalalo en una computadora y cada dispositivo en la misma red lo abre en cualquier navegador.',
+  'How many students can I add?':'Cuantos estudiantes puedo agregar?',
+  'Unlimited students in all plans. Staff account limits only apply to login accounts, not student records.':'Estudiantes ilimitados en todos los planes. Los limites solo aplican a cuentas de inicio de sesion.',
+  'What OS is required?':'Que sistema operativo se requiere?',
+  'Windows 10 or 11 on the server. Other devices just need a browser — Chrome, Safari, Firefox, or Edge.':'Windows 10 u 11 en el servidor. Los demas dispositivos solo necesitan un navegador.',
+  'Is there a subscription or renewal fee?':'Hay cuota mensual o de renovacion?',
+  'No. Pay once and own that version forever. Future major updates may be available at a discounted upgrade price.':'No. Paga una vez y es tuyo para siempre. Las actualizaciones futuras pueden ofrecerse con descuento.',
+  'Do you offer support?':'Ofrecen soporte tecnico?',
+  'Yes. Email support in all plans. Standard and Professional have priority response. Professional includes a remote setup call.':'Si. Soporte por correo en todos los planes. Estandar y Profesional tienen respuesta prioritaria.',
+  'Can I get a refund?':'Puedo obtener un reembolso?',
+  'Is it available in Spanish?':'Esta disponible en espanol?',
+  'Yes. v2.0 includes full English and Spanish support. Switch language from the sidebar with one click — no restart needed.':'Si. La v2.0 incluye soporte completo en ingles y espanol. Cambia el idioma con un clic — sin reiniciar.',
+  'Can staff access it from home or outside school?':'El personal puede acceder desde casa o fuera de la escuela?',
+  'Complete school management software. One-time purchase. Yours forever.':'Software completo de gestion escolar. Compra unica. Tuyo para siempre.',
+  'Product':'Producto','Features':'Funciones','Screenshots':'Capturas',
+  'Pricing':'Precios','Email Support':'Soporte por Correo',
+  'Place Your Order':'Realizar tu Pedido',
+  'Your Name *':'Tu Nombre *','Full name':'Nombre completo',
+  'Email Address *':'Correo Electronico *',
+  'School / Organisation Name *':'Nombre de la Escuela / Organizacion *',
+  'e.g. Sunrise Academy':'ej. Academia Amanecer',
+  'Payment Method *':'Metodo de Pago *','— select —':'— seleccionar —',
+  'Bank Transfer':'Transferencia Bancaria',
+  'Questions or notes (optional)':'Preguntas o notas (opcional)',
+  'Any questions about the software, network setup, etc.':'Cualquier pregunta sobre el software, red, etc.',
+  'Send Order Request':'Enviar Solicitud de Pedido',
+  'Request received!':'Solicitud recibida!',
+  'School Administrator, Belize':'Administradora Escolar, Belice',
+  'Finance Manager, Honduras':'Gerente de Finanzas, Honduras',
+  'Principal, Guatemala':'Directora, Guatemala',
+  'Operating System':'Sistema Operativo','Windows 10 or 11':'Windows 10 u 11',
+  '64-bit only. The server computer must run Windows. Client devices can be anything with a browser.':'Solo 64 bits. La computadora del servidor debe tener Windows. Los clientes solo necesitan un navegador.',
+  'Processor':'Procesador','Intel Core i3 / AMD Ryzen 3':'Intel Core i3 / AMD Ryzen 3',
+  'Or any 64-bit dual-core at 1.8 GHz or faster. Any computer made after 2016 will comfortably run the app.':'O cualquier procesador de doble nucleo de 64 bits a 1.8 GHz o mas. Cualquier computadora despues de 2016 funciona bien.',
+  'Memory (RAM)':'Memoria (RAM)',
+  '4 GB minimum &nbsp;·&nbsp; 8 GB recommended':'4 GB minimo &nbsp;·&nbsp; 8 GB recomendado',
+  '4 GB is enough for the school system. 8 GB is recommended if you also run the payroll module at the same time.':'4 GB es suficiente para el sistema escolar. 8 GB se recomienda si tambien ejecutas el modulo de nomina.',
+  'Storage':'Almacenamiento','10 GB free minimum':'10 GB libres minimo',
+  '~700 MB for the app and Python runtime. The rest grows with your data — student photos, invoices, receipts, and payroll records over time.':'~700 MB para la app y el entorno Python. El resto crece con tus datos — fotos, facturas, recibos y nominas.',
+  'Network':'Red','Local Wi-Fi or Ethernet':'Wi-Fi local o Ethernet',
+  'All staff, parents, and students connect through a browser on the same network. No internet required after install.':'Todo el personal, padres y estudiantes se conectan por navegador en la misma red. Sin internet despues de instalar.',
+  'Client Devices':'Dispositivos Clientes',
+  'Any browser — phone, tablet, or laptop':'Cualquier navegador — telefono, tableta o laptop',
+  'Chrome, Firefox, Edge, or Safari. Works on Android, iPhone, iPad, Mac, and Windows — no app install needed on client devices.':'Chrome, Firefox, Edge o Safari. Funciona en Android, iPhone, iPad, Mac y Windows — sin instalar nada en los clientes.',
+};
+
+function setLang(lang) {
+  document.getElementById('btn-en').classList.toggle('active', lang==='en');
+  document.getElementById('btn-es').classList.toggle('active', lang==='es');
+  document.documentElement.lang = lang;
+  localStorage.setItem('schoolms_lang', lang);
+
+  if (lang === 'en') {
+    document.querySelectorAll('[data-en]').forEach(el => { el.innerHTML = el.dataset.en; });
+    return;
+  }
+
+  // Apply Spanish — data-es first, then ES dictionary lookup
+  document.querySelectorAll('[data-en]').forEach(el => {
+    const t = el.dataset.es || ES[el.dataset.en] || ES[(el.dataset.en||'').replace(/&amp;/g,'&')];
+    if (t) el.innerHTML = t;
+  });
+
+  // Leaf-node fallback: elements without data-en
+  document.querySelectorAll('h3,h4,button,a,label,span,p,li,div').forEach(el => {
+    if (el.dataset.en || el.children.length > 0) return;
+    const txt = el.innerHTML.trim();
+    if (!txt || txt.length > 250) return;
+    const t = ES[txt] || ES[txt.replace(/&amp;/g,'&')] || ES[txt.replace(/&/g,'&amp;')];
+    if (t) { el.dataset.en = txt; el.innerHTML = t; }
+  });
+}
+
+(function(){
+  const s = localStorage.getItem('schoolms_lang');
+  const b = (navigator.language||'').startsWith('es') ? 'es' : 'en';
+  if ((s||b) === 'es') setLang('es');
+})();
+</script>
+
 </body>
 </html>
