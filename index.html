@@ -368,6 +368,73 @@
     .footer-email { color: #475569; text-decoration: none; }
     .footer-email:hover { color: #fff; }
 
+    /* ── PLUGIN MARKETPLACE ── */
+    #plugins { background: #f8fafc; }
+    .plugin-cats {
+      display: flex; gap: .5rem; flex-wrap: wrap; margin: 2rem 0 2.5rem; justify-content: center;
+    }
+    .plugin-cat {
+      padding: .42rem 1.1rem; border-radius: 999px; font-size: .82rem; font-weight: 600;
+      border: 2px solid var(--border); background: #fff; color: #64748b; cursor: pointer; transition: .15s;
+    }
+    .plugin-cat:hover { border-color: var(--brand); color: var(--brand); }
+    .plugin-cat.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+    .plugins-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem;
+    }
+    .plugin-card {
+      background: #fff; border: 1px solid var(--border); border-radius: 18px;
+      padding: 1.5rem; transition: box-shadow .2s, border-color .2s, transform .2s;
+      display: flex; flex-direction: column; gap: .75rem;
+      position: relative; overflow: hidden;
+    }
+    .plugin-card::before {
+      content: ''; position: absolute; inset: 0; opacity: 0;
+      background: linear-gradient(135deg, rgba(99,102,241,.03), rgba(139,92,246,.03));
+      transition: opacity .2s;
+    }
+    .plugin-card:hover { border-color: var(--brand); box-shadow: 0 8px 30px rgba(99,102,241,.1); transform: translateY(-3px); }
+    .plugin-card:hover::before { opacity: 1; }
+    .plugin-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .plugin-icon { font-size: 2rem; line-height: 1; }
+    .plugin-meta { display: flex; gap: .4rem; flex-wrap: wrap; justify-content: flex-end; }
+    .plugin-badge { font-size: .68rem; font-weight: 700; padding: .18rem .6rem; border-radius: 999px; text-transform: uppercase; letter-spacing: .4px; }
+    .plugin-badge-official { background: #ede9fe; color: #6d28d9; }
+    .plugin-badge-community { background: #dcfce7; color: #15803d; }
+    .plugin-badge-new { background: #fef3c7; color: #d97706; }
+    .plugin-name { font-size: 1rem; font-weight: 700; color: var(--dark); }
+    .plugin-desc { font-size: .82rem; color: #64748b; line-height: 1.65; flex-grow: 1; }
+    .plugin-stats { display: flex; align-items: center; gap: .75rem; }
+    .plugin-stars { color: #f59e0b; font-size: .85rem; letter-spacing: .05rem; }
+    .plugin-count { font-size: .75rem; color: #94a3b8; }
+    .plugin-author { display: flex; align-items: center; gap: .5rem; font-size: .8rem; color: #64748b; }
+    .plugin-avatar {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: .72rem; font-weight: 700; flex-shrink: 0;
+    }
+    .plugin-install-btn {
+      display: block; width: 100%; padding: .6rem; border-radius: 10px;
+      background: var(--light); border: 1.5px solid var(--border); color: var(--dark);
+      font-size: .82rem; font-weight: 600; cursor: pointer; transition: .15s; text-align: center;
+      margin-top: auto;
+    }
+    .plugin-install-btn:hover { background: var(--brand); border-color: var(--brand); color: #fff; }
+    .plugin-coming-banner {
+      margin-top: 3rem; text-align: center;
+    }
+    .plugin-coming-inner {
+      display: inline-flex; flex-direction: column; align-items: center; gap: .75rem;
+      background: linear-gradient(135deg, #1e1b4b, #312e81);
+      border: 1px solid #4f46e5; border-radius: 20px; padding: 2rem 3rem;
+    }
+    .plugin-coming-badge {
+      background: rgba(99,102,241,.25); border: 1px solid rgba(99,102,241,.5);
+      color: #a5b4fc; font-size: .72rem; font-weight: 700; padding: .25rem .9rem;
+      border-radius: 999px; text-transform: uppercase; letter-spacing: .8px;
+    }
+
     /* ── UTILITIES ── */
     .text-center { text-align: center; }
     .mx-auto { margin-left: auto; margin-right: auto; }
@@ -432,6 +499,7 @@
     <li><a href="#features" data-en="Features" data-es="Funciones">Features</a></li>
     <li><a href="#screenshots" data-en="Screenshots" data-es="Capturas">Screenshots</a></li>
     <li><a href="#pricing" data-en="Pricing" data-es="Precios">Pricing</a></li>
+    <li><a href="#plugins" data-en="Plugins" data-es="Plugins">Plugins</a></li>
     <li><a href="#how" data-en="How It Works" data-es="Cómo Funciona">How It Works</a></li>
     <li><a href="#online" data-en="Go Online" data-es="Conectarse">Go Online</a></li>
     <li><a href="#requirements" data-en="Requirements" data-es="Requisitos">Requirements</a></li>
@@ -657,6 +725,221 @@
         <p>Configure your SMTP settings from the admin panel and the system sends invoice emails, fee statements, and notifications automatically.</p>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- PLUGIN MARKETPLACE -->
+<section id="plugins">
+  <div class="container">
+    <div class="section-tag text-center reveal" data-en="Extend SchoolMS" data-es="Extiende SchoolMS">Extend SchoolMS</div>
+    <h2 class="section-title text-center reveal reveal-delay-1" data-en="Plugin Marketplace" data-es="Mercado de Plugins">Plugin Marketplace</h2>
+    <p class="section-sub text-center mx-auto reveal reveal-delay-2" data-en="Add powerful extensions to your SchoolMS installation. Browse official and community plugins — install in seconds from the admin panel." data-es="Agrega extensiones a tu instalación de SchoolMS. Navega plugins oficiales y de la comunidad — instala en segundos desde el panel admin.">Add powerful extensions to your SchoolMS installation. Browse official and community plugins — install in seconds from the admin panel.</p>
+
+    <div class="plugin-cats reveal reveal-delay-3">
+      <button class="plugin-cat active" onclick="filterPlugins('all',this)" data-en="All" data-es="Todos">All</button>
+      <button class="plugin-cat" onclick="filterPlugins('communication',this)" data-en="Communication" data-es="Comunicación">Communication</button>
+      <button class="plugin-cat" onclick="filterPlugins('academic',this)" data-en="Academic" data-es="Académico">Academic</button>
+      <button class="plugin-cat" onclick="filterPlugins('finance',this)" data-en="Finance" data-es="Finanzas">Finance</button>
+      <button class="plugin-cat" onclick="filterPlugins('admin',this)" data-en="Admin" data-es="Admin">Admin</button>
+    </div>
+
+    <div class="plugins-grid" id="pluginsGrid">
+
+      <div class="plugin-card reveal reveal-delay-1" data-cat="communication">
+        <div class="plugin-card-header">
+          <div class="plugin-icon">💬</div>
+          <div class="plugin-meta">
+            <span class="plugin-badge plugin-badge-official">Official</span>
+          </div>
+        </div>
+        <div class="plugin-name">WhatsApp Notifications</div>
+        <p class="plugin-desc">Send automated WhatsApp messages to parents for attendance, fees due, and announcements. Integrates with WhatsApp Business API.</p>
+        <div class="plugin-stats">
+          <span class="plugin-stars">★★★★★</span>
+          <span class="plugin-count">892 installs</span>
+        </div>
+        <div class="plugin-author">
+          <div class="plugin-avatar">S</div>
+          <span>SchoolMS Team</span>
+        </div>
+        <button class="plugin-install-btn" onclick="pluginCTA(this)">View Plugin →</button>
+      </div>
+
+      <div class="plugin-card reveal reveal-delay-2" data-cat="communication">
+        <div class="plugin-card-header">
+          <div class="plugin-icon">📱</div>
+          <div class="plugin-meta">
+            <span class="plugin-badge plugin-badge-community">Community</span>
+          </div>
+        </div>
+        <div class="plugin-name">SMS Alerts</div>
+        <p class="plugin-desc">Text message notifications for parents via Twilio or local carrier. Configurable triggers: late arrival, grade posted, fee reminder.</p>
+        <div class="plugin-stats">
+          <span class="plugin-stars">★★★★☆</span>
+          <span class="plugin-count">614 installs</span>
+        </div>
+        <div class="plugin-author">
+          <div class="plugin-avatar">D</div>
+          <span>DietrichGebert</span>
+        </div>
+        <button class="plugin-install-btn" onclick="pluginCTA(this)">View Plugin →</button>
+      </div>
+
+      <div class="plugin-card reveal reveal-delay-3" data-cat="academic">
+        <div class="plugin-card-header">
+          <div class="plugin-icon">📖</div>
+          <div class="plugin-meta">
+            <span class="plugin-badge plugin-badge-official">Official</span>
+          </div>
+        </div>
+        <div class="plugin-name">Library Module</div>
+        <p class="plugin-desc">Track books, loans, and returns. Barcode scanning support, overdue alerts, and student reading history — all inside SchoolMS.</p>
+        <div class="plugin-stats">
+          <span class="plugin-stars">★★★★★</span>
+          <span class="plugin-count">1,204 installs</span>
+        </div>
+        <div class="plugin-author">
+          <div class="plugin-avatar">S</div>
+          <span>SchoolMS Team</span>
+        </div>
+        <button class="plugin-install-btn" onclick="pluginCTA(this)">View Plugin →</button>
+      </div>
+
+      <div class="plugin-card reveal reveal-delay-1" data-cat="admin">
+        <div class="plugin-card-header">
+          <div class="plugin-icon">🚌</div>
+          <div class="plugin-meta">
+            <span class="plugin-badge plugin-badge-community">Community</span>
+          </div>
+        </div>
+        <div class="plugin-name">Transport Manager</div>
+        <p class="plugin-desc">Bus routes, driver assignments, and student pickup tracking. Parents get notified when the bus is on its way — no calls needed.</p>
+        <div class="plugin-stats">
+          <span class="plugin-stars">★★★★☆</span>
+          <span class="plugin-count">387 installs</span>
+        </div>
+        <div class="plugin-author">
+          <div class="plugin-avatar">R</div>
+          <span>RamPastor Dev</span>
+        </div>
+        <button class="plugin-install-btn" onclick="pluginCTA(this)">View Plugin →</button>
+      </div>
+
+      <div class="plugin-card reveal reveal-delay-2" data-cat="finance">
+        <div class="plugin-card-header">
+          <div class="plugin-icon">📊</div>
+          <div class="plugin-meta">
+            <span class="plugin-badge plugin-badge-official">Official</span>
+            <span class="plugin-badge plugin-badge-new">New</span>
+          </div>
+        </div>
+        <div class="plugin-name">Advanced Analytics</div>
+        <p class="plugin-desc">Visual dashboards for academic performance, financial trends, and attendance patterns. Export charts to PDF or share with board members.</p>
+        <div class="plugin-stats">
+          <span class="plugin-stars">★★★★★</span>
+          <span class="plugin-count">723 installs</span>
+        </div>
+        <div class="plugin-author">
+          <div class="plugin-avatar">S</div>
+          <span>SchoolMS Team</span>
+        </div>
+        <button class="plugin-install-btn" onclick="pluginCTA(this)">View Plugin →</button>
+      </div>
+
+      <div class="plugin-card reveal reveal-delay-3" data-cat="admin">
+        <div class="plugin-card-header">
+          <div class="plugin-icon">🏥</div>
+          <div class="plugin-meta">
+            <span class="plugin-badge plugin-badge-community">Community</span>
+          </div>
+        </div>
+        <div class="plugin-name">Health Records</div>
+        <p class="plugin-desc">Student medical history, vaccination records, allergy alerts, and nurse visit log. Data stays on your own server — fully private.</p>
+        <div class="plugin-stats">
+          <span class="plugin-stars">★★★★☆</span>
+          <span class="plugin-count">445 installs</span>
+        </div>
+        <div class="plugin-author">
+          <div class="plugin-avatar">M</div>
+          <span>MedSchool.dev</span>
+        </div>
+        <button class="plugin-install-btn" onclick="pluginCTA(this)">View Plugin →</button>
+      </div>
+
+      <div class="plugin-card reveal reveal-delay-1" data-cat="academic">
+        <div class="plugin-card-header">
+          <div class="plugin-icon">📝</div>
+          <div class="plugin-meta">
+            <span class="plugin-badge plugin-badge-official">Official</span>
+            <span class="plugin-badge plugin-badge-new">New</span>
+          </div>
+        </div>
+        <div class="plugin-name">Homework Tracker</div>
+        <p class="plugin-desc">Assign homework online, let students submit work, and track completion rates per class. Teachers see who's behind before it becomes a problem.</p>
+        <div class="plugin-stats">
+          <span class="plugin-stars">★★★★★</span>
+          <span class="plugin-count">538 installs</span>
+        </div>
+        <div class="plugin-author">
+          <div class="plugin-avatar">S</div>
+          <span>SchoolMS Team</span>
+        </div>
+        <button class="plugin-install-btn" onclick="pluginCTA(this)">View Plugin →</button>
+      </div>
+
+      <div class="plugin-card reveal reveal-delay-2" data-cat="finance">
+        <div class="plugin-card-header">
+          <div class="plugin-icon">💳</div>
+          <div class="plugin-meta">
+            <span class="plugin-badge plugin-badge-community">Community</span>
+          </div>
+        </div>
+        <div class="plugin-name">Online Payments</div>
+        <p class="plugin-desc">Let parents pay fees online via Stripe or PayPal. Payments automatically update the student balance inside SchoolMS — no manual entry.</p>
+        <div class="plugin-stats">
+          <span class="plugin-stars">★★★★★</span>
+          <span class="plugin-count">961 installs</span>
+        </div>
+        <div class="plugin-author">
+          <div class="plugin-avatar">D</div>
+          <span>DietrichGebert</span>
+        </div>
+        <button class="plugin-install-btn" onclick="pluginCTA(this)">View Plugin →</button>
+      </div>
+
+      <div class="plugin-card reveal reveal-delay-3" data-cat="communication">
+        <div class="plugin-card-header">
+          <div class="plugin-icon">📅</div>
+          <div class="plugin-meta">
+            <span class="plugin-badge plugin-badge-official">Official</span>
+          </div>
+        </div>
+        <div class="plugin-name">Events Calendar</div>
+        <p class="plugin-desc">School-wide event calendar with RSVP, reminders, and iCal export. Parents and students see upcoming events from their portal.</p>
+        <div class="plugin-stats">
+          <span class="plugin-stars">★★★★☆</span>
+          <span class="plugin-count">1,089 installs</span>
+        </div>
+        <div class="plugin-author">
+          <div class="plugin-avatar">S</div>
+          <span>SchoolMS Team</span>
+        </div>
+        <button class="plugin-install-btn" onclick="pluginCTA(this)">View Plugin →</button>
+      </div>
+
+    </div>
+
+    <div class="plugin-coming-banner reveal">
+      <div class="plugin-coming-inner">
+        <span class="plugin-coming-badge">Coming in v3.0</span>
+        <div style="font-size:1.1rem;font-weight:800;color:#fff;">Plugin Marketplace is launching soon</div>
+        <p style="font-size:.85rem;color:#94a3b8;max-width:400px;text-align:center;line-height:1.65;">Browse, install, and manage plugins directly from the SchoolMS admin panel. Official and community-built — all reviewed and signed.</p>
+        <a href="mailto:ro1manramirez73@gmail.com?subject=Plugin Marketplace — notify me" style="background:var(--brand);color:#fff;text-decoration:none;padding:.65rem 1.75rem;border-radius:999px;font-size:.85rem;font-weight:700;transition:.15s;" onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='var(--brand)'">
+          Notify me when it launches →
+        </a>
+      </div>
+    </div>
+
   </div>
 </section>
 
@@ -1256,6 +1539,7 @@
         <div class="footer-col">
           <h5>Product</h5>
           <a href="#features">Features</a>
+          <a href="#plugins">Plugin Marketplace</a>
           <a href="#screenshots">Screenshots</a>
           <a href="#pricing">Pricing</a>
           <a href="#how">How It Works</a>
@@ -1344,6 +1628,29 @@
 </div>
 
 <script>
+  /* ── plugin marketplace ── */
+  function filterPlugins(cat, btn) {
+    document.querySelectorAll('.plugin-cat').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.plugin-card').forEach(card => {
+      card.style.display = (cat === 'all' || card.dataset.cat === cat) ? '' : 'none';
+    });
+  }
+  function pluginCTA(btn) {
+    const name = btn.closest('.plugin-card').querySelector('.plugin-name').textContent;
+    const orig = btn.textContent;
+    btn.textContent = '✉ Coming in v3.0';
+    btn.style.background = 'var(--brand)';
+    btn.style.borderColor = 'var(--brand)';
+    btn.style.color = '#fff';
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.style.background = '';
+      btn.style.borderColor = '';
+      btn.style.color = '';
+    }, 2200);
+  }
+
   /* ── screenshots ── */
   function showSS(name, btn) {
     document.querySelectorAll('.ss-img-wrap').forEach(el => el.classList.remove('active'));
@@ -1473,6 +1780,33 @@ const ES = {
   'A tablet in the waiting room lets clients self-register, fill in intake forms, and complete assessment questionnaires — no staff needed.':'Una tableta en sala de espera permite el auto-registro, formularios de ingreso y cuestionarios de evaluacion.',
   'Automated Emails':'Correos Automaticos',
   'Configure your SMTP settings from the admin panel and the system sends invoice emails, fee statements, and notifications automatically.':'Configura el correo desde el panel admin y el sistema envia facturas, estados de cuenta y notificaciones automaticamente.',
+  'Plugin Marketplace':'Mercado de Plugins',
+  'Extend SchoolMS':'Extiende SchoolMS',
+  'Add powerful extensions to your SchoolMS installation. Browse official and community plugins — install in seconds from the admin panel.':'Agrega extensiones a tu SchoolMS. Navega plugins oficiales y de la comunidad — instala en segundos desde el panel admin.',
+  'All':'Todos','Communication':'Comunicación','Academic':'Académico','Finance':'Finanzas',
+  'Official':'Oficial','Community':'Comunidad','New':'Nuevo',
+  'WhatsApp Notifications':'Notificaciones WhatsApp',
+  'Send automated WhatsApp messages to parents for attendance, fees due, and announcements. Integrates with WhatsApp Business API.':'Envía mensajes WhatsApp automáticos a padres por asistencia, cuotas y avisos. Integra con WhatsApp Business API.',
+  'SMS Alerts':'Alertas por SMS',
+  'Text message notifications for parents via Twilio or local carrier. Configurable triggers: late arrival, grade posted, fee reminder.':'Notificaciones por SMS a padres via Twilio. Disparadores configurables: llegada tarde, nota publicada, recordatorio de cuota.',
+  'Library Module':'Módulo de Biblioteca',
+  'Track books, loans, and returns. Barcode scanning support, overdue alerts, and student reading history — all inside SchoolMS.':'Registra libros, préstamos y devoluciones. Escaneo de códigos, alertas de vencimiento e historial de lectura.',
+  'Transport Manager':'Gestor de Transporte',
+  'Bus routes, driver assignments, and student pickup tracking. Parents get notified when the bus is on its way — no calls needed.':'Rutas de autobús, asignación de conductores y seguimiento de recogida. Los padres son notificados cuando el bus viene.',
+  'Advanced Analytics':'Analítica Avanzada',
+  'Visual dashboards for academic performance, financial trends, and attendance patterns. Export charts to PDF or share with board members.':'Tableros visuales para rendimiento académico, tendencias financieras y patrones de asistencia. Exporta gráficas a PDF.',
+  'Health Records':'Expedientes de Salud',
+  'Student medical history, vaccination records, allergy alerts, and nurse visit log. Data stays on your own server — fully private.':'Historial médico, vacunas, alertas de alergias y registro de enfermería. Los datos quedan en tu propio servidor.',
+  'Homework Tracker':'Seguimiento de Tareas',
+  'Assign homework online, let students submit work, and track completion rates per class. Teachers see who\'s behind before it becomes a problem.':'Asigna tareas en línea, recibe trabajos y monitorea el avance por clase. Los maestros ven quién va atrasado.',
+  'Online Payments':'Pagos en Línea',
+  'Let parents pay fees online via Stripe or PayPal. Payments automatically update the student balance inside SchoolMS — no manual entry.':'Permite a los padres pagar cuotas en línea via Stripe o PayPal. Los pagos actualizan el saldo automáticamente.',
+  'Events Calendar':'Calendario de Eventos',
+  'School-wide event calendar with RSVP, reminders, and iCal export. Parents and students see upcoming events from their portal.':'Calendario escolar con RSVP, recordatorios y exportación iCal. Padres y estudiantes ven los eventos desde su portal.',
+  'View Plugin →':'Ver Plugin →',
+  'Plugin Marketplace is launching soon':'El Mercado de Plugins se lanza pronto',
+  'Notify me when it launches →':'Notifícame cuando lance →',
+  'Coming in v3.0':'Próximamente en v3.0',
   'Can I import my existing student/staff data?':'Puedo importar mis datos existentes de estudiantes y personal?',
   'What\'s new in v2.5?':'Que hay de nuevo en v2.5?',
   'Ready to simplify your school?':'Listo para simplificar tu escuela?',
