@@ -827,6 +827,7 @@
           + Annual support &amp; updates: $250/yr (optional)
         </div>
         <button onclick="openOrder('tier1','$1,000')" class="btn-pricing btn-pricing-outline">Order Tier 1</button>
+        <button onclick="openPaypalOrder('tier1','$1,000')" class="btn-pricing" style="margin-top:.5rem;background:#ffc439;color:#001c3d;">💳 Pay with PayPal — Instant</button>
       </div>
 
       <div class="pricing-card popular reveal reveal-delay-2">
@@ -854,6 +855,7 @@
           + Annual support &amp; updates: $400/yr (optional)
         </div>
         <button onclick="openOrder('tier2','$1,800')" class="btn-pricing btn-pricing-primary">Order Tier 2</button>
+        <button onclick="openPaypalOrder('tier2','$1,800')" class="btn-pricing" style="margin-top:.5rem;background:#ffc439;color:#001c3d;">💳 Pay with PayPal — Instant</button>
       </div>
 
       <div class="pricing-card reveal reveal-delay-3" style="border-color:#d97706;">
@@ -898,6 +900,7 @@
           + Annual support &amp; updates: $600/yr (optional)
         </div>
         <button onclick="openOrder('tier3','$2,800')" class="btn-pricing" style="background:linear-gradient(135deg,#d97706,#f59e0b);color:#fff;">Order Tier 3</button>
+        <button onclick="openPaypalOrder('tier3','$2,800')" class="btn-pricing" style="margin-top:.5rem;background:#ffc439;color:#001c3d;">💳 Pay with PayPal — Instant</button>
       </div>
     </div>
 
@@ -1307,7 +1310,7 @@
           <label for="fschool">School / Organisation Name *</label>
           <input type="text" id="fschool" name="school" required placeholder="e.g. Sunrise Academy">
         </div>
-        <div class="form-row">
+        <div class="form-row" id="paymentMethodRow">
           <label for="fpayment">Payment Method *</label>
           <select id="fpayment" name="payment_method" required>
             <option value="">— select —</option>
@@ -1326,6 +1329,10 @@
         <button type="submit" class="btn-submit" id="submitBtn">Send Order Request</button>
         <p class="form-note">We'll reply within 24 hours with payment instructions and your license key.</p>
       </form>
+      <div id="paypalButtonRow" style="display:none;margin-top:.5rem;">
+        <div id="paypal-button-container"></div>
+        <p class="form-note">Secure checkout via PayPal — pay by PayPal balance, debit, or credit card. Your license key follows by email within 24 hours.</p>
+      </div>
     </div>
     <div id="orderSuccess" style="display:none" class="form-success">
       <div class="check">✅</div>
@@ -1353,21 +1360,103 @@
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
   /* ── order modal ── */
+  const _tierLabels = { tier1: 'Tier 1 (up to 100 students)', tier2: 'Tier 2 (100–300 students)', tier3: 'Tier 3 (300+ students)' };
+  const _tierAmounts = { tier1: 1000, tier2: 1800, tier3: 2800 };
+  let _currentTier = '', _currentPrice = '';
+
   function openOrder(tier, price) {
-    const labels = { tier1: 'Tier 1 (up to 100 students)', tier2: 'Tier 2 (100–300 students)', tier3: 'Tier 3 (300+ students)' };
-    document.getElementById('tierBadge').textContent = labels[tier] + ' — ' + price;
-    document.getElementById('tierInput').value = labels[tier];
+    _currentTier = tier; _currentPrice = price;
+    document.getElementById('tierBadge').textContent = _tierLabels[tier] + ' — ' + price;
+    document.getElementById('tierInput').value = _tierLabels[tier];
     document.getElementById('priceInput').value = price;
     document.getElementById('orderModal').classList.add('open');
     document.getElementById('orderForm').style.display = '';
+    document.getElementById('submitBtn').style.display = '';
+    document.getElementById('paymentMethodRow').style.display = '';
+    document.getElementById('paypalButtonRow').style.display = 'none';
     document.getElementById('orderSuccess').style.display = 'none';
     document.getElementById('orderFormEl').reset();
-    document.getElementById('tierInput').value = labels[tier];
+    document.getElementById('tierInput').value = _tierLabels[tier];
     document.getElementById('priceInput').value = price;
     // Show deployment choice only for Tier 3 (multi-branch)
     document.getElementById('deployRow').style.display = tier === 'tier3' ? '' : 'none';
     document.body.style.overflow = 'hidden';
   }
+
+  function openPaypalOrder(tier, price) {
+    _currentTier = tier; _currentPrice = price;
+    document.getElementById('tierBadge').textContent = _tierLabels[tier] + ' — ' + price + ' (PayPal — Instant)';
+    document.getElementById('orderModal').classList.add('open');
+    document.getElementById('orderForm').style.display = '';
+    document.getElementById('submitBtn').style.display = 'none';
+    document.getElementById('paymentMethodRow').style.display = 'none';
+    document.getElementById('paypalButtonRow').style.display = '';
+    document.getElementById('orderSuccess').style.display = 'none';
+    document.getElementById('orderFormEl').reset();
+    document.getElementById('deployRow').style.display = tier === 'tier3' ? '' : 'none';
+    document.body.style.overflow = 'hidden';
+    renderPaypalButton();
+  }
+
+  function renderPaypalButton() {
+    const container = document.getElementById('paypal-button-container');
+    container.innerHTML = '';
+    if (typeof paypal === 'undefined') {
+      container.innerHTML = '<p style="color:#b91c1c;font-size:.8rem">PayPal could not load. Please refresh the page or email us directly.</p>';
+      return;
+    }
+    paypal.Buttons({
+      style: { layout:'vertical', color:'gold', shape:'rect', label:'pay' },
+      onClick: function(data, actions) {
+        const name = document.getElementById('fname').value.trim();
+        const email = document.getElementById('femail').value.trim();
+        const school = document.getElementById('fschool').value.trim();
+        if (!name || !email || !school) {
+          alert('Please fill in your name, email, and school name before paying.');
+          return actions.reject();
+        }
+        return actions.resolve();
+      },
+      createOrder: function(data, actions) {
+        const school = document.getElementById('fschool').value.trim();
+        return actions.order.create({
+          purchase_units: [{
+            description: (_tierLabels[_currentTier] + ' — SchoolMS license (' + school + ')').slice(0, 127),
+            amount: { value: String(_tierAmounts[_currentTier]), currency_code: 'USD' }
+          }]
+        });
+      },
+      onApprove: function(data, actions) {
+        return actions.order.capture().then(function(details) {
+          const name = document.getElementById('fname').value.trim();
+          const email = document.getElementById('femail').value.trim();
+          const school = document.getElementById('fschool').value.trim();
+          const notes = document.getElementById('fnotes').value.trim();
+          const deployRowVisible = document.getElementById('deployRow').style.display !== 'none';
+          const deployment = deployRowVisible
+            ? document.querySelector('input[name="deployment_mode"]:checked').value
+            : '';
+          fetch('https://formspree.io/f/xvzyvlez', {
+            method: 'POST',
+            headers: { 'Accept':'application/json', 'Content-Type':'application/json' },
+            body: JSON.stringify({
+              name, email, school,
+              payment_method: 'PayPal — PAID (order ' + data.orderID + ')',
+              tier: _tierLabels[_currentTier], price: _currentPrice,
+              deployment_mode: deployment, notes
+            })
+          }).catch(function(){});
+          document.getElementById('successEmail').textContent = email;
+          document.getElementById('orderForm').style.display = 'none';
+          document.getElementById('orderSuccess').style.display = '';
+        });
+      },
+      onError: function(err) {
+        alert('Something went wrong with PayPal checkout. Please try again or email us directly at ro1manramirez73@gmail.com');
+      }
+    }).render('#paypal-button-container');
+  }
+
   function closeOrder() {
     document.getElementById('orderModal').classList.remove('open');
     document.body.style.overflow = '';
@@ -1580,6 +1669,7 @@ function setLang(lang) {
   if ((s||b) === 'es') setLang('es');
 })();
 </script>
+<script src="https://www.paypal.com/sdk/js?client-id=AVM0l-5U0RqAyUBec3kggKh1VsXBn7_SmgH9oPHrAc8436g8Vo8kNHtxz2d7aVKL6cTs5krwoYK37SbZ&currency=USD"></script>
 
 </body>
 </html>
