@@ -1345,6 +1345,17 @@
       <h4>Request received!</h4>
       <p>We'll email you at <strong id="successEmail"></strong> with payment details and your license key within 24 hours.</p>
     </div>
+    <div id="orderSuccessPaid" style="display:none" class="form-success">
+      <div class="check">✅</div>
+      <h4 data-en="Payment Confirmed! 🎉" data-es="¡Pago Confirmado! 🎉">Payment Confirmed! 🎉</h4>
+      <p data-en="Thank you for your purchase! Your payment has been received and confirmed."
+         data-es="¡Gracias por tu compra! Hemos recibido y confirmado tu pago.">Thank you for your purchase! Your payment has been received and confirmed.</p>
+      <p><span data-en="Your license key will be emailed to" data-es="Tu clave de licencia será enviada a">Your license key will be emailed to</span>
+         <strong id="successEmailPaid"></strong>
+         <span data-en="within 24 hours." data-es="dentro de 24 horas.">within 24 hours.</span></p>
+      <p style="font-size:.85rem;color:#64748b;" data-en="Tip: check your spam/junk folder if you don't see it. Questions? Email us at ro1manramirez73@gmail.com"
+         data-es="Consejo: revisa tu carpeta de spam si no la ves. ¿Preguntas? Escríbenos a ro1manramirez73@gmail.com">Tip: check your spam/junk folder if you don't see it. Questions? Email us at ro1manramirez73@gmail.com</p>
+    </div>
   </div>
 </div>
 
@@ -1381,6 +1392,7 @@
     document.getElementById('paymentMethodRow').style.display = '';
     document.getElementById('paypalButtonRow').style.display = 'none';
     document.getElementById('orderSuccess').style.display = 'none';
+    document.getElementById('orderSuccessPaid').style.display = 'none';
     document.getElementById('orderFormEl').reset();
     document.getElementById('tierInput').value = _tierLabels[tier];
     document.getElementById('priceInput').value = price;
@@ -1398,6 +1410,7 @@
     document.getElementById('paymentMethodRow').style.display = 'none';
     document.getElementById('paypalButtonRow').style.display = '';
     document.getElementById('orderSuccess').style.display = 'none';
+    document.getElementById('orderSuccessPaid').style.display = 'none';
     document.getElementById('orderFormEl').reset();
     document.getElementById('deployRow').style.display = tier === 'tier3' ? '' : 'none';
     document.body.style.overflow = 'hidden';
@@ -1452,9 +1465,9 @@
               deployment_mode: deployment, notes
             })
           }).catch(function(){});
-          document.getElementById('successEmail').textContent = email;
+          document.getElementById('successEmailPaid').textContent = email;
           document.getElementById('orderForm').style.display = 'none';
-          document.getElementById('orderSuccess').style.display = '';
+          document.getElementById('orderSuccessPaid').style.display = '';
         });
       },
       onError: function(err) {
